@@ -26,6 +26,8 @@ Product catalog records carry an integer `version`. Detail reads scope the produ
 
 `tags` stores reusable merchandising labels with a normalized tenant-unique name, stable opaque identifier, display color, lifecycle status, and integer version. Products carry up to 20 stable tag IDs, which lets tag names and colors change without rewriting product documents. Reads resolve labels inside the server-derived tenant scope. Only active tags can be assigned, and archive is idempotent but rejected while an active or draft product references the tag. Archived products retain their historical assignments. Migration 9 backfills empty product tag arrays and creates the tag lifecycle indexes.
 
+Products embed up to three option groups with stable option/value identifiers, current display labels, and lifecycle metadata. Sellable `productVariants` reference one value from every active group and store an immutable option signature; label changes resolve at read time without rewriting variant identity. The base/default variant mirrors the product SKU and price, while additional variants carry independent SKU, price, status, and version fields. Additional variants start with zero stock. Variant archive is idempotent, retains SKU/combination reservations and history, and is rejected while any tenant inventory projection is non-zero. Option groups cannot be added after active combinations exist, and cannot be archived while active variants reference them. Migration 10 backfills lifecycle fields and creates combination/status indexes.
+
 ## Important indexes
 
 All tenant query indexes begin with `tenantId`. The migration runner creates and versions:
@@ -37,6 +39,7 @@ All tenant query indexes begin with `tenantId`. The migration runner creates and
 - unique tenant, invitation, and store pending grant;
 - organization, invitation status, and expiry scans for capacity and cleanup;
 - unique active `tenantId + normalized SKU` and partial unique `tenantId + barcode`;
+- unique `tenantId + normalized variant SKU`, unique `tenantId + productId + option signature`, and `tenantId + productId + variant status + updatedAt` variant lifecycle queries;
 - unique `tenantId + storeId + variantId` inventory projection;
 - `tenantId + status + updatedAt` and `tenantId + category + status` product lists;
 - unique active `tenantId + normalized category name`, stable category slug, and `tenantId + category status + updatedAt` taxonomy queries;

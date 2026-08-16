@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { moneySchema } from "@/lib/money";
 import { productTagIdsSchema, type TagOption } from "@/modules/tags/schemas";
+import type {
+  ProductOptionGroup,
+  ProductVariantItem,
+} from "@/modules/variants/schemas";
 
 export const productStatusSchema = z.enum(["draft", "active", "archived"]);
 export const productTypeSchema = z.enum(["simple", "variant", "service"]);
@@ -83,17 +87,13 @@ export interface ProductListItem {
 }
 
 export interface ProductDetail extends ProductListItem {
+  type: "simple" | "variant" | "service";
   tags: TagOption[];
   version: number;
   createdAt: string;
   updatedAt: string;
-  variants: Array<{
-    id: string;
-    name: string;
-    sku: string;
-    priceMinor: number;
-    currency: string;
-  }>;
+  optionGroups: ProductOptionGroup[];
+  variants: ProductVariantItem[];
   inventory: Array<{
     storeId: string;
     storeName: string;

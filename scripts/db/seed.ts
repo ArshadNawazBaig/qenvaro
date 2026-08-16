@@ -129,6 +129,8 @@ async function main() {
             ...product,
             _id: product.id,
             normalizedSku: product.sku.toUpperCase(),
+            type: "simple",
+            optionGroups: [],
             ...metadata(tenantA),
             allowedStoreIds: [
               "store_northstar_downtown",
@@ -150,6 +152,8 @@ async function main() {
             subtitle: "Harbor display set",
             sku: "GS-ANNUAL",
             normalizedSku: "GS-ANNUAL",
+            type: "simple",
+            optionGroups: [],
             slug: "growth-suite",
             priceMinor: 14900,
             currency: "USD",

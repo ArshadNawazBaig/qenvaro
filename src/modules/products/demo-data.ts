@@ -284,6 +284,7 @@ export function getDemoProductDetail(productId: string): ProductDetail | null {
   const tagOptions = getDemoTagOptions();
   return {
     ...product,
+    type: product.id === "prd_growth_suite" ? "variant" : "simple",
     tags: product.tagIds.flatMap((tagId) => {
       const tag = tagOptions.find((option) => option.id === tagId);
       return tag ? [tag] : [];
@@ -291,6 +292,21 @@ export function getDemoProductDetail(productId: string): ProductDetail | null {
     version: 1,
     createdAt: "2026-01-08T09:00:00.000Z",
     updatedAt: "2026-08-12T14:30:00.000Z",
+    optionGroups:
+      product.id === "prd_growth_suite"
+        ? [
+            {
+              id: "opt_demo_license",
+              name: "License",
+              status: "active",
+              values: [
+                { id: "val_demo_team", label: "Team" },
+                { id: "val_demo_business", label: "Business" },
+              ],
+              activeVariantCount: 2,
+            },
+          ]
+        : [],
     variants: [
       {
         id: `${product.id}_default`,
@@ -298,7 +314,54 @@ export function getDemoProductDetail(productId: string): ProductDetail | null {
         sku: product.sku,
         priceMinor: product.priceMinor,
         currency: product.currency,
+        status: "active",
+        isDefault: true,
+        optionValues: [],
+        authorizedStock: product.stock ?? 0,
+        version: 1,
       },
+      ...(product.id === "prd_growth_suite"
+        ? [
+            {
+              id: "var_demo_team",
+              name: "Team",
+              sku: "GS-TEAM",
+              priceMinor: 78000,
+              currency: product.currency,
+              status: "active" as const,
+              isDefault: false,
+              optionValues: [
+                {
+                  optionId: "opt_demo_license",
+                  optionName: "License",
+                  valueId: "val_demo_team",
+                  valueLabel: "Team",
+                },
+              ],
+              authorizedStock: 0,
+              version: 1,
+            },
+            {
+              id: "var_demo_business",
+              name: "Business",
+              sku: "GS-BUSINESS",
+              priceMinor: 149000,
+              currency: product.currency,
+              status: "active" as const,
+              isDefault: false,
+              optionValues: [
+                {
+                  optionId: "opt_demo_license",
+                  optionName: "License",
+                  valueId: "val_demo_business",
+                  valueLabel: "Business",
+                },
+              ],
+              authorizedStock: 0,
+              version: 1,
+            },
+          ]
+        : []),
     ],
     inventory:
       product.stock === null

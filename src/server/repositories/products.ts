@@ -4,6 +4,7 @@ import { requirePermission } from "@/modules/permissions/permissions";
 import { getDatabase } from "@/server/db/client";
 import type { TenantContext } from "@/server/tenancy/context";
 import type { TagColor } from "@/modules/tags/schemas";
+import type { ProductOptionGroup } from "@/modules/variants/schemas";
 import type {
   ProductDetail,
   ProductListItem,
@@ -23,6 +24,13 @@ interface ProductDocument {
   stock: number | null;
   reorderLevel: number;
   category: string;
+  type?: "simple" | "variant" | "service";
+  optionGroups?: Array<{
+    id: string;
+    name: string;
+    status: "active" | "archived";
+    values: Array<{ id: string; label: string }>;
+  }>;
   tagIds?: string[];
   status: "draft" | "active" | "archived";
   views: number;
@@ -232,6 +240,10 @@ export class ProductRepository {
           sku: string;
           priceMinor: number;
           currency: string;
+          status?: "active" | "archived";
+          isDefault?: boolean;
+          optionValues?: Array<{ optionId: string; valueId: string }>;
+          version?: number;
         }>("productVariants")
         .find(
           { tenantId: context.tenantId, productId },
@@ -242,6 +254,10 @@ export class ProductRepository {
               sku: 1,
               priceMinor: 1,
               currency: 1,
+              status: 1,
+              isDefault: 1,
+              optionValues: 1,
+              version: 1,
             },
           },
         )
@@ -298,7 +314,10 @@ export class ProductRepository {
               variantId: string;
               quantity: number;
             }>("inventoryLevels")
-            .aggregate<{ _id: string; quantity: number }>([
+            .aggregate<{
+              _id: { storeId: string; variantId: string };
+              quantity: number;
+            }>([
               {
                 $match: {
                   tenantId: context.tenantId,
@@ -306,13 +325,28 @@ export class ProductRepository {
                   variantId: { $in: variantIds },
                 },
               },
-              { $group: { _id: "$storeId", quantity: { $sum: "$quantity" } } },
+              {
+                $group: {
+                  _id: { storeId: "$storeId", variantId: "$variantId" },
+                  quantity: { $sum: "$quantity" },
+                },
+              },
             ])
             .toArray(),
     ]);
-    const quantityByStore = new Map(
-      quantities.map((quantity) => [quantity._id, quantity.quantity]),
-    );
+    const quantityByStore = new Map<string, number>();
+    const quantityByVariant = new Map<string, number>();
+    for (const quantity of quantities) {
+      quantityByStore.set(
+        quantity._id.storeId,
+        (quantityByStore.get(quantity._id.storeId) ?? 0) + quantity.quantity,
+      );
+      quantityByVariant.set(
+        quantity._id.variantId,
+        (quantityByVariant.get(quantity._id.variantId) ?? 0) +
+          quantity.quantity,
+      );
+    }
     const inventory = stores.map((store) => ({
       storeId: store._id,
       storeName: store.name,
@@ -337,6 +371,7 @@ export class ProductRepository {
       stock: authorizedStock,
       reorderLevel: product.reorderLevel,
       category: product.category,
+      type: product.type ?? "simple",
       tagIds: product.tagIds ?? [],
       tags: tags.map((tag) => ({
         id: tag._id,
@@ -350,13 +385,57 @@ export class ProductRepository {
       version: product.version,
       createdAt: product.createdAt.toISOString(),
       updatedAt: product.updatedAt.toISOString(),
-      variants: variants.map((variant) => ({
-        id: variant._id,
-        name: variant.name,
-        sku: variant.sku,
-        priceMinor: variant.priceMinor,
-        currency: variant.currency,
-      })),
+      optionGroups: (product.optionGroups ?? []).map((group) => ({
+        id: group.id,
+        name: group.name,
+        status: group.status,
+        values: group.values.map((value) => ({ ...value })),
+        activeVariantCount: variants.filter(
+          (variant) =>
+            (variant.status ?? "active") === "active" &&
+            (variant.optionValues ?? []).some(
+              (value) => value.optionId === group.id,
+            ),
+        ).length,
+      })) satisfies ProductOptionGroup[],
+      variants: variants.map((variant) => {
+        const resolvedValues = (variant.optionValues ?? []).flatMap(
+          (selection) => {
+            const group = (product.optionGroups ?? []).find(
+              (candidate) => candidate.id === selection.optionId,
+            );
+            const value = group?.values.find(
+              (candidate) => candidate.id === selection.valueId,
+            );
+            return group && value
+              ? [
+                  {
+                    optionId: group.id,
+                    optionName: group.name,
+                    valueId: value.id,
+                    valueLabel: value.label,
+                  },
+                ]
+              : [];
+          },
+        );
+        return {
+          id: variant._id,
+          name:
+            resolvedValues.length > 0
+              ? resolvedValues.map((value) => value.valueLabel).join(" / ")
+              : variant.name,
+          sku: variant.sku,
+          priceMinor: variant.priceMinor,
+          currency: variant.currency,
+          status: variant.status ?? "active",
+          isDefault:
+            variant.isDefault ?? variant._id === `${product._id}_default`,
+          optionValues: resolvedValues,
+          authorizedStock: quantityByVariant.get(variant._id) ?? 0,
+          version: variant.version ?? 1,
+        };
+      }),
       inventory,
     };
   }

@@ -1,6 +1,5 @@
 import {
   Archive,
-  Boxes,
   CalendarClock,
   Eye,
   PackageCheck,
@@ -12,6 +11,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProductDetailConsole } from "@/components/products/product-detail-console";
+import { VariantManagement } from "@/components/products/variant-management";
 import { PageHeader } from "@/components/shared/page-header";
 import { TagBadge } from "@/components/tags/tag-badge";
 import { Badge } from "@/components/ui/badge";
@@ -181,6 +181,15 @@ export default async function ProductDetailPage({
         </Card>
       </section>
 
+      <VariantManagement
+        key={`variants:${product.version}`}
+        tenantSlug={tenantSlug}
+        product={product}
+        canUpdate={canUpdate}
+        canArchive={canArchive}
+        isDemo={isDemo}
+      />
+
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.8fr)]">
         <ProductDetailConsole
           key={product.version}
@@ -257,45 +266,6 @@ export default async function ProductDetailPage({
                       >
                         {item.quantity.toLocaleString()}
                       </Badge>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Boxes className="size-4" /> Variants
-              </CardTitle>
-              <CardDescription>
-                Sellable records linked to this product.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {product.variants.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  No variants have been recorded.
-                </p>
-              ) : (
-                <ul className="space-y-3">
-                  {product.variants.map((variant) => (
-                    <li key={variant.id} className="bg-muted/45 rounded-lg p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium">{variant.name}</p>
-                          <p className="text-muted-foreground font-mono text-xs">
-                            {variant.sku}
-                          </p>
-                        </div>
-                        <span className="text-sm font-semibold">
-                          {formatMoney({
-                            amountMinor: variant.priceMinor,
-                            currency: variant.currency,
-                          })}
-                        </span>
-                      </div>
                     </li>
                   ))}
                 </ul>

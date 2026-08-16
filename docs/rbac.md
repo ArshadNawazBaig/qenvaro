@@ -13,6 +13,7 @@ Key restrictions include:
 - compensation requires `compensation:read/manage`, independent of general employee access;
 - employees can read only their linked records and own payslips;
 - sale refunds, stock adjustments, role changes, payroll transitions, and support access are audited;
+- product option and variant creation/editing requires `product:update`, while zero-stock variant and unused-option archive requires `product:archive`;
 - UI gates improve usability but never replace service authorization.
 
 ```mermaid

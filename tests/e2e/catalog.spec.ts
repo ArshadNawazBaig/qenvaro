@@ -68,6 +68,24 @@ test("public landing and product demo are usable", async ({ page }) => {
     page.getByRole("heading", { name: "Growth Suite", exact: true }),
   ).toBeVisible();
   await expect(page.getByText("Demo products are read-only")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Variants & options" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Product variants" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "New variant" }),
+  ).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Add option" })).toBeDisabled();
+  await page.setViewportSize({ width: 320, height: 700 });
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(0);
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
 });

@@ -4,7 +4,7 @@ Last updated: 2026-08-16
 
 ## Current status
 
-Phase 0 is implemented and validated, including a completed image-inspired admin design refinement checkpoint. Phase 1, Phase 2, and the first security-bounded part of Phase 6 are in progress through a coherent identity/tenant/catalog/platform slice. The repository began empty; it now builds and runs with verified auth entry flows, transactional organization/first-store onboarding, membership-authorized business and store switching, tenant team administration, owner-controlled Stripe billing, mandatory per-session 2FA for the aggregate-only platform shell, an authenticated tenant dashboard, and tenant-scoped product, category, and tag lifecycles.
+Phase 0 is implemented and validated, including a completed image-inspired admin design refinement checkpoint. Phase 1, Phase 2, and the first security-bounded part of Phase 6 are in progress through a coherent identity/tenant/catalog/platform slice. The repository began empty; it now builds and runs with verified auth entry flows, transactional organization/first-store onboarding, membership-authorized business and store switching, tenant team administration, owner-controlled Stripe billing, mandatory per-session 2FA for the aggregate-only platform shell, an authenticated tenant dashboard, and tenant-scoped product, category, tag, option-group, and variant lifecycles.
 
 ## Phases
 
@@ -31,6 +31,7 @@ Phase 0 is implemented and validated, including a completed image-inspired admin
 - Implemented tenant-scoped product detail, permission-gated catalog edits, optimistic version checks, synchronized default-variant SKU/pricing, idempotent audited archive, and authorized-store inventory summaries without permitting catalog mutations to alter inventory state.
 - Implemented category list/create/edit/archive with normalized tenant uniqueness, optimistic concurrency, transactional product-assignment rename cascades, audited mutations, archive safeguards, URL-backed filters, and read-only demo/viewer states.
 - Implemented tag list/create/edit/archive with stable identifier assignments, normalized tenant uniqueness, optimistic concurrency, audited mutations, active-product archive safeguards, product create/edit/detail integration, URL-backed catalog filtering, and read-only demo/viewer states.
+- Implemented embedded product option groups and sellable variant create/edit/archive with stable option/value identities, tenant-wide unique variant SKUs, unique product combinations, product and variant concurrency checks, audited mutations, immutable combination identity, zero-stock archive enforcement, and responsive product-detail management.
 - Implemented authenticated first-workspace onboarding with validated regional and plan choices, Better Auth organization ownership, active-organization session state, and an atomic tenant-profile/store/assignment/audit transaction with failure compensation.
 - Added explicit signup-trial access projections and read-only mutation behavior after trial expiry, cancellation, or suspension.
 - Replaced the authenticated shell identity, current business/store, usage, and empty dashboard metrics with tenant-scoped database projections while preserving the explicit unauthenticated development demo.
@@ -41,22 +42,23 @@ Phase 0 is implemented and validated, including a completed image-inspired admin
 - Added post-signature Stripe event projection from Better Auth subscription state into tenant entitlements, including active/trialing state, one bounded past-due grace period, paid-through cancellation access, platform-suspension preservation, replay protection, and durable failed-event diagnostics.
 - Kept checkout redirects informational: only verified Stripe webhook processing can update plan access.
 - Added versioned indexes, deterministic two-tenant operational fixtures, MongoDB replica-set and Mailpit Compose services, health routes, standalone Docker image, and GitHub Actions CI.
-- Ran all nine database migrations and the deterministic seed against MongoDB 8, including integration coverage for overlapping-tenant repository isolation, atomic onboarding, authorized workspace projections, cross-tenant store rejection, invitation grant activation, verified billing lifecycle projection, category/tag lifecycles, and platform security boundaries.
+- Ran all ten database migrations and the deterministic seed against MongoDB 8, including integration coverage for overlapping-tenant repository isolation, atomic onboarding, authorized workspace projections, cross-tenant store rejection, invitation grant activation, verified billing lifecycle projection, category/tag/variant lifecycles, and platform security boundaries.
 - Validated the complete authenticated onboarding flow on desktop and mobile, including accessibility, database assertions, redirect behavior, and test-data cleanup.
 - Validated business/store switching and member invitation, role/store update, cancellation, and removal on desktop and mobile, including accessibility and database assertions.
 - Validated the owner billing console on desktop and mobile, including accessibility, interval switching, safe unconfigured-provider states, and proof that a successful-return URL cannot mutate entitlements.
 - Added an environment-allowlisted, server-only platform-super-admin bootstrap command that promotes only verified existing accounts, revokes pre-promotion sessions, emits an idempotent audit, and accepts no public or ad-hoc role input.
 - Added mandatory platform TOTP enrollment and per-session second-factor assurance, including recovery-code support, lockout/throttling, a data-free security gateway, and fresh-session verification after sign-in.
 - Added a responsive protected platform shell and aggregate-only tenant entitlement, subscription, verified Stripe event, migration, and database-health overview. The repository never queries tenant business collections.
-- Ran all nine database migrations and validated platform bootstrap/access/aggregate boundaries in integration tests plus TOTP enrollment, stale-session rejection, re-verification, fresh login, and accessibility on desktop and mobile.
+- Ran all ten database migrations and validated platform bootstrap/access/aggregate boundaries in integration tests plus TOTP enrollment, stale-session rejection, re-verification, fresh login, and accessibility on desktop and mobile.
 - Validated product create/detail/edit/archive on desktop and mobile with accessibility and database assertions, plus integration evidence for cross-tenant denial, stale-write rejection, audit events, and unchanged inventory levels/movements during archive.
 - Validated category create/rename/assignment safeguard/archive on desktop and mobile with accessibility and database assertions, plus integration evidence for per-tenant uniqueness, rename cascades, stale-write rejection, permission enforcement, and retained historical assignments.
 - Validated tag normalized uniqueness, tenant isolation, product assignment reads, stable rename behavior, stale-write rejection, permission enforcement, archive safeguards, and retained historical assignments in integration tests.
+- Validated option and variant concurrency, normalized uniqueness, complete and unique combinations, tenant isolation, permission enforcement, stable option renames, SKU updates, default-variant protection, stock-bearing archive rejection, zero-stock archive, unchanged ledger/projection records, accessibility, and 320 px responsiveness.
 
 ## Pending tasks in the current slices
 
 - Expand the live dashboard from accurate empty/current totals to bounded sales trends, store comparisons, and tenant-scoped activity feeds.
-- Complete variants/images, CSV preview/import/export, inventory adjustment, and stock transfer workflows.
+- Complete product images, CSV preview/import/export, inventory adjustment, and stock transfer workflows.
 
 ## Important decisions
 
@@ -66,6 +68,7 @@ Phase 0 is implemented and validated, including a completed image-inspired admin
 - Money is stored as integer minor units. Inventory mutations use an append-only ledger and projection in a transaction.
 - Category records are the taxonomy authority. Active/draft products retain the category name for efficient catalog filtering; category rename updates those assignments transactionally, while archived products retain their historical category snapshot.
 - Tag records use stable opaque identifiers. Products store a bounded set of tag IDs, so tag display-name and color updates never rewrite product records. Only active tenant tags can be assigned, and a tag cannot be archived while an active or draft product references it; archived products retain historical assignments.
+- Option groups are bounded embedded product configuration with stable group/value IDs. Variant combination identity is immutable and uniquely indexed per product; display labels resolve from the current option definitions without rewriting variants. Variant SKUs remain reserved tenant-wide after archive. New variants begin at zero stock, and archive is rejected until every tenant store has zero projected stock; catalog lifecycle mutations never change inventory levels or movements.
 - Pages remain usable with a deterministic development demo when local infrastructure is not running; production never enables demo authorization or billing bypass implicitly.
 - The reference-inspired shell exposes only implemented destinations. The dashboard prioritizes operational hierarchy over decorative card grids; demo charts remain clearly labeled, while authenticated workspaces render honest empty analytics until tenant activity exists.
 - Stripe is only for Qenvaro subscriptions and subscription truth comes from verified, idempotent webhooks.
@@ -80,4 +83,4 @@ Phase 0 is implemented and validated, including a completed image-inspired admin
 
 ## Exact next action if interrupted
 
-Implement tenant-scoped product variants and option groups with unique SKU enforcement, validated server actions, optimistic concurrency, audited lifecycle behavior, and inventory-safe assignment rules.
+Implement tenant-scoped product image management with validated metadata, bounded ordering, accessible primary-image selection, storage-safe upload contracts, audited removal, and responsive catalog rendering.

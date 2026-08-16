@@ -483,6 +483,70 @@ const migrations: Migration[] = [
       ]);
     },
   },
+  {
+    version: 10,
+    name: "product variant and option lifecycle",
+    run: async (database) => {
+      await database.collection("products").updateMany(
+        {
+          $or: [
+            { type: { $exists: false } },
+            { optionGroups: { $exists: false } },
+          ],
+        },
+        [
+          {
+            $set: {
+              type: { $ifNull: ["$type", "simple"] },
+              optionGroups: { $ifNull: ["$optionGroups", []] },
+            },
+          },
+        ],
+      );
+      await database.collection("productVariants").updateMany(
+        {
+          $or: [
+            { status: { $exists: false } },
+            { isDefault: { $exists: false } },
+            { optionValues: { $exists: false } },
+            { optionSignature: { $exists: false } },
+          ],
+        },
+        [
+          {
+            $set: {
+              status: { $ifNull: ["$status", "active"] },
+              isDefault: {
+                $ifNull: [
+                  "$isDefault",
+                  { $regexMatch: { input: "$_id", regex: /_default$/ } },
+                ],
+              },
+              optionValues: { $ifNull: ["$optionValues", []] },
+              optionSignature: {
+                $ifNull: ["$optionSignature", { $concat: ["legacy:", "$_id"] }],
+              },
+            },
+          },
+        ],
+      );
+      await indexes(database, "productVariants", [
+        {
+          key: { tenantId: 1, productId: 1, optionSignature: 1 },
+          name: "tenant_product_variant_combination_unique",
+          unique: true,
+          partialFilterExpression: {
+            optionSignature: { $type: "string" },
+            deletedAt: null,
+          },
+        },
+        {
+          key: { tenantId: 1, productId: 1, status: 1, updatedAt: -1 },
+          name: "tenant_product_variant_status_updated",
+        },
+      ]);
+    },
+  },
 ];
 
 async function main() {
