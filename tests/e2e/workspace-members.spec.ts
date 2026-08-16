@@ -45,8 +45,10 @@ test.describe("authenticated workspace and member administration", () => {
       ...new Set(memberships.map((member) => String(member.organizationId))),
     ];
     for (const collection of [
+      "applicationRateLimits",
       "auditLogs",
       "categories",
+      "importExportJobs",
       "invitationStoreAssignments",
       "memberStoreAssignments",
       "sessionStoreSelections",
@@ -56,6 +58,7 @@ test.describe("authenticated workspace and member administration", () => {
       "productVariants",
       "inventoryMovements",
       "inventoryLevels",
+      "productImportPreviews",
     ])
       await database.collection(collection).deleteMany({
         tenantId: { $in: tenantIds },
@@ -181,6 +184,13 @@ test.describe("authenticated workspace and member administration", () => {
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 
     await page.goto(`/app/${primarySlug}/products`);
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(0);
     await page.getByRole("button", { name: "New product" }).click();
     const createProductDialog = page.getByRole("dialog");
     await createProductDialog.getByLabel("Product name").fill(productName);
@@ -290,6 +300,82 @@ test.describe("authenticated workspace and member administration", () => {
       })
       .toEqual({ status: "archived", version: 3, auditCount: 3 });
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+    const csvProductName = `CSV Travel Mug ${suffix}`;
+    const csvSku = `CSV-MUG-${suffix}`;
+    await page.goto(`/app/${primarySlug}/products`);
+    await page.getByRole("button", { name: "Import" }).click();
+    const csvDialog = page.getByRole("dialog");
+    const templateDownloadPromise = page.waitForEvent("download");
+    await csvDialog.getByRole("button", { name: "Download template" }).click();
+    expect((await templateDownloadPromise).suggestedFilename()).toBe(
+      "qenvaro-product-import-template.csv",
+    );
+    await csvDialog.getByLabel("Product CSV file").setInputFiles({
+      name: "products.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(
+        [
+          "name,sku,subtitle,category,price,opening_stock,reorder_level,status,tags",
+          `${csvProductName},${csvSku},Imported through the browser,CSV Goods,24.50,5,2,active,`,
+        ].join("\n"),
+      ),
+    });
+    await csvDialog.getByRole("button", { name: "Preview CSV" }).click();
+    await expect(csvDialog.getByText("1 product rows detected")).toBeVisible();
+    await expect(csvDialog.getByLabel("Existing SKU behavior")).toHaveValue(
+      "update",
+    );
+    await csvDialog.getByRole("button", { name: "Validate rows" }).click();
+    await expect(
+      csvDialog.getByRole("heading", { name: "Ready to import" }),
+    ).toBeVisible();
+    await csvDialog.getByRole("button", { name: "Import 1 products" }).click();
+    await expect(
+      csvDialog.getByRole("heading", { name: "Import completed" }),
+    ).toBeVisible();
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await csvDialog.getByRole("button", { name: "Return to catalog" }).click();
+    await expect(
+      page.getByRole("link", { name: csvProductName, exact: true }),
+    ).toBeVisible();
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("link", { name: "Export" }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe("products.csv");
+    await expect
+      .poll(async () => {
+        const [product, movement, importJob, exportJob] = await Promise.all([
+          database.collection<StringDocument>("products").findOne({
+            tenantId: primaryTenantId,
+            normalizedSku: csvSku.toUpperCase(),
+          }),
+          database.collection<StringDocument>("inventoryMovements").findOne({
+            tenantId: primaryTenantId,
+            idempotencyKey: { $regex: /^product-csv:/ },
+          }),
+          database.collection("importExportJobs").findOne({
+            tenantId: primaryTenantId,
+            type: "product_csv_import",
+          }),
+          database.collection("importExportJobs").findOne({
+            tenantId: primaryTenantId,
+            type: "product_csv_export",
+          }),
+        ]);
+        return {
+          productStock: product?.stock,
+          movementQuantity: movement?.quantityDelta,
+          importStatus: importJob?.status,
+          exportStatus: exportJob?.status,
+        };
+      })
+      .toEqual({
+        productStock: 5,
+        movementQuantity: 5,
+        importStatus: "completed",
+        exportStatus: "completed",
+      });
 
     const warehouseStoreId = `store_warehouse_${project}_${suffix}`;
     const secondTenantId = `org_second_${project}_${suffix}`;
@@ -497,7 +583,12 @@ test.describe("authenticated workspace and member administration", () => {
       .filter({ hasText: "Second Workshop" })
       .click();
     await expect(page).toHaveURL(new RegExp(`/app/${secondSlug}$`));
-    await expect(page.getByText(/Second Workshop · Last 7 days/)).toBeVisible();
+    await expect(
+      page.getByRole("main").getByText("Second Workshop", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("main").getByText("Active store · last 7 days"),
+    ).toBeVisible();
     await expect
       .poll(async () => {
         const activeSession = await database

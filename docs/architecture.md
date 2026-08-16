@@ -29,6 +29,8 @@ flowchart LR
 
 Product images use an authenticated Route Handler because bounded multipart files exceed the normal Server Action contract. The adapter verifies same-origin browser requests and tenant access, Cloudinary performs the image upload/normalization, and the product-image service transactionally attaches only validated provider metadata. Provider/database partial failures use compensating deletion plus durable cleanup state.
 
+Product CSV operations also use authenticated Route Handlers. Uploads are UTF-8, same-origin, and bounded to 2 MB, 30 columns, 500 rows, and 1,000 characters per cell; JSON mutation bodies are streamed through a 64 KB ceiling. A user-owned 30-minute preview record supports explicit mapping, row validation, and reject/skip/update policy without changing the catalog. Commit rechecks tenant permissions, entitlement, quotas, tags, category state, SKU reservations, product versions, and authorized store context inside one transaction. Filtered exports are capped at 10,000 rows and spreadsheet-formula escaped.
+
 First-workspace onboarding uses Better Auth to create the organization and owner membership, sets that organization on the authenticated session, then commits the tenant profile, first store, owner store assignment, signup-trial projection, and audit entry in one MongoDB transaction. A failed application transaction compensates by removing the just-created organization, so partial workspaces are not retained.
 
 ## Module boundary
@@ -40,5 +42,5 @@ Each real domain under `src/modules` owns its schemas, policies, calculations, a
 - One cached `MongoClient` is shared per process.
 - Ledger/projection workflows execute in retry-safe transactions.
 - Event handlers keep provider event IDs and apply updates idempotently.
-- Page sizes and export limits are bounded. Tenant-sensitive results are not globally cached.
+- Page sizes, request bodies, CSV previews, and export limits are bounded. CSV request throttles use database-backed fixed windows so limits survive process restarts and multiple application instances. Tenant-sensitive results are not globally cached.
 - Health routes reveal liveness/readiness only, never connection strings or configuration.

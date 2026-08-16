@@ -1,13 +1,11 @@
 import {
   Boxes,
   CircleDollarSign,
-  Download,
   FolderTree,
   PackageCheck,
   PackageSearch,
   Tags,
   TriangleAlert,
-  Upload,
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -15,6 +13,7 @@ import { notFound } from "next/navigation";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { NewProductDialog } from "@/components/products/new-product-dialog";
 import { ProductInsights } from "@/components/products/product-insights";
+import { ProductCsvActions } from "@/components/products/product-csv-actions";
 import { ProductTable } from "@/components/products/product-table";
 import { ProductToolbar } from "@/components/products/product-toolbar";
 import { PageHeader } from "@/components/shared/page-header";
@@ -33,6 +32,7 @@ import { demoProducts } from "@/modules/products/demo-data";
 import { getDemoTagOptions } from "@/modules/tags/demo-data";
 import { hasPermission } from "@/modules/permissions/permissions";
 import { queryDemoProducts } from "@/modules/products/queries";
+import { ProductCsvService } from "@/modules/products/csv-service";
 import { productListQuerySchema } from "@/modules/products/schemas";
 import { ProductRepository } from "@/server/repositories/products";
 import { TagRepository } from "@/server/repositories/tags";
@@ -70,18 +70,28 @@ export default async function ProductsPage({
   let canCreate = false;
   let canUpdate = false;
   let canArchive = false;
+  let canImport = false;
+  let canExport = false;
+  let csvFeatureEnabled = false;
+  let csvWriteEnabled = false;
   if (env.MONGODB_URI) {
     try {
       const context = await requireTenantContext(tenantSlug);
       const repository = new ProductRepository();
       const query = productListQuerySchema.parse(rawQuery);
-      const [data, databaseCategories, databaseTags, databaseMetrics] =
-        await Promise.all([
-          repository.list(context, query),
-          repository.categories(context),
-          new TagRepository().activeOptions(context),
-          repository.metrics(context),
-        ]);
+      const [
+        data,
+        databaseCategories,
+        databaseTags,
+        databaseMetrics,
+        csvAvailability,
+      ] = await Promise.all([
+        repository.list(context, query),
+        repository.categories(context),
+        new TagRepository().activeOptions(context),
+        repository.metrics(context),
+        new ProductCsvService().availability(context),
+      ]);
       const pageCount = Math.max(1, Math.ceil(data.total / query.pageSize));
       result = {
         items: data.items,
@@ -99,10 +109,38 @@ export default async function ProductsPage({
       canCreate = hasPermission(context.permissions, "product:create");
       canUpdate = hasPermission(context.permissions, "product:update");
       canArchive = hasPermission(context.permissions, "product:archive");
+      csvFeatureEnabled = csvAvailability.featureEnabled;
+      csvWriteEnabled = csvAvailability.writeEnabled;
+      canImport =
+        csvFeatureEnabled &&
+        csvWriteEnabled &&
+        hasPermission(context.permissions, "product:import");
+      canExport =
+        csvFeatureEnabled &&
+        hasPermission(context.permissions, "product:export");
     } catch {
       if (env.NODE_ENV === "production") notFound();
     }
   }
+  const exportParams = new URLSearchParams({
+    q: result.query.q,
+    category: result.query.category,
+    tag: result.query.tag,
+    stock: result.query.stock,
+    status: result.query.status,
+    sort: result.query.sort,
+    direction: result.query.direction,
+  });
+  const exportHref = `/api/app/${encodeURIComponent(tenantSlug)}/products/csv/export?${exportParams.toString()}`;
+  const baseCsvDisabledReason = isDemo
+    ? "CSV operations require a live tenant."
+    : !csvFeatureEnabled
+      ? "CSV import and export are available on Growth and higher plans."
+      : "You do not have permission for this CSV operation.";
+  const importDisabledReason =
+    csvFeatureEnabled && !csvWriteEnabled
+      ? "Billing access is read-only; importing is currently disabled."
+      : baseCsvDisabledReason;
   return (
     <div className="mx-auto w-full max-w-[1680px] space-y-6 p-4 sm:p-6 lg:p-8 xl:p-9">
       <div className="flex flex-wrap items-center gap-2">
@@ -140,20 +178,14 @@ export default async function ProductsPage({
                 <Tags /> Tags
               </Link>
             </Button>
-            <Button
-              variant="outline"
-              disabled
-              title="CSV import preview is planned for the next catalog slice"
-            >
-              <Upload /> Import
-            </Button>
-            <Button
-              variant="outline"
-              disabled
-              title="Filtered CSV export is planned for the next catalog slice"
-            >
-              <Download /> Export
-            </Button>
+            <ProductCsvActions
+              tenantSlug={tenantSlug}
+              exportHref={exportHref}
+              importDisabled={!canImport}
+              exportDisabled={!canExport}
+              importDisabledReason={importDisabledReason}
+              exportDisabledReason={baseCsvDisabledReason}
+            />
           </>
         }
       />

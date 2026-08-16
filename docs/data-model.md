@@ -16,7 +16,7 @@ Qenvaro uses opaque string identifiers and UTC `Date` values. Better Auth genera
 | Sales/CRM  | `customers`, `sales`, `salePayments`, `returns`, `refunds`, `receipts`                                                                                                                                                      |
 | Purchasing | `suppliers`, `purchaseOrders`, `goodsReceipts`                                                                                                                                                                              |
 | People     | `employees`, `attendanceRecords`, `leaveRequests`, `salaryProfiles`, `payrollRuns`, `payrollItems`, `payslips`                                                                                                              |
-| Operations | `expenses`, `notifications`, `auditLogs`, `sequenceCounters`, `importExportJobs`, `mediaCleanupTasks`                                                                                                                       |
+| Operations | `expenses`, `notifications`, `auditLogs`, `sequenceCounters`, `productImportPreviews`, `importExportJobs`, `applicationRateLimits`, `mediaCleanupTasks`                                                                     |
 
 Bounded historical snapshots (sale lines, purchase lines, payroll summary lines) are embedded and immutable. Independently queried or frequently updated data stays in separate collections.
 
@@ -29,6 +29,8 @@ Product catalog records carry an integer `version`. Detail reads scope the produ
 Products embed up to three option groups with stable option/value identifiers, current display labels, and lifecycle metadata. Sellable `productVariants` reference one value from every active group and store an immutable option signature; label changes resolve at read time without rewriting variant identity. The base/default variant mirrors the product SKU and price, while additional variants carry independent SKU, price, status, and version fields. Additional variants start with zero stock. Variant archive is idempotent, retains SKU/combination reservations and history, and is rejected while any tenant inventory projection is non-zero. Option groups cannot be added after active combinations exist, and cannot be archived while active variants reference them. Migration 10 backfills lifecycle fields and creates combination/status indexes.
 
 `productImages` stores Cloudinary identifiers and delivery metadata, never image binaries or credentials. Each tenant/product gallery is capped at eight active images with explicit position, one partial-unique primary image, required alternative text, lifecycle status, and optimistic version. The first upload is primary automatically; primary selection, alternative-text edits, reorder, and removal update the product version and append audit events transactionally. Removal archives metadata before requesting Cloudinary deletion and promotes the next image without touching inventory. Failed provider cleanup remains durably marked on the archived image; a failed compensating delete after an unsuccessful database attach is recorded in `mediaCleanupTasks`. Migration 11 adds tenant/order, primary, provider-identity, and cleanup indexes.
+
+`productImportPreviews` stores only bounded parsed CSV values and validated mutation intent; it does not store a binary file. Every preview belongs to one tenant and user, expires after 30 minutes, carries an optimistic version, and records the chosen mapping and existing-SKU behavior. A successful commit converts the preview into an idempotent completed result and writes a durable `importExportJobs` summary plus audit records in the same transaction as catalog changes. New-product opening stock uses the append-only inventory ledger and projection; updates and skips never alter inventory. Migration 12 adds preview TTL and tenant job indexes. `applicationRateLimits` contains short-lived fixed-window counters for application routes such as CSV operations; migration 13 adds TTL cleanup.
 
 ## Important indexes
 
@@ -43,6 +45,7 @@ All tenant query indexes begin with `tenantId`. The migration runner creates and
 - unique active `tenantId + normalized SKU` and partial unique `tenantId + barcode`;
 - unique `tenantId + normalized variant SKU`, unique `tenantId + productId + option signature`, and `tenantId + productId + variant status + updatedAt` variant lifecycle queries;
 - `tenantId + productId + image status + position`, a partial unique active primary image, unique tenant Cloudinary public ID, and pending provider-cleanup scans;
+- `tenantId + userId + import status + updatedAt`, preview TTL expiry, and `tenantId + import/export type + createdAt` job history;
 - unique `tenantId + storeId + variantId` inventory projection;
 - `tenantId + status + updatedAt` and `tenantId + category + status` product lists;
 - unique active `tenantId + normalized category name`, stable category slug, and `tenantId + category status + updatedAt` taxonomy queries;
@@ -52,6 +55,7 @@ All tenant query indexes begin with `tenantId`. The migration runner creates and
 - unique Stripe subscription identity, tenant subscription-status scans, unique billing event identity, and webhook processing-status scans;
 - platform user-role, tenant billing/plan, and verified-webhook scans;
 - unique current-session platform 2FA assurance with TTL expiry and idempotent platform bootstrap audit identity;
+- TTL expiry for persistent application request-throttle buckets;
 - unique `tenantId + storeId + sequence type` counters;
 - `tenantId + createdAt` append-only audit scans.
 

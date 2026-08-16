@@ -62,8 +62,63 @@ interface ProductImageDocument {
   version: number;
 }
 
+export interface ProductCsvExportRow {
+  name: string;
+  sku: string;
+  subtitle: string;
+  category: string;
+  priceMinor: number;
+  currency: string;
+  reorderLevel: number;
+  status: "draft" | "active" | "archived";
+  tagNames: string[];
+}
+
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function buildProductFilter(
+  context: TenantContext,
+  query: ProductListQuery,
+): Filter<ProductDocument> {
+  const filter: Filter<ProductDocument> = {
+    tenantId: context.tenantId,
+    deletedAt: { $exists: false },
+  };
+  if (query.status !== "all") filter.status = query.status;
+  if (query.category !== "all") filter.category = query.category;
+  if (query.tag !== "all") filter.tagIds = query.tag;
+  if (query.q) {
+    const safe = escapeRegex(query.q);
+    filter.$or = [
+      { name: { $regex: safe, $options: "i" } },
+      { sku: { $regex: safe, $options: "i" } },
+      { slug: { $regex: safe, $options: "i" } },
+    ];
+  }
+  if (query.stock === "out") filter.stock = 0;
+  else if (query.stock === "service") filter.stock = null;
+  else if (query.stock === "in-stock") filter.stock = { $gt: 0 };
+  else if (query.stock === "low")
+    filter.$expr = {
+      $and: [{ $gt: ["$stock", 0] }, { $lte: ["$stock", "$reorderLevel"] }],
+    };
+  return filter;
+}
+
+function buildProductSort(query: ProductListQuery): Sort {
+  const sortFields: Record<ProductListQuery["sort"], keyof ProductDocument> = {
+    name: "name",
+    price: "priceMinor",
+    stock: "stock",
+    revenue: "revenueMinor",
+    updatedAt: "updatedAt",
+  };
+  return {
+    [sortFields[query.sort]]: query.direction === "asc" ? 1 : -1,
+    _id: 1,
+  };
 }
 
 export class ProductRepository {
@@ -74,40 +129,8 @@ export class ProductRepository {
     requirePermission(context.permissions, "product:read");
     const db = await getDatabase();
     const collection = db.collection<ProductDocument>("products");
-    const filter: Filter<ProductDocument> = {
-      tenantId: context.tenantId,
-      deletedAt: { $exists: false },
-    };
-    if (query.status !== "all") filter.status = query.status;
-    if (query.category !== "all") filter.category = query.category;
-    if (query.tag !== "all") filter.tagIds = query.tag;
-    if (query.q) {
-      const safe = escapeRegex(query.q);
-      filter.$or = [
-        { name: { $regex: safe, $options: "i" } },
-        { sku: { $regex: safe, $options: "i" } },
-        { slug: { $regex: safe, $options: "i" } },
-      ];
-    }
-    if (query.stock === "out") filter.stock = 0;
-    else if (query.stock === "service") filter.stock = null;
-    else if (query.stock === "in-stock") filter.stock = { $gt: 0 };
-    else if (query.stock === "low")
-      filter.$expr = {
-        $and: [{ $gt: ["$stock", 0] }, { $lte: ["$stock", "$reorderLevel"] }],
-      };
-    const sortFields: Record<ProductListQuery["sort"], keyof ProductDocument> =
-      {
-        name: "name",
-        price: "priceMinor",
-        stock: "stock",
-        revenue: "revenueMinor",
-        updatedAt: "updatedAt",
-      };
-    const sort: Sort = {
-      [sortFields[query.sort]]: query.direction === "asc" ? 1 : -1,
-      _id: 1,
-    };
+    const filter = buildProductFilter(context, query);
+    const sort = buildProductSort(query);
     const [documents, total] = await Promise.all([
       collection
         .find(filter)
@@ -178,6 +201,69 @@ export class ProductRepository {
         imageTone: document.imageTone,
       })),
       total,
+    };
+  }
+
+  async exportRows(
+    context: TenantContext,
+    query: ProductListQuery,
+    maximumRows: number,
+  ): Promise<{ rows: ProductCsvExportRow[]; exceedsLimit: boolean }> {
+    requirePermission(context.permissions, "product:read");
+    const database = await getDatabase();
+    const products = await database
+      .collection<ProductDocument>("products")
+      .find(buildProductFilter(context, query), {
+        projection: {
+          name: 1,
+          sku: 1,
+          subtitle: 1,
+          category: 1,
+          priceMinor: 1,
+          currency: 1,
+          reorderLevel: 1,
+          status: 1,
+          tagIds: 1,
+        },
+      })
+      .sort(buildProductSort(query))
+      .limit(maximumRows + 1)
+      .toArray();
+    const selected = products.slice(0, maximumRows);
+    const tagIds = [
+      ...new Set(selected.flatMap((product) => product.tagIds ?? [])),
+    ];
+    const tags =
+      tagIds.length === 0
+        ? []
+        : await database
+            .collection<{
+              _id: string;
+              tenantId: string;
+              name: string;
+            }>("tags")
+            .find(
+              { tenantId: context.tenantId, _id: { $in: tagIds } },
+              { projection: { name: 1 } },
+            )
+            .toArray();
+    const tagNameById = new Map(tags.map((tag) => [tag._id, tag.name]));
+    return {
+      rows: selected.map((product) => ({
+        name: product.name,
+        sku: product.sku,
+        subtitle: product.subtitle,
+        category: product.category,
+        priceMinor: product.priceMinor,
+        currency: product.currency,
+        reorderLevel: product.reorderLevel,
+        status: product.status,
+        tagNames: (product.tagIds ?? []).flatMap((tagId) => {
+          const name = tagNameById.get(tagId);
+          return name ? [name] : [];
+        }),
+      })),
+      exceedsLimit: products.length > maximumRows,
     };
   }
 

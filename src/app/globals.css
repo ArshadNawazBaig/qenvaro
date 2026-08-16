@@ -145,6 +145,15 @@ select {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
+
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    font-size: 1rem !important;
+  }
+}
+
 ::selection {
   background: var(--accent);
   color: var(--accent-foreground);

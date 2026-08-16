@@ -586,6 +586,42 @@ const migrations: Migration[] = [
       ]);
     },
   },
+  {
+    version: 12,
+    name: "bounded product csv jobs",
+    run: async (database) => {
+      await indexes(database, "productImportPreviews", [
+        {
+          key: { tenantId: 1, userId: 1, status: 1, updatedAt: -1 },
+          name: "tenant_user_product_import_preview",
+        },
+        {
+          key: { expiresAt: 1 },
+          name: "product_import_preview_expiry",
+          expireAfterSeconds: 0,
+        },
+      ]);
+      await indexes(database, "importExportJobs", [
+        {
+          key: { tenantId: 1, type: 1, createdAt: -1 },
+          name: "tenant_import_export_job_date",
+        },
+      ]);
+    },
+  },
+  {
+    version: 13,
+    name: "application request throttles",
+    run: async (database) => {
+      await indexes(database, "applicationRateLimits", [
+        {
+          key: { expiresAt: 1 },
+          name: "application_rate_limit_expiry",
+          expireAfterSeconds: 0,
+        },
+      ]);
+    },
+  },
 ];
 
 async function main() {

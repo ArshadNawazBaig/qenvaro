@@ -20,7 +20,7 @@ function FilterSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="min-w-32">
+    <label className="min-w-0 sm:min-w-32">
       <span className="sr-only">{label}</span>
       <select
         value={value}
@@ -93,7 +93,7 @@ export function ProductToolbar({
           aria-label="Search products"
         />
       </form>
-      <div className="flex max-w-full gap-2 overflow-x-auto pb-1 lg:pb-0">
+      <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:max-w-full sm:overflow-x-auto sm:pb-1 lg:w-auto lg:pb-0">
         <FilterSelect
           label="Category"
           value={query.category}
@@ -165,6 +165,7 @@ export function ProductToolbar({
           <Button
             variant="ghost"
             size="icon"
+            className="justify-self-start"
             aria-label="More filters"
             disabled
             title="Store filters arrive with a future catalog slice"

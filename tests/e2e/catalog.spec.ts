@@ -31,6 +31,8 @@ test("public landing and product demo are usable", async ({ page }) => {
   await expect(page).toHaveURL(/\/products$/, { timeout: 20_000 });
   await expect(page.getByRole("heading", { name: "Products" })).toBeVisible();
   await expect(page.getByRole("table")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Import" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Export" })).toBeDisabled();
   const productsUrl = page.url();
   await page.getByRole("link", { name: "Categories", exact: true }).click();
   await expect(
