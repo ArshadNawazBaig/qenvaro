@@ -1,6 +1,6 @@
 # Qenvaro
 
-Qenvaro is a multi-tenant retail and service operations SaaS built as a Next.js modular monolith. The current delivery covers secure tenancy foundations plus polished catalog, inventory, customer, dashboard, point-of-sale, sales-history, and return/refund slices; progress is tracked honestly in [PLANS.md](./PLANS.md).
+Qenvaro is a multi-tenant retail and service operations SaaS built as a Next.js modular monolith. The current delivery covers secure tenancy foundations plus polished catalog, inventory, customer, dashboard, point-of-sale, sales-history, return/refund, and sales-reporting slices; progress is tracked honestly in [PLANS.md](./PLANS.md).
 
 ## Quick start
 
@@ -15,5 +15,7 @@ The UI can be previewed without MongoDB using its deterministic development demo
 Database-backed checks run with `RUN_INTEGRATION_TESTS=true pnpm test:integration`. The authenticated onboarding, workspace/team/billing/product/category/unit/customer/sale/return/CSV lifecycle, and platform-2FA browser flows run on desktop and mobile with `RUN_ONBOARDING_E2E=true RUN_WORKSPACE_E2E=true RUN_PLATFORM_E2E=true pnpm test:e2e`; they create isolated identities and remove them afterward. Tag, variant, and product-image lifecycle behavior is covered by the integration suite, while their responsive read-only surfaces are covered by the catalog browser test. Mailpit is available at `http://localhost:8025` for local verification, reset, and invitation messages.
 
 To bootstrap a platform super administrator, first create and verify the account, put its normalized email in the server-only `SUPER_ADMIN_EMAILS` setting, and run `pnpm platform:bootstrap-super-admin`. The command accepts no email argument, promotes only verified configured accounts, revokes their existing sessions, and records an idempotent platform audit. After signing in again, visit `/platform`; the security gateway requires authenticator enrollment and current-session verification before any aggregate platform metadata is loaded.
+
+The dedicated sales-performance workspace at `/app/{tenantSlug}/reports/sales` provides 7/30/90-day tenant-calendar periods, assigned-store selection, returns-aware gross/net/refund/profit summaries, payment and refund mix, store and product contribution, and a bounded combined transaction drill-down. It is available in the deterministic development demo and requires `report:read` for live tenants.
 
 See [deployment](./docs/deployment.md), [architecture](./docs/architecture.md), and [security](./docs/security.md) for production configuration.

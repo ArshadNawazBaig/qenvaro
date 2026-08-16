@@ -6,6 +6,8 @@ Qenvaro uses opaque string identifiers and UTC `Date` values. Better Auth genera
 
 The dashboard is a read projection rather than a collection. It groups completed `sales` into 7- or 30-day tenant-timezone buckets for the active authorized store, compares at most eight authorized active stores, and reads at most eight allowlisted `auditLogs` from a 90-day window. A missing `grossProfitMinor` on any included sale makes the corresponding profit and margin unavailable rather than treating unknown cost as zero.
 
+The sales report is also a read projection. It groups completed sales by `completedAt` and completed returns/refunds by their own processing timestamps across Zod-bounded 7-, 30-, or 90-day tenant-calendar periods. Net sales subtract in-period discounts and returned pre-tax value, while refund totals include reversed tax. Store options begin with the member's active assignments, outputs cap stores at 100, products at eight, transaction pages at 25, and URL pages at 100. Missing sale or return cost evidence suppresses profit and margin. Migration 21 adds store/date reporting indexes for returns, recorded sale payments, and refunds; the existing sales store/date index supports the sale side.
+
 ## Principal collections
 
 | Area       | Collections                                                                                                                                                                                                                 |
@@ -80,6 +82,7 @@ All tenant query indexes begin with `tenantId`. The migration runner creates and
 - `tenantId + storeId + completedAt` bounded sales/dashboard scans and unique tenant/store sale receipt numbers;
 - `tenantId + saleId + recordedAt` payment history, unique tenant/sale receipt evidence, and unique tenant/store receipt display numbers;
 - unique `tenantId + idempotencyKey` return requests, unique tenant/store return numbers, sale/date return history, unique return refund evidence, and unique entity-typed return receipts;
+- `tenantId + storeId + completedAt` return reporting plus `tenantId + storeId + status + recordedAt` sale-payment and refund reporting;
 - `tenantId + createdAt` append-only audit scans.
 
 Soft-deleted records use partial unique indexes where MongoDB supports the lifecycle query. Repository tests prove scopes and uniqueness with overlapping tenant data.

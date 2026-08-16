@@ -1086,6 +1086,42 @@ const migrations: Migration[] = [
       ]);
     },
   },
+  {
+    version: 21,
+    name: "bounded sales reporting access",
+    run: async (database) => {
+      await indexes(database, "returns", [
+        {
+          key: { tenantId: 1, storeId: 1, completedAt: -1, _id: 1 },
+          name: "tenant_store_returns_date",
+        },
+      ]);
+      await indexes(database, "salePayments", [
+        {
+          key: {
+            tenantId: 1,
+            storeId: 1,
+            status: 1,
+            recordedAt: -1,
+            _id: 1,
+          },
+          name: "tenant_store_sale_payment_reports",
+        },
+      ]);
+      await indexes(database, "refunds", [
+        {
+          key: {
+            tenantId: 1,
+            storeId: 1,
+            status: 1,
+            recordedAt: -1,
+            _id: 1,
+          },
+          name: "tenant_store_refund_reports",
+        },
+      ]);
+    },
+  },
 ];
 
 async function main() {

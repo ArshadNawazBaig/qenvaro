@@ -21,6 +21,7 @@ Key restrictions include:
 - inventory pages require `inventory:read`; immutable manual adjustments require `inventory:adjust`; and both stores in a transfer require assignment plus `inventory:transfer`;
 - product availability changes require `product:update` and are limited to assigned active stores, while the tenant-wide low-stock policy requires `settings:manage`;
 - dashboard sales totals, trends, and authorized-store comparisons require `sale:read` or `report:read`; recent activity additionally requires `audit:read`, and restricted panels render a denial state rather than placeholder totals;
+- the dedicated sales report requires `report:read` independently of cashier access, accepts only active assigned stores, and never broadens scope from URL parameters or navigation visibility;
 - UI gates improve usability but never replace service authorization.
 
 ```mermaid

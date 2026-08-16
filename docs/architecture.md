@@ -37,6 +37,8 @@ Point of sale uses a Server Component for the tenant/store-scoped catalog and cu
 
 Sales history is a bounded tenant/store-scoped Server Component read. A return starts from the original receipt, where a client workspace selects quantities and shows only an estimate. The Server Action delegates to a return service that re-resolves prior returns and original sale snapshots, derives exact cumulative allocations, records the refund through the payment-provider boundary, restores tracked inventory, and persists return/refund/receipt evidence plus projections and audit in one transaction. This preserves historical SKU returns after catalog archive without allowing current catalog values to rewrite completed commerce.
 
+Sales reporting is a read-only Server Component over a dedicated repository and shared tenant-calendar period utility. Every aggregation starts with trusted tenant, active assigned-store, status, and bounded date filters. Sales and returns are aggregated independently by their event timestamps and merged into serializable daily, method, store, product, and paginated transaction projections. Recharts remains isolated to a narrow Client Component with a complete screen-reader table; URL period/store controls are the only interactive reporting client boundary.
+
 First-workspace onboarding uses Better Auth to create the organization and owner membership, sets that organization on the authenticated session, then commits the tenant profile, first store, owner store assignment, signup-trial projection, and audit entry in one MongoDB transaction. A failed application transaction compensates by removing the just-created organization, so partial workspaces are not retained.
 
 ## Module boundary

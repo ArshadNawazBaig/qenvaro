@@ -34,6 +34,7 @@ export interface WorkspaceShellData {
   canViewCustomers: boolean;
   canCreateSales: boolean;
   canViewSales: boolean;
+  canViewReports: boolean;
   isDemo: boolean;
 }
 
@@ -136,6 +137,7 @@ export async function getWorkspaceShellData(
     canViewCustomers: hasPermission(context.permissions, "customer:read"),
     canCreateSales: hasPermission(context.permissions, "sale:create"),
     canViewSales: hasPermission(context.permissions, "sale:read"),
+    canViewReports: hasPermission(context.permissions, "report:read"),
     isDemo: false,
   };
 }

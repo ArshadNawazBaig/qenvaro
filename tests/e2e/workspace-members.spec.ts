@@ -609,6 +609,43 @@ test.describe("authenticated workspace and member administration", () => {
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     if (salesViewport) await page.setViewportSize(salesViewport);
 
+    await page.goto(`/app/${primarySlug}/reports/sales?range=7d`);
+    await expect(
+      page.getByRole("heading", { name: "Sales performance", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("Live tenant data")).toBeVisible();
+    await expect(page.locator('a[aria-current="page"]')).toHaveCount(1);
+    await expect(page.locator('a[aria-current="page"]')).toHaveAttribute(
+      "href",
+      `/app/${primarySlug}/reports/sales`,
+    );
+    await expect(page.getByText("Refund method mix")).toBeVisible();
+    await expect(
+      page
+        .locator("span:visible, p:visible", {
+          hasText: String(completedReturn?.returnNumber),
+        })
+        .first(),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator("span:visible, p:visible", {
+          hasText: String(completedSale?.receiptNumber),
+        })
+        .first(),
+    ).toBeVisible();
+    const reportViewport = page.viewportSize();
+    await page.setViewportSize({ width: 320, height: 700 });
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(0);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    if (reportViewport) await page.setViewportSize(reportViewport);
+
     await page.goto(`/app/${primarySlug}/customers?q=amina-${suffix}`);
     await page.getByRole("button", { name: `Archive ${customerName}` }).click();
     customerDialog = page.getByRole("dialog");

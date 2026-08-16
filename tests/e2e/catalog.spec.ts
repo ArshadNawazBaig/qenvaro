@@ -209,3 +209,38 @@ test("demo point of sale is responsive and honestly read-only", async ({
   ).toBe(0);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
+
+test("demo sales reporting is responsive and returns-aware", async ({
+  page,
+}) => {
+  await page.goto("/app/demo/reports/sales");
+  await expect(
+    page.getByRole("heading", { name: "Sales performance", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('a[aria-current="page"]')).toHaveCount(1);
+  await expect(page.locator('a[aria-current="page"]')).toHaveAttribute(
+    "href",
+    "/app/demo/reports/sales",
+  );
+  const summary = page.getByLabel("Sales report summary");
+  await expect(summary.getByText("Gross sales", { exact: true })).toBeVisible();
+  await expect(summary.getByText("Net sales", { exact: true })).toBeVisible();
+  await expect(page.getByText("Refund method mix")).toBeVisible();
+  await expect(page.getByText("Product contribution")).toBeVisible();
+  await page.getByRole("button", { name: "7 days" }).click();
+  await expect(page).toHaveURL(/range=7d/);
+  await page.getByLabel("Report store").selectOption("demo-west");
+  await expect(page).toHaveURL(/store=demo-west/);
+  await expect(
+    page.locator("p:visible", { hasText: /^West Harbor$/ }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 700 });
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(0);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});

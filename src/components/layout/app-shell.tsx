@@ -7,6 +7,7 @@ import {
   Check,
   ChevronDown,
   CircleHelp,
+  ChartNoAxesCombined,
   ContactRound,
   CreditCard,
   FolderTree,
@@ -96,6 +97,7 @@ const demoWorkspace: WorkspaceShellData = {
   canViewCustomers: true,
   canCreateSales: true,
   canViewSales: true,
+  canViewReports: true,
   isDemo: true,
 };
 
@@ -190,6 +192,15 @@ function SidebarContent({
                 label: "New sale",
                 icon: ShoppingCart,
                 href: "/sales/new",
+              },
+            ]
+          : []),
+        ...(workspace.canViewReports
+          ? [
+              {
+                label: "Sales report",
+                icon: ChartNoAxesCombined,
+                href: "/reports/sales",
               },
             ]
           : []),

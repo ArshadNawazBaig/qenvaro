@@ -30,7 +30,7 @@ export function MetricCard({
           <p className="mt-1.5 text-2xl font-semibold tracking-[-0.035em] tabular-nums">
             {value}
           </p>
-          <p className="text-muted-foreground mt-1.5 truncate text-xs">
+          <p className="text-muted-foreground mt-1.5 min-h-8 text-xs leading-4">
             {detail}
           </p>
         </div>
