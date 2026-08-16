@@ -48,6 +48,7 @@ test.describe("authenticated workspace and member administration", () => {
       "applicationRateLimits",
       "auditLogs",
       "categories",
+      "customers",
       "importExportJobs",
       "invitationStoreAssignments",
       "memberStoreAssignments",
@@ -299,6 +300,97 @@ test.describe("authenticated workspace and member administration", () => {
     await expect(
       page.getByRole("button", { name: `Archive ${unitName}` }),
     ).toBeDisabled();
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+    const customerName = `Amina Client ${suffix}`;
+    await page.goto(`/app/${primarySlug}/customers`);
+    await expect(
+      page.getByRole("heading", { name: "Customers", exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(0);
+    await page.getByRole("button", { name: "New customer" }).click();
+    let customerDialog = page.getByRole("dialog");
+    await customerDialog.getByLabel("Customer name").fill(customerName);
+    await customerDialog.getByLabel(/Company/).fill("Amina Retail Lab");
+    await customerDialog
+      .getByLabel(/Email/)
+      .fill(`amina-${suffix}@example.test`);
+    await customerDialog.getByLabel(/Phone/).fill("+92 300 555 0188");
+    await customerDialog.getByLabel(/Address line 1/).fill("18 Market Road");
+    await customerDialog.getByLabel("City").fill("Karachi");
+    await customerDialog.getByLabel("State / region").fill("Sindh");
+    await customerDialog.getByLabel("Country code").fill("PK");
+    await customerDialog
+      .getByLabel(/Internal notes/)
+      .fill("Private browser lifecycle note");
+    await customerDialog
+      .getByRole("button", { name: "Create customer" })
+      .click();
+    await expect(
+      page.getByRole("button", { name: `Edit ${customerName}` }),
+    ).toBeVisible();
+    await page.getByLabel("Search customers").fill(`amina-${suffix}`);
+    await page.getByLabel("Search customers").press("Enter");
+    await expect(page).toHaveURL(/q=amina-/);
+    await expect(
+      page.getByRole("button", { name: `Edit ${customerName}` }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: `Edit ${customerName}` }).click();
+    customerDialog = page.getByRole("dialog");
+    await customerDialog.getByLabel(/Company/).fill("Amina Commerce Lab");
+    await customerDialog.getByRole("button", { name: "Save customer" }).click();
+    await expect(
+      page.locator("p:visible").filter({ hasText: /^Amina Commerce Lab$/ }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: `Archive ${customerName}` }).click();
+    customerDialog = page.getByRole("dialog");
+    await customerDialog
+      .getByRole("button", { name: "Confirm archive" })
+      .click();
+    await expect
+      .poll(async () => {
+        const customer = await database
+          .collection<StringDocument>("customers")
+          .findOne({ tenantId: primaryTenantId, name: customerName });
+        const audits = await database
+          .collection<StringDocument>("auditLogs")
+          .find({ tenantId: primaryTenantId, entityId: String(customer?._id) })
+          .toArray();
+        return {
+          status: customer?.status,
+          version: customer?.version,
+          auditActions: audits.map((audit) => audit.action).sort(),
+          auditText: JSON.stringify(audits),
+        };
+      })
+      .toMatchObject({
+        status: "archived",
+        version: 3,
+        auditActions: [
+          "customer.archived",
+          "customer.created",
+          "customer.updated",
+        ],
+      });
+    const customerAudits = await database
+      .collection("auditLogs")
+      .find({ tenantId: primaryTenantId, action: /^customer\./ })
+      .toArray();
+    const customerAuditText = JSON.stringify(customerAudits);
+    for (const privateValue of [
+      customerName,
+      `amina-${suffix}@example.test`,
+      "+92 300 555 0188",
+      "18 Market Road",
+      "Private browser lifecycle note",
+    ])
+      expect(customerAuditText).not.toContain(privateValue);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 
     await page.goto(`/app/${primarySlug}/products/categories`);

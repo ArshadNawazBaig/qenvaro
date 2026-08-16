@@ -77,6 +77,29 @@ test("public landing and product demo are usable", async ({ page }) => {
   ).toBe(0);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   if (originalViewport) await page.setViewportSize(originalViewport);
+  await page.goto("/app/demo/customers");
+  await expect(
+    page.getByRole("heading", { name: "Customers", exact: true }),
+  ).toBeVisible();
+  if ((page.viewportSize()?.width ?? 0) >= 768)
+    await expect(page.getByRole("table")).toBeVisible();
+  else
+    await expect(
+      page.getByRole("button", { name: "Edit Mira Cole" }),
+    ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "New customer" }),
+  ).toBeDisabled();
+  await page.setViewportSize({ width: 320, height: 700 });
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(0);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  if (originalViewport) await page.setViewportSize(originalViewport);
   await page.goto(productsUrl);
   await page
     .getByRole("main")

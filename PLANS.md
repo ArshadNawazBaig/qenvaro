@@ -1,10 +1,10 @@
 # Qenvaro implementation plan
 
-Last updated: 2026-08-16
+Last updated: 2026-08-17
 
 ## Current status
 
-Phase 0 and Phase 2 are implemented and validated. Phase 1 and the first security-bounded part of Phase 6 remain in progress through a coherent identity/tenant/catalog/platform slice. The repository began empty; it now builds and runs with verified auth entry flows, transactional organization/first-store onboarding, membership-authorized business and store switching, tenant team administration, owner-controlled Stripe billing, mandatory per-session 2FA for the aggregate-only platform shell, a live tenant dashboard, and tenant-scoped product, category, tag, unit-of-measure, option-group, variant, Cloudinary image, bounded CSV, inventory adjustment, stock transfer, product/store availability, and low-stock alert-policy lifecycles.
+Phase 0 and Phase 2 are implemented and validated. Phases 1 and 3 and the first security-bounded part of Phase 6 remain in progress through coherent identity/tenant/catalog/customer/platform slices. The repository began empty; it now builds and runs with verified auth entry flows, transactional organization/first-store onboarding, membership-authorized business and store switching, tenant team administration, owner-controlled Stripe billing, mandatory per-session 2FA for the aggregate-only platform shell, a live tenant dashboard, and tenant-scoped product, category, tag, unit-of-measure, option-group, variant, Cloudinary image, bounded CSV, inventory adjustment, stock transfer, product/store availability, low-stock alert-policy, and customer lifecycles.
 
 ## Phases
 
@@ -13,7 +13,7 @@ Phase 0 and Phase 2 are implemented and validated. Phase 1 and the first securit
 | 0     | Next.js foundation, design system, MongoDB, environment, logging, tests, Docker, CI, documentation | Complete    |
 | 1     | Better Auth, organizations, onboarding, RBAC, tenant/store shell, Stripe plan projection           | In progress |
 | 2     | Products, categories, inventory ledger, CSV, tenant dashboard                                      | Complete    |
-| 3     | Customers, sales, returns, receipts and atomic inventory integration                               | Pending     |
+| 3     | Customers, sales, returns, receipts and atomic inventory integration                               | In progress |
 | 4     | Employees, attendance, leave, compensation and operational payroll                                 | Pending     |
 | 5     | Suppliers, purchases, receiving, expenses and reports                                              | Pending     |
 | 6     | Platform administration, break-glass support controls and hardening                                | In progress |
@@ -38,6 +38,7 @@ Phase 0 and Phase 2 are implemented and validated. Phase 1 and the first securit
 - Implemented paginated product/store availability management with authorized-store scope preservation, product-version concurrency, non-zero stock removal safeguards, explicit active-store assignments, audits, and responsive desktop/mobile controls. Added a versioned tenant low-stock policy and live in-app attention queue derived from the active authorized store, product reorder levels, and enabled low/out-of-stock severities.
 - Implemented tenant-scoped units of measure with independently normalized unique names and symbols, optimistic create/edit/archive, stable product references, active-unit assignment validation, assignment-aware archive safeguards, automatic `Each (ea)` defaults for onboarding and CSV product creation, migration backfill, audits, URL-backed pagination/search, and purpose-built responsive mobile/desktop management.
 - Implemented the live tenant dashboard with Zod-bounded 7/30-day URL periods aligned to the tenant timezone, active-store net-sales/profit/order trends, prior-period comparison, top authorized-store contribution, permission-aware financial and audit visibility, an eight-event/90-day operational activity feed, and honest empty, missing-cost, and restricted states. The page is now a thin Server Component over dedicated repositories and shared responsive card compositions.
+- Implemented tenant-scoped customer list/search/create/edit/archive with server-generated stable codes, optional company/contact/address/notes, optimistic concurrency, PII-safe audits, permission-aware navigation and mutations, URL-backed filters/pagination, explicit loading/error/restricted states, deterministic two-tenant fixtures, and shared-card responsive mobile/desktop management.
 - Implemented authenticated first-workspace onboarding with validated regional and plan choices, Better Auth organization ownership, active-organization session state, and an atomic tenant-profile/store/assignment/audit transaction with failure compensation.
 - Added explicit signup-trial access projections and read-only mutation behavior after trial expiry, cancellation, or suspension.
 - Replaced the authenticated shell identity, current business/store, usage, and empty dashboard metrics with tenant-scoped database projections while preserving the explicit unauthenticated development demo.
@@ -48,14 +49,14 @@ Phase 0 and Phase 2 are implemented and validated. Phase 1 and the first securit
 - Added post-signature Stripe event projection from Better Auth subscription state into tenant entitlements, including active/trialing state, one bounded past-due grace period, paid-through cancellation access, platform-suspension preservation, replay protection, and durable failed-event diagnostics.
 - Kept checkout redirects informational: only verified Stripe webhook processing can update plan access.
 - Added versioned indexes, deterministic two-tenant operational fixtures, MongoDB replica-set and Mailpit Compose services, health routes, standalone Docker image, and GitHub Actions CI.
-- Ran all sixteen database migrations and the deterministic seed against MongoDB 8, including integration coverage for overlapping-tenant repository isolation, atomic onboarding, authorized workspace projections, cross-tenant store rejection, invitation grant activation, verified billing lifecycle projection, category/tag/unit/variant/image/CSV/inventory lifecycles, and platform security boundaries.
+- Ran all seventeen database migrations and the deterministic seed against MongoDB 8, including integration coverage for overlapping-tenant repository isolation, atomic onboarding, authorized workspace projections, cross-tenant store rejection, invitation grant activation, verified billing lifecycle projection, category/tag/unit/variant/image/CSV/inventory/customer lifecycles, and platform security boundaries.
 - Validated the complete authenticated onboarding flow on desktop and mobile, including accessibility, database assertions, redirect behavior, and test-data cleanup.
 - Validated business/store switching and member invitation, role/store update, cancellation, and removal on desktop and mobile, including accessibility and database assertions.
 - Validated the owner billing console on desktop and mobile, including accessibility, interval switching, safe unconfigured-provider states, and proof that a successful-return URL cannot mutate entitlements.
 - Added an environment-allowlisted, server-only platform-super-admin bootstrap command that promotes only verified existing accounts, revokes pre-promotion sessions, emits an idempotent audit, and accepts no public or ad-hoc role input.
 - Added mandatory platform TOTP enrollment and per-session second-factor assurance, including recovery-code support, lockout/throttling, a data-free security gateway, and fresh-session verification after sign-in.
 - Added a responsive protected platform shell and aggregate-only tenant entitlement, subscription, verified Stripe event, migration, and database-health overview. The repository never queries tenant business collections.
-- Ran all sixteen database migrations and validated platform bootstrap/access/aggregate boundaries in integration tests plus TOTP enrollment, stale-session rejection, re-verification, fresh login, and accessibility on desktop and mobile.
+- Ran all seventeen database migrations and validated platform bootstrap/access/aggregate boundaries in integration tests plus TOTP enrollment, stale-session rejection, re-verification, fresh login, and accessibility on desktop and mobile.
 - Validated product create/detail/edit/archive on desktop and mobile with accessibility and database assertions, plus integration evidence for cross-tenant denial, stale-write rejection, audit events, and unchanged inventory levels/movements during archive.
 - Validated category create/rename/assignment safeguard/archive on desktop and mobile with accessibility and database assertions, plus integration evidence for per-tenant uniqueness, rename cascades, stale-write rejection, permission enforcement, and retained historical assignments.
 - Validated tag normalized uniqueness, tenant isolation, product assignment reads, stable rename behavior, stale-write rejection, permission enforcement, archive safeguards, and retained historical assignments in integration tests.
@@ -65,10 +66,11 @@ Phase 0 and Phase 2 are implemented and validated. Phase 1 and the first securit
 - Validated availability stock guards, product concurrency, scope preservation, tenant and permission denial, versioned alert-policy concurrency, live low/out-of-stock derivation, audit records, pagination/search, accessibility, and responsive desktop/mobile browser workflows.
 - Validated unit name/symbol uniqueness, tenant isolation, active product assignment, stable rename behavior, stale-write rejection, permission enforcement, assignment-aware archive, default-unit provisioning, audit records, pagination/search, accessibility, and responsive desktop/mobile browser workflows.
 - Validated dashboard calendar bounds, missing-day completion, incomplete-profit handling, tenant and store isolation, financial/audit permission denial, activity allowlisting, existing sales/audit indexes, 320 px overflow, accessible chart summaries, live empty states, period switching, and authenticated desktop/mobile workflows.
+- Validated customer tenant isolation, stable server-owned codes, overlapping cross-tenant identity, bounded search/pagination, permission denial, optimistic conflicts, idempotent archive, post-archive edit rejection, PII-safe audit payloads, migration indexes, accessibility, and 320 px responsive browser behavior.
 
 ## Pending tasks in the current slices
 
-- Begin Phase 3 with the tenant-scoped customer lifecycle before implementing sales: schema and indexes, bounded search/pagination, create/edit/archive services, audit history, responsive management, and isolation/permission coverage.
+- Implement the Phase 3 new-sale/POS foundation: tenant/store-scoped draft input, server-calculated price/discount/tax/totals, immutable line snapshots, recorded payment methods, atomic receipt sequencing, idempotent completion, and inventory ledger/projection updates.
 
 ## Important decisions
 
@@ -84,6 +86,7 @@ Phase 0 and Phase 2 are implemented and validated. Phase 1 and the first securit
 - Inventory levels are mutable projections, never the source of truth. Opening balances, adjustments, and transfers all pass through the inventory service. Adjustments post once with a reason and resulting count; completed transfers embed bounded line snapshots and append balanced `transfer_out`/`transfer_in` movements in the same transaction. Negative stock is disabled unless the tenant has an explicit setting, and client level versions are rechecked transactionally.
 - Product availability is an explicit list of active store IDs; legacy empty lists resolve as all active stores until the first managed update. A scoped manager can change only assigned stores while the service preserves hidden store assignments, and removal is rejected while any product variant has non-zero stock there. The tenant low-stock policy is versioned and audited, while alert rows remain a live derived view so they cannot drift from current authorized-store projections or product reorder levels. Email delivery is not implied by the in-app policy.
 - Units of measure are tenant-owned stable records. Names and symbols are normalized independently and reserved tenant-wide, while products store only the stable unit ID. Renames therefore do not rewrite products, active/draft assignments block archive, archived products retain historical references, and inventory quantities remain integer counts until a future fractional-stock model is designed explicitly.
+- Customers are tenant-owned stable profiles with server-generated immutable codes. Names, companies, and contacts are intentionally non-unique, while normalized values support bounded search within tenant scope. Archive preserves future sales history and audits expose only code/status plus contact-method and company-presence metadata, never customer PII.
 - Pages remain usable with a deterministic development demo when local infrastructure is not running; production never enables demo authorization or billing bypass implicitly.
 - The reference-inspired shell exposes only implemented destinations. The dashboard prioritizes operational hierarchy over decorative card grids; demo charts remain clearly labeled, while authenticated workspaces render honest empty analytics until tenant activity exists.
 - Dashboard financial ranges are restricted to 7 or 30 tenant-local calendar days. The headline and trend follow the active authorized store, store comparison includes only authorized active locations and returns at most eight rows, incomplete cost snapshots suppress profit/margin instead of inventing zeroes, and the recent feed exposes at most eight allowlisted audit summaries from the prior 90 days only to `audit:read` roles. Existing migration-3 sales/date and tenant/audit indexes support these reads, so no redundant migration was added.
@@ -99,4 +102,4 @@ Phase 0 and Phase 2 are implemented and validated. Phase 1 and the first securit
 
 ## Exact next action if interrupted
 
-Start Phase 3 with tenant-scoped customer management: add the customer lifecycle schema and supporting indexes, then implement bounded list/search, create/edit/archive services, audits, responsive UI, and tenant/permission regression coverage.
+Implement the Phase 3 new-sale/POS foundation with server-authoritative calculations and one transaction for receipt sequencing, completed sale/payment records, immutable line snapshots, inventory movements/projections, idempotency, and audit history. Then expose the responsive cashier workflow and regression coverage.

@@ -8,6 +8,9 @@ import type {
 export const DASHBOARD_ACTIVITY_ACTIONS = [
   "tenant.onboarding.completed",
   "member.invitation.accepted",
+  "customer.created",
+  "customer.updated",
+  "customer.archived",
   "category.created",
   "category.updated",
   "category.archived",
@@ -44,6 +47,9 @@ export const DASHBOARD_ACTIVITY_ACTIONS = [
 const activityTitles: Record<string, string> = {
   "tenant.onboarding.completed": "Workspace setup completed",
   "member.invitation.accepted": "Team invitation accepted",
+  "customer.created": "Customer created",
+  "customer.updated": "Customer updated",
+  "customer.archived": "Customer archived",
   "category.created": "Category created",
   "category.updated": "Category updated",
   "category.archived": "Category archived",

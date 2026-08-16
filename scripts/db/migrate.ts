@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
-import type { Db, IndexDescription } from "mongodb";
+import type { AnyBulkWriteOperation, Db, IndexDescription } from "mongodb";
 import { getScriptDatabase } from "./shared";
+
+type StringIdDocument = { _id: string } & Record<string, unknown>;
 
 interface Migration {
   version: number;
@@ -814,6 +816,146 @@ const migrations: Migration[] = [
         {
           key: { tenantId: 1, unitId: 1, status: 1 },
           name: "tenant_product_unit_status",
+        },
+      ]);
+    },
+  },
+  {
+    version: 17,
+    name: "tenant customer lifecycle",
+    run: async (database) => {
+      const customers = database.collection<StringIdDocument>("customers");
+      const cursor = customers.find(
+        { tenantId: { $type: "string" } },
+        {
+          projection: {
+            tenantId: 1,
+            code: 1,
+            name: 1,
+            company: 1,
+            email: 1,
+            phone: 1,
+            address: 1,
+            notes: 1,
+            status: 1,
+            version: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            createdBy: 1,
+            updatedBy: 1,
+          },
+        },
+      );
+      let operations: AnyBulkWriteOperation<StringIdDocument>[] = [];
+      const flush = async () => {
+        if (operations.length === 0) return;
+        await customers.bulkWrite(operations, { ordered: false });
+        operations = [];
+      };
+      for await (const customer of cursor) {
+        const tenantId = String(customer.tenantId);
+        const name =
+          typeof customer.name === "string" ? customer.name : "Customer";
+        const email =
+          typeof customer.email === "string"
+            ? customer.email.trim().toLowerCase()
+            : "";
+        const phone =
+          typeof customer.phone === "string" ? customer.phone.trim() : "";
+        const digits = phone.replace(/\D/g, "");
+        const address =
+          customer.address && typeof customer.address === "object"
+            ? (customer.address as Record<string, unknown>)
+            : {};
+        const digest = createHash("sha256")
+          .update(`${tenantId}:${String(customer._id)}:customer-code`)
+          .digest("hex");
+        const createdAt =
+          customer.createdAt instanceof Date ? customer.createdAt : new Date();
+        const updatedAt =
+          customer.updatedAt instanceof Date ? customer.updatedAt : createdAt;
+        operations.push({
+          updateOne: {
+            filter: { _id: customer._id, tenantId },
+            update: {
+              $set: {
+                code:
+                  typeof customer.code === "string" && customer.code.trim()
+                    ? customer.code.trim().toUpperCase()
+                    : `C-${digest.slice(0, 8).toUpperCase()}`,
+                name,
+                normalizedName: name
+                  .normalize("NFKC")
+                  .trim()
+                  .replace(/\s+/g, " ")
+                  .toLowerCase(),
+                company:
+                  typeof customer.company === "string"
+                    ? customer.company.trim()
+                    : "",
+                email,
+                normalizedEmail: email,
+                phone,
+                normalizedPhone:
+                  phone.startsWith("+") && digits ? `+${digits}` : digits,
+                address: {
+                  line1: typeof address.line1 === "string" ? address.line1 : "",
+                  line2: typeof address.line2 === "string" ? address.line2 : "",
+                  city: typeof address.city === "string" ? address.city : "",
+                  region:
+                    typeof address.region === "string" ? address.region : "",
+                  postalCode:
+                    typeof address.postalCode === "string"
+                      ? address.postalCode
+                      : "",
+                  countryCode:
+                    typeof address.countryCode === "string"
+                      ? address.countryCode.toUpperCase()
+                      : "",
+                },
+                notes: typeof customer.notes === "string" ? customer.notes : "",
+                status: customer.status === "archived" ? "archived" : "active",
+                version:
+                  typeof customer.version === "number" && customer.version >= 1
+                    ? customer.version
+                    : 1,
+                createdAt,
+                updatedAt,
+                createdBy:
+                  typeof customer.createdBy === "string"
+                    ? customer.createdBy
+                    : "migration_17",
+                updatedBy:
+                  typeof customer.updatedBy === "string"
+                    ? customer.updatedBy
+                    : "migration_17",
+              },
+            },
+          },
+        });
+        if (operations.length >= 500) await flush();
+      }
+      await flush();
+      await indexes(database, "customers", [
+        {
+          key: { tenantId: 1, normalizedName: 1, _id: 1 },
+          name: "tenant_customer_name",
+          partialFilterExpression: { deletedAt: null },
+        },
+        {
+          key: { tenantId: 1, status: 1, normalizedName: 1, _id: 1 },
+          name: "tenant_customer_status_name",
+          partialFilterExpression: { deletedAt: null },
+        },
+        {
+          key: { tenantId: 1, updatedAt: -1, _id: 1 },
+          name: "tenant_customer_updated",
+          partialFilterExpression: { deletedAt: null },
+        },
+        {
+          key: { tenantId: 1, createdAt: -1, _id: 1 },
+          name: "tenant_customer_created",
+          partialFilterExpression: { deletedAt: null },
         },
       ]);
     },

@@ -15,6 +15,7 @@ Key restrictions include:
 - sale refunds, stock adjustments, role changes, payroll transitions, and support access are audited;
 - product option and variant creation/editing requires `product:update`, while zero-stock variant and unused-option archive requires `product:archive`;
 - unit creation requires `product:create`, unit edits and product assignment require `product:update`, and only an unassigned unit can be archived with `product:archive`;
+- customer lists require `customer:read`, creation/edit/archive require their matching customer permissions, and archived profiles remain read-only for historical references;
 - inventory pages require `inventory:read`; immutable manual adjustments require `inventory:adjust`; and both stores in a transfer require assignment plus `inventory:transfer`;
 - product availability changes require `product:update` and are limited to assigned active stores, while the tenant-wide low-stock policy requires `settings:manage`;
 - dashboard sales totals, trends, and authorized-store comparisons require `sale:read` or `report:read`; recent activity additionally requires `audit:read`, and restricted panels render a denial state rather than placeholder totals;

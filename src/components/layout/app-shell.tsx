@@ -7,6 +7,7 @@ import {
   Check,
   ChevronDown,
   CircleHelp,
+  ContactRound,
   CreditCard,
   FolderTree,
   LayoutDashboard,
@@ -64,7 +65,7 @@ interface NavigationItem {
 }
 
 interface NavigationGroup {
-  id: "overview" | "catalog" | "inventory" | "manage";
+  id: "overview" | "catalog" | "inventory" | "sales" | "manage";
   label: string;
   items: NavigationItem[];
 }
@@ -90,6 +91,7 @@ const demoWorkspace: WorkspaceShellData = {
   canViewMembers: true,
   canViewBilling: true,
   canViewInventory: true,
+  canViewCustomers: true,
   isDemo: true,
 };
 
@@ -118,7 +120,13 @@ function SidebarContent({
   const [isSwitching, startSwitching] = React.useTransition();
   const [openGroups, setOpenGroups] = React.useState<
     Record<NavigationGroup["id"], boolean>
-  >({ overview: true, catalog: true, inventory: true, manage: true });
+  >({
+    overview: true,
+    catalog: true,
+    inventory: true,
+    sales: true,
+    manage: true,
+  });
   const base = `/app/${tenantSlug}`;
   const navigationGroups: NavigationGroup[] = [
     {
@@ -160,6 +168,13 @@ function SidebarContent({
         : [],
     },
     {
+      id: "sales",
+      label: "Sales",
+      items: workspace.canViewCustomers
+        ? [{ label: "Customers", icon: ContactRound, href: "/customers" }]
+        : [],
+    },
+    {
       id: "manage",
       label: "Manage",
       items: [
@@ -192,7 +207,8 @@ function SidebarContent({
       return (
         (pathname === href || pathname.startsWith(`${href}/`)) &&
         !pathname.startsWith(`${href}/categories`) &&
-        !pathname.startsWith(`${href}/tags`)
+        !pathname.startsWith(`${href}/tags`) &&
+        !pathname.startsWith(`${href}/units`)
       );
     if (item.href === "/inventory")
       return (
