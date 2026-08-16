@@ -129,6 +129,7 @@ describe.skipIf(!enabled)("product CSV preview and import lifecycle", () => {
       "stores",
       "tags",
       "tenantProfiles",
+      "units",
     ])
       await database.collection(collection).deleteMany({
         tenantId: { $in: [tenantId, otherTenantId] },
@@ -237,6 +238,8 @@ describe.skipIf(!enabled)("product CSV preview and import lifecycle", () => {
       tagIds: [tagId],
       version: 1,
     });
+    expect(created?.unitId).toBe(existing?.unitId);
+    expect(created?.unitId).toBeTruthy();
     expect(existingLevel).toMatchObject({ quantity: 7, version: 1 });
     expect(createdLevel).toMatchObject({ quantity: 6, version: 1 });
     await expect(

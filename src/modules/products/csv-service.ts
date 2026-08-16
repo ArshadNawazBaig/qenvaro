@@ -36,6 +36,7 @@ import {
 } from "@/modules/products/csv";
 import type { ProductListQuery } from "@/modules/products/schemas";
 import { normalizeTagName } from "@/modules/tags/schemas";
+import { ensureDefaultUnit } from "@/modules/units/service";
 import { getDatabase, getMongoClient } from "@/server/db/client";
 import { ProductRepository } from "@/server/repositories/products";
 import type { TenantContext } from "@/server/tenancy/context";
@@ -958,6 +959,10 @@ export class ProductCsvService {
           ),
         );
         const now = new Date();
+        const defaultUnitId =
+          createdRows.length > 0
+            ? await ensureDefaultUnit(database, session, context, now)
+            : null;
         for (const [normalizedName, name] of categoryInputs) {
           if (categoryNameByNormalized.has(normalizedName)) continue;
           const categoryId = createOpaqueId("cat");
@@ -1131,6 +1136,7 @@ export class ProductCsvService {
                   .replace(/[^a-z0-9]+/g, "-")
                   .replace(/(^-|-$)/g, "") || productId,
               category,
+              unitId: defaultUnitId,
               tagIds: row.tagIds,
               priceMinor: row.priceMinor,
               currency: profile.currency,

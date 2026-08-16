@@ -14,7 +14,9 @@ Key restrictions include:
 - employees can read only their linked records and own payslips;
 - sale refunds, stock adjustments, role changes, payroll transitions, and support access are audited;
 - product option and variant creation/editing requires `product:update`, while zero-stock variant and unused-option archive requires `product:archive`;
+- unit creation requires `product:create`, unit edits and product assignment require `product:update`, and only an unassigned unit can be archived with `product:archive`;
 - inventory pages require `inventory:read`; immutable manual adjustments require `inventory:adjust`; and both stores in a transfer require assignment plus `inventory:transfer`;
+- product availability changes require `product:update` and are limited to assigned active stores, while the tenant-wide low-stock policy requires `settings:manage`;
 - UI gates improve usability but never replace service authorization.
 
 ```mermaid

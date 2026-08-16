@@ -101,6 +101,7 @@ describe.skipIf(!enabled)("tag lifecycle transaction", () => {
       "tags",
       "stores",
       "tenantProfiles",
+      "units",
     ])
       await database.collection(collection).deleteMany({
         tenantId: { $in: [tenantId, otherTenantId] },

@@ -97,6 +97,7 @@ export class TenantOnboardingService {
     const client = await getMongoClient();
     const database = client.db(env.MONGODB_DATABASE);
     const storeId = createOpaqueId("store");
+    const unitId = createOpaqueId("uom");
     const assignmentId = createOpaqueId("msa");
     const auditId = createOpaqueId("aud");
     let result: { tenantSlug: string; storeId: string } | undefined;
@@ -192,6 +193,26 @@ export class TenantOnboardingService {
             createdBy: identity.userId,
             updatedBy: identity.userId,
             version: 1,
+          },
+          { session },
+        );
+        await database.collection<StringIdDocument>("units").insertOne(
+          {
+            _id: unitId,
+            tenantId: identity.tenantId,
+            name: "Each",
+            normalizedName: "each",
+            symbol: "ea",
+            normalizedSymbol: "ea",
+            slug: `each-${unitId.slice(-8)}`,
+            description: "Default unit for individually counted products.",
+            status: "active",
+            isDefault: true,
+            version: 1,
+            createdAt: now,
+            updatedAt: now,
+            createdBy: identity.userId,
+            updatedBy: identity.userId,
           },
           { session },
         );

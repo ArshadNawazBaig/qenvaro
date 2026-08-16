@@ -118,6 +118,7 @@ describe.skipIf(!enabled)("variant and option lifecycle transaction", () => {
       "products",
       "stores",
       "tenantProfiles",
+      "units",
     ])
       await database.collection(collection).deleteMany({
         tenantId: { $in: [tenantId, otherTenantId] },

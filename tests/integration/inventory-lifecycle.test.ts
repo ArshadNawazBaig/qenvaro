@@ -1,11 +1,15 @@
 import { MongoClient, type Db } from "mongodb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  InventoryAlertSettingsVersionConflictError,
   InventoryIdempotencyConflictError,
   InventoryNegativeStockError,
   InventoryService,
   InventoryVersionConflictError,
+  ProductAvailabilityVersionConflictError,
+  ProductStoreHasInventoryError,
 } from "@/modules/inventory/service";
+import { productAvailabilityQuerySchema } from "@/modules/inventory/schemas";
 import {
   PermissionError,
   resolvePermissions,
@@ -115,6 +119,7 @@ describe.skipIf(!enabled)("inventory adjustment and transfer lifecycle", () => {
       "products",
       "stores",
       "tenantProfiles",
+      "units",
     ])
       await database.collection(collection).deleteMany({ tenantId });
     await client.close();
@@ -398,5 +403,171 @@ describe.skipIf(!enabled)("inventory adjustment and transfer lifecycle", () => {
       ),
     ).toMatchObject({ quantity: 4 });
     expect(unrelated.rows).toHaveLength(0);
+  });
+
+  it("updates product store availability only after removed-store stock is zero", async () => {
+    const service = new InventoryService();
+    await expect(
+      service.updateProductAvailability(ownerContext, {
+        productId: firstProductId,
+        expectedVersion: 1,
+        availableStoreIds: [sourceStoreId],
+      }),
+    ).rejects.toBeInstanceOf(ProductStoreHasInventoryError);
+
+    await service.adjust(ownerContext, {
+      storeId: destinationStoreId,
+      variantId: `${firstProductId}_default`,
+      mode: "set",
+      quantity: 0,
+      reason: "correction",
+      note: "Cleared destination before availability change",
+      expectedLevelVersion: 1,
+      idempotencyKey: `adjustment-clear-destination:${suffix}`,
+    });
+    const result = await service.updateProductAvailability(ownerContext, {
+      productId: firstProductId,
+      expectedVersion: 1,
+      availableStoreIds: [sourceStoreId],
+    });
+    const [product, audit, availability] = await Promise.all([
+      database.collection<StringIdDocument>("products").findOne({
+        tenantId,
+        _id: firstProductId,
+      }),
+      database.collection<StringIdDocument>("auditLogs").findOne({
+        tenantId,
+        entityId: firstProductId,
+        action: "product.store_availability.updated",
+      }),
+      new InventoryRepository().availability(
+        ownerContext,
+        productAvailabilityQuerySchema.parse({
+          q: `INV-A-${suffix.slice(0, 8)}`,
+        }),
+      ),
+    ]);
+
+    expect(result).toEqual({
+      version: 2,
+      availableStoreIds: [sourceStoreId],
+    });
+    expect(product).toMatchObject({
+      allowedStoreIds: [sourceStoreId],
+      version: 2,
+      stock: 9,
+    });
+    expect(audit).toMatchObject({ actorId: ownerContext.userId });
+    expect(availability.result.items[0]).toMatchObject({
+      productId: firstProductId,
+      availableStoreIds: [sourceStoreId],
+    });
+
+    await expect(
+      service.updateProductAvailability(ownerContext, {
+        productId: firstProductId,
+        expectedVersion: 1,
+        availableStoreIds: [sourceStoreId, destinationStoreId],
+      }),
+    ).rejects.toBeInstanceOf(ProductAvailabilityVersionConflictError);
+    await expect(
+      service.updateProductAvailability(
+        {
+          ...ownerContext,
+          roles: ["VIEWER"],
+          permissions: resolvePermissions(["VIEWER"]),
+        },
+        {
+          productId: firstProductId,
+          expectedVersion: 2,
+          availableStoreIds: [sourceStoreId, destinationStoreId],
+        },
+      ),
+    ).rejects.toBeInstanceOf(PermissionError);
+  });
+
+  it("persists an audited tenant alert policy and derives the active-store queue", async () => {
+    const service = new InventoryService();
+    const enabledPolicy = await service.updateLowStockAlertPreferences(
+      ownerContext,
+      {
+        enabled: true,
+        includeLowStock: true,
+        includeOutOfStock: true,
+        expectedVersion: 1,
+      },
+    );
+    let alerts = await new InventoryRepository().lowStockAlerts(ownerContext);
+    expect(enabledPolicy.version).toBe(2);
+    expect(alerts.preferences).toEqual({
+      enabled: true,
+      includeLowStock: true,
+      includeOutOfStock: true,
+      version: 2,
+    });
+    expect(alerts.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          productId: secondProductId,
+          quantity: 3,
+          reorderLevel: 5,
+          severity: "low",
+        }),
+      ]),
+    );
+
+    await service.adjust(ownerContext, {
+      storeId: sourceStoreId,
+      variantId: `${secondProductId}_default`,
+      mode: "set",
+      quantity: 0,
+      reason: "correction",
+      note: "Reconciled for out-of-stock alert coverage",
+      expectedLevelVersion: 2,
+      idempotencyKey: `adjustment-alert-out:${suffix}`,
+    });
+    alerts = await new InventoryRepository().lowStockAlerts(ownerContext);
+    expect(
+      alerts.items.find((item) => item.productId === secondProductId),
+    ).toMatchObject({ quantity: 0, severity: "out" });
+
+    const outOnly = await service.updateLowStockAlertPreferences(ownerContext, {
+      enabled: true,
+      includeLowStock: false,
+      includeOutOfStock: true,
+      expectedVersion: 2,
+    });
+    expect(outOnly.version).toBe(3);
+    await expect(
+      service.updateLowStockAlertPreferences(ownerContext, {
+        enabled: false,
+        includeLowStock: true,
+        includeOutOfStock: true,
+        expectedVersion: 2,
+      }),
+    ).rejects.toBeInstanceOf(InventoryAlertSettingsVersionConflictError);
+    await expect(
+      service.updateLowStockAlertPreferences(
+        {
+          ...ownerContext,
+          roles: ["MANAGER"],
+          permissions: resolvePermissions(["MANAGER"]),
+        },
+        {
+          enabled: false,
+          includeLowStock: true,
+          includeOutOfStock: true,
+          expectedVersion: 3,
+        },
+      ),
+    ).rejects.toBeInstanceOf(PermissionError);
+    const audit = await database
+      .collection<StringIdDocument>("auditLogs")
+      .findOne({
+        tenantId,
+        entityId: tenantId,
+        action: "inventory.low_stock_alerts.updated",
+      });
+    expect(audit).toMatchObject({ actorId: ownerContext.userId });
   });
 });

@@ -4,6 +4,7 @@ import {
   FolderTree,
   PackageCheck,
   PackageSearch,
+  Ruler,
   Tags,
   TriangleAlert,
 } from "lucide-react";
@@ -36,6 +37,8 @@ import { ProductCsvService } from "@/modules/products/csv-service";
 import { productListQuerySchema } from "@/modules/products/schemas";
 import { ProductRepository } from "@/server/repositories/products";
 import { TagRepository } from "@/server/repositories/tags";
+import { UnitRepository } from "@/server/repositories/units";
+import { getDemoUnitOptions } from "@/modules/units/demo-data";
 import { requireTenantContext } from "@/server/tenancy/resolve-context";
 
 export const metadata: Metadata = { title: "Products" };
@@ -52,6 +55,7 @@ export default async function ProductsPage({
   let result = queryDemoProducts(rawQuery);
   let categories = result.categories;
   let tags = getDemoTagOptions();
+  let units = getDemoUnitOptions();
   let metrics = {
     total: demoProducts.length,
     active: demoProducts.filter((product) => product.status === "active")
@@ -85,12 +89,14 @@ export default async function ProductsPage({
         databaseTags,
         databaseMetrics,
         csvAvailability,
+        databaseUnits,
       ] = await Promise.all([
         repository.list(context, query),
         repository.categories(context),
         new TagRepository().activeOptions(context),
         repository.metrics(context),
         new ProductCsvService().availability(context),
+        new UnitRepository().activeOptions(context),
       ]);
       const pageCount = Math.max(1, Math.ceil(data.total / query.pageSize));
       result = {
@@ -104,6 +110,7 @@ export default async function ProductsPage({
       };
       categories = databaseCategories;
       tags = databaseTags;
+      units = databaseUnits;
       metrics = databaseMetrics;
       isDemo = false;
       canCreate = hasPermission(context.permissions, "product:create");
@@ -166,6 +173,7 @@ export default async function ProductsPage({
               tenantSlug={tenantSlug}
               categories={categories}
               tags={tags}
+              units={units}
               disabled={isDemo || !canCreate}
             />
             <Button asChild variant="outline">
@@ -176,6 +184,11 @@ export default async function ProductsPage({
             <Button asChild variant="outline">
               <Link href={`/app/${tenantSlug}/products/tags`}>
                 <Tags /> Tags
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={`/app/${tenantSlug}/products/units`}>
+                <Ruler /> Units
               </Link>
             </Button>
             <ProductCsvActions

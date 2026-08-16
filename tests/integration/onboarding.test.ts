@@ -38,6 +38,7 @@ describe.skipIf(!enabled)("tenant onboarding transaction", () => {
       "memberStoreAssignments",
       "stores",
       "tenantProfiles",
+      "units",
     ])
       await database.collection(collection).deleteMany({ tenantId });
     await database
@@ -68,7 +69,7 @@ describe.skipIf(!enabled)("tenant onboarding transaction", () => {
       },
     );
 
-    const [profile, store, assignment, audit] = await Promise.all([
+    const [profile, store, assignment, unit, audit] = await Promise.all([
       database.collection("tenantProfiles").findOne({ tenantId }),
       database.collection<StringIdDocument>("stores").findOne({
         tenantId,
@@ -78,6 +79,11 @@ describe.skipIf(!enabled)("tenant onboarding transaction", () => {
         tenantId,
         membershipId,
         storeId: result.storeId,
+      }),
+      database.collection("units").findOne({
+        tenantId,
+        status: "active",
+        isDefault: true,
       }),
       database.collection("auditLogs").findOne({
         tenantId,
@@ -96,6 +102,7 @@ describe.skipIf(!enabled)("tenant onboarding transaction", () => {
     expect(profile?.trialEndsAt).toBeInstanceOf(Date);
     expect(store).toMatchObject({ code: "MAIN", status: "active" });
     expect(assignment).toBeTruthy();
+    expect(unit).toMatchObject({ name: "Each", symbol: "ea", version: 1 });
     expect(audit).toMatchObject({ actorId: userId, entityId: tenantId });
   });
 });

@@ -20,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { TagBadge } from "@/components/tags/tag-badge";
 import type { TagOption } from "@/modules/tags/schemas";
+import type { UnitOption } from "@/modules/units/schemas";
 
 const initialState: ProductActionState = { status: "idle", message: "" };
 
@@ -27,11 +28,13 @@ export function NewProductDialog({
   tenantSlug,
   categories = [],
   tags = [],
+  units = [],
   disabled = false,
 }: {
   tenantSlug: string;
   categories?: string[];
   tags?: TagOption[];
+  units?: UnitOption[];
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -100,6 +103,29 @@ export function NewProductDialog({
                 ))}
               </datalist>
             </label>
+            <label className="space-y-1.5 text-sm font-medium sm:col-span-2">
+              Unit of measure
+              <select
+                name="unitId"
+                required
+                defaultValue={units[0]?.id ?? ""}
+                className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border px-3 text-sm outline-none focus-visible:ring-2"
+              >
+                {units.length === 0 && (
+                  <option value="" disabled>
+                    Create an active unit first
+                  </option>
+                )}
+                {units.map((unit) => (
+                  <option key={unit.id} value={unit.id}>
+                    {unit.name} ({unit.symbol})
+                  </option>
+                ))}
+              </select>
+              <span className="text-muted-foreground block text-xs font-normal">
+                Used to label quantities throughout inventory workflows.
+              </span>
+            </label>
             <label className="space-y-1.5 text-sm font-medium">
               Price (USD)
               <Input
@@ -160,7 +186,7 @@ export function NewProductDialog({
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" disabled={pending || units.length === 0}>
               {pending ? "Creating…" : "Create product"}
             </Button>
           </div>

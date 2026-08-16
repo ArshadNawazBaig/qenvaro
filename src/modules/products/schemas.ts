@@ -6,6 +6,7 @@ import type {
   ProductVariantItem,
 } from "@/modules/variants/schemas";
 import type { ProductImageItem } from "@/modules/product-images/schemas";
+import { unitIdSchema, type UnitOption } from "@/modules/units/schemas";
 
 export const productStatusSchema = z.enum(["draft", "active", "archived"]);
 export const productTypeSchema = z.enum(["simple", "variant", "service"]);
@@ -21,6 +22,7 @@ export const createProductSchema = z.object({
     .regex(/^[A-Za-z0-9._-]+$/),
   barcode: z.string().trim().max(64).optional(),
   categoryId: z.string().trim().min(1),
+  unitId: unitIdSchema,
   type: productTypeSchema,
   price: moneySchema,
   cost: moneySchema,
@@ -52,6 +54,7 @@ export const updateProductSchema = z
       .max(64)
       .regex(/^[A-Za-z0-9._-]+$/),
     category: z.string().trim().min(2).max(80),
+    unitId: unitIdSchema.optional(),
     priceMinor: z.number().int().min(0).max(1_000_000_000),
     reorderLevel: z.number().int().min(0).max(1_000_000),
     status: z.enum(["draft", "active"]),
@@ -93,6 +96,8 @@ export interface ProductListItem {
 
 export interface ProductDetail extends ProductListItem {
   type: "simple" | "variant" | "service";
+  unitId: string | null;
+  unit: UnitOption | null;
   tags: TagOption[];
   version: number;
   createdAt: string;

@@ -1,5 +1,6 @@
 import type { ProductDetail, ProductListItem } from "./schemas";
 import { getDemoTagOptions } from "@/modules/tags/demo-data";
+import { getDemoUnitOptions } from "@/modules/units/demo-data";
 
 const demoProductTagIds: Record<string, string[]> = {
   prd_growth_suite: ["tag_featured", "tag_new_arrival"],
@@ -286,9 +287,12 @@ export function getDemoProductDetail(productId: string): ProductDetail | null {
   const product = demoProducts.find((item) => item.id === productId);
   if (!product) return null;
   const tagOptions = getDemoTagOptions();
+  const unit = getDemoUnitOptions()[0] ?? null;
   return {
     ...product,
     type: product.id === "prd_growth_suite" ? "variant" : "simple",
+    unitId: unit?.id ?? null,
+    unit,
     tags: product.tagIds.flatMap((tagId) => {
       const tag = tagOptions.find((option) => option.id === tagId);
       return tag ? [tag] : [];

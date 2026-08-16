@@ -25,6 +25,7 @@ interface ProductDocument {
   stock: number | null;
   reorderLevel: number;
   category: string;
+  unitId?: string;
   type?: "simple" | "variant" | "service";
   optionGroups?: Array<{
     id: string;
@@ -370,7 +371,7 @@ export class ProductRepository {
       );
     if (!product) return null;
 
-    const [variants, tags, images] = await Promise.all([
+    const [variants, tags, images, unit] = await Promise.all([
       database
         .collection<{
           _id: string;
@@ -445,6 +446,19 @@ export class ProductRepository {
         )
         .sort({ position: 1, _id: 1 })
         .toArray(),
+      product.unitId
+        ? database
+            .collection<{
+              _id: string;
+              tenantId: string;
+              name: string;
+              symbol: string;
+            }>("units")
+            .findOne(
+              { _id: product.unitId, tenantId: context.tenantId },
+              { projection: { _id: 1, name: 1, symbol: 1 } },
+            )
+        : Promise.resolve(null),
     ]);
     const variantIds = variants.map((variant) => variant._id);
     const productStoreIds = new Set(product.allowedStoreIds ?? []);
@@ -537,6 +551,10 @@ export class ProductRepository {
       reorderLevel: product.reorderLevel,
       category: product.category,
       type: product.type ?? "simple",
+      unitId: product.unitId ?? null,
+      unit: unit
+        ? { id: unit._id, name: unit.name, symbol: unit.symbol }
+        : null,
       tagIds: product.tagIds ?? [],
       tags: tags.map((tag) => ({
         id: tag._id,

@@ -64,6 +64,31 @@ test("public landing and product demo are usable", async ({ page }) => {
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   if (originalViewport) await page.setViewportSize(originalViewport);
   await page.goto(productsUrl);
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: "Units", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Units of measure", exact: true }),
+  ).toBeVisible();
+  if ((page.viewportSize()?.width ?? 0) >= 768)
+    await expect(page.getByRole("table")).toBeVisible();
+  else
+    await expect(
+      page.getByRole("button", { name: "Edit Each" }),
+    ).toBeDisabled();
+  await expect(page.getByRole("button", { name: "New unit" })).toBeDisabled();
+  await page.setViewportSize({ width: 320, height: 700 });
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(0);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  if (originalViewport) await page.setViewportSize(originalViewport);
+  await page.goto(productsUrl);
   await page.getByRole("link", { name: "Growth Suite", exact: true }).click();
   await expect(page).toHaveURL(/\/products\/prd_growth_suite$/);
   await expect(

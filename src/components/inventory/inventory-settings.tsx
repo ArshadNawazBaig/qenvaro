@@ -240,7 +240,7 @@ export function LowStockAlertPreferencesForm({
           </span>
         </span>
       </label>
-      <fieldset disabled={disabled || !enabled} className="space-y-3">
+      <fieldset disabled={disabled} className="space-y-3">
         <legend className="text-sm font-semibold">Include in the queue</legend>
         <label className="flex items-start gap-3 rounded-lg border p-3">
           <input

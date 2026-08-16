@@ -84,6 +84,7 @@ describe.skipIf(!enabled)("product lifecycle transaction", () => {
       "products",
       "stores",
       "tenantProfiles",
+      "units",
     ])
       await database.collection(collection).deleteMany({ tenantId });
     await client.close();

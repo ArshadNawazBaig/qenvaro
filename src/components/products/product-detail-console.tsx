@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { TagBadge } from "@/components/tags/tag-badge";
 import type { ProductDetail } from "@/modules/products/schemas";
 import type { TagOption } from "@/modules/tags/schemas";
+import type { UnitOption } from "@/modules/units/schemas";
 
 const initialState: ProductActionState = { status: "idle", message: "" };
 
@@ -53,6 +54,7 @@ export function ProductDetailConsole({
   product,
   categories,
   tags,
+  units,
   canUpdate,
   canArchive,
   isDemo,
@@ -61,6 +63,7 @@ export function ProductDetailConsole({
   product: ProductDetail;
   categories: string[];
   tags: TagOption[];
+  units: UnitOption[];
   canUpdate: boolean;
   canArchive: boolean;
   isDemo: boolean;
@@ -150,6 +153,32 @@ export function ProductDetailConsole({
                     {categories.map((category) => (
                       <option key={category} value={category}>
                         {category}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1.5 text-sm font-medium">
+                  Unit of measure
+                  <select
+                    name="unitId"
+                    required
+                    defaultValue={product.unitId ?? ""}
+                    className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border px-3 text-sm outline-none focus-visible:ring-2"
+                  >
+                    {product.unit &&
+                      !units.some((unit) => unit.id === product.unitId) && (
+                        <option value={product.unit.id}>
+                          {product.unit.name} ({product.unit.symbol})
+                        </option>
+                      )}
+                    {!product.unit && (
+                      <option value="" disabled>
+                        Choose a unit
+                      </option>
+                    )}
+                    {units.map((unit) => (
+                      <option key={unit.id} value={unit.id}>
+                        {unit.name} ({unit.symbol})
                       </option>
                     ))}
                   </select>

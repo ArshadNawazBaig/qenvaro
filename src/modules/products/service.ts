@@ -16,6 +16,8 @@ import {
   type UpdateProductInput,
 } from "@/modules/products/schemas";
 import { productTagIdsSchema } from "@/modules/tags/schemas";
+import { unitIdSchema } from "@/modules/units/schemas";
+import { ensureDefaultUnit } from "@/modules/units/service";
 import { env } from "@/config/env";
 import { getMongoClient } from "@/server/db/client";
 import type { TenantContext } from "@/server/tenancy/context";
@@ -28,6 +30,7 @@ interface MutableProductDocument {
   subtitle: string;
   sku: string;
   category: string;
+  unitId?: string;
   tagIds?: string[];
   priceMinor: number;
   reorderLevel: number;
@@ -78,6 +81,7 @@ export interface CreateSimpleProductInput {
   name: string;
   sku: string;
   category: string;
+  unitId?: string;
   priceMinor: number;
   openingStock: number;
   tagIds?: string[];
@@ -115,6 +119,13 @@ export class ProductTagUnavailableError extends Error {
   constructor() {
     super("Choose active tags from this tenant catalog.");
     this.name = "ProductTagUnavailableError";
+  }
+}
+
+export class ProductUnitUnavailableError extends Error {
+  constructor() {
+    super("Choose an active unit from this tenant catalog.");
+    this.name = "ProductUnitUnavailableError";
   }
 }
 
@@ -228,6 +239,29 @@ async function resolveProductTags(
   return tagIds;
 }
 
+async function resolveProductUnit(
+  database: Db,
+  session: ClientSession,
+  context: TenantContext,
+  requestedUnitId: string | undefined,
+  now: Date,
+): Promise<string> {
+  const unitId = requestedUnitId
+    ? unitIdSchema.parse(requestedUnitId)
+    : await ensureDefaultUnit(database, session, context, now);
+  const unit = await database.collection<{ _id: string }>("units").findOne(
+    {
+      _id: unitId,
+      tenantId: context.tenantId,
+      status: "active",
+      deletedAt: { $exists: false },
+    },
+    { session, projection: { _id: 1 } },
+  );
+  if (!unit) throw new ProductUnitUnavailableError();
+  return unitId;
+}
+
 export class ProductService {
   async createSimple(
     context: TenantContext,
@@ -272,6 +306,13 @@ export class ProductService {
           context,
           input.tagIds,
         );
+        const unitId = await resolveProductUnit(
+          database,
+          session,
+          context,
+          input.unitId,
+          now,
+        );
         await database.collection<StringIdDocument>("products").insertOne(
           {
             _id: productId,
@@ -288,6 +329,7 @@ export class ProductService {
               .replace(/[^a-z0-9]+/g, "-")
               .replace(/(^-|-$)/g, ""),
             category,
+            unitId,
             tagIds,
             priceMinor: input.priceMinor,
             currency: profile.currency,
@@ -354,7 +396,7 @@ export class ProductService {
             entityId: productId,
             requestId: context.requestId,
             summary: "Created a simple catalog product.",
-            changes: { after: { category, tagIds } },
+            changes: { after: { category, tagIds, unitId } },
             createdAt: now,
           },
           { session },
@@ -405,6 +447,13 @@ export class ProductService {
           context,
           input.tagIds,
         );
+        const unitId = await resolveProductUnit(
+          database,
+          session,
+          context,
+          input.unitId ?? existing.unitId,
+          now,
+        );
         const update = await products.updateOne(
           {
             _id: input.productId,
@@ -420,6 +469,7 @@ export class ProductService {
               sku: input.sku,
               normalizedSku: input.sku.toUpperCase(),
               category,
+              unitId,
               tagIds,
               priceMinor: input.priceMinor,
               reorderLevel: input.reorderLevel,
@@ -469,6 +519,7 @@ export class ProductService {
                 subtitle: existing.subtitle,
                 sku: existing.sku,
                 category: existing.category,
+                unitId: existing.unitId ?? null,
                 tagIds: existing.tagIds ?? [],
                 priceMinor: existing.priceMinor,
                 reorderLevel: existing.reorderLevel,
@@ -479,6 +530,7 @@ export class ProductService {
                 subtitle: input.subtitle,
                 sku: input.sku,
                 category,
+                unitId,
                 tagIds,
                 priceMinor: input.priceMinor,
                 reorderLevel: input.reorderLevel,

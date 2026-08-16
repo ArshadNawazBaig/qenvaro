@@ -3,6 +3,7 @@ import {
   CalendarClock,
   Eye,
   PackageCheck,
+  Ruler,
   Store,
   Tag,
   Tags as TagsIcon,
@@ -37,6 +38,8 @@ import { CategoryRepository } from "@/server/repositories/categories";
 import { ProductRepository } from "@/server/repositories/products";
 import { isCloudinaryConfigured } from "@/server/media/cloudinary";
 import { TagRepository } from "@/server/repositories/tags";
+import { UnitRepository } from "@/server/repositories/units";
+import { getDemoUnitOptions } from "@/modules/units/demo-data";
 import { requireTenantContext } from "@/server/tenancy/resolve-context";
 
 export const metadata: Metadata = { title: "Product details" };
@@ -81,15 +84,17 @@ export default async function ProductDetailPage({
     ...new Set(demoProducts.map((demoProduct) => demoProduct.category)),
   ].sort();
   let tagOptions = getDemoTagOptions();
+  let unitOptions = getDemoUnitOptions();
 
   if (env.MONGODB_URI) {
     try {
       const context = await requireTenantContext(tenantSlug);
       resolvedLiveTenant = true;
-      [product, categoryNames, tagOptions] = await Promise.all([
+      [product, categoryNames, tagOptions, unitOptions] = await Promise.all([
         new ProductRepository().detail(context, productId),
         new CategoryRepository().activeNames(context),
         new TagRepository().activeOptions(context),
+        new UnitRepository().activeOptions(context),
       ]);
       if (product) {
         isDemo = false;
@@ -210,11 +215,41 @@ export default async function ProductDetailPage({
           product={product}
           categories={categoryNames}
           tags={tagOptions}
+          units={unitOptions}
           canUpdate={canUpdate}
           canArchive={canArchive}
           isDemo={isDemo}
         />
         <aside className="space-y-6" aria-label="Product supporting details">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Ruler className="size-4" /> Unit of measure
+              </CardTitle>
+              <CardDescription>
+                Quantity label used by product and inventory workflows.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {product.unit ? (
+                <div className="flex items-center gap-3">
+                  <span className="bg-muted text-foreground flex size-11 items-center justify-center rounded-xl border font-mono text-sm font-semibold">
+                    {product.unit.symbol}
+                  </span>
+                  <div>
+                    <p className="font-semibold">{product.unit.name}</p>
+                    <p className="text-muted-foreground text-xs">
+                      Stable catalog assignment
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  No unit is assigned to this legacy product.
+                </p>
+              )}
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

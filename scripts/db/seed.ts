@@ -1,4 +1,5 @@
 import { getScriptDatabase } from "./shared";
+import { createHash } from "node:crypto";
 import { demoProducts } from "../../src/modules/products/demo-data";
 import { getDemoTags } from "../../src/modules/tags/demo-data";
 
@@ -6,6 +7,16 @@ const now = new Date("2026-08-16T09:00:00.000Z");
 const tenantA = "org_northstar";
 const tenantB = "org_harborpine";
 type StringIdDocument = { _id: string } & Record<string, unknown>;
+
+function defaultUnitId(tenantId: string): string {
+  const digest = createHash("sha256")
+    .update(`${tenantId}:unit:each`)
+    .digest("hex");
+  return `uom_${digest.slice(0, 24)}`;
+}
+
+const tenantADefaultUnitId = defaultUnitId(tenantA);
+const tenantBDefaultUnitId = defaultUnitId(tenantB);
 
 function metadata(tenantId: string, actor = "seed_system") {
   return {
@@ -127,6 +138,65 @@ async function main() {
         },
       },
     ]);
+    await database.collection<StringIdDocument>("units").bulkWrite([
+      {
+        updateOne: {
+          filter: { _id: tenantADefaultUnitId, tenantId: tenantA },
+          update: {
+            $set: {
+              name: "Each",
+              normalizedName: "each",
+              symbol: "ea",
+              normalizedSymbol: "ea",
+              slug: "each-northstar",
+              description: "Default unit for individually counted products.",
+              status: "active",
+              isDefault: true,
+              ...metadata(tenantA),
+            },
+          },
+          upsert: true,
+        },
+      },
+      {
+        updateOne: {
+          filter: { _id: "uom_northstar_box", tenantId: tenantA },
+          update: {
+            $set: {
+              name: "Box",
+              normalizedName: "box",
+              symbol: "box",
+              normalizedSymbol: "box",
+              slug: "box-northstar",
+              description: "Products stocked and sold as a complete box.",
+              status: "active",
+              isDefault: false,
+              ...metadata(tenantA),
+            },
+          },
+          upsert: true,
+        },
+      },
+      {
+        updateOne: {
+          filter: { _id: tenantBDefaultUnitId, tenantId: tenantB },
+          update: {
+            $set: {
+              name: "Each",
+              normalizedName: "each",
+              symbol: "ea",
+              normalizedSymbol: "ea",
+              slug: "each-harbor",
+              description: "Default unit for individually counted products.",
+              status: "active",
+              isDefault: true,
+              ...metadata(tenantB),
+            },
+          },
+          upsert: true,
+        },
+      },
+    ]);
     const products = demoProducts.map((product) => ({
       updateOne: {
         filter: { _id: product.id },
@@ -137,6 +207,7 @@ async function main() {
             normalizedSku: product.sku.toUpperCase(),
             type: "simple",
             optionGroups: [],
+            unitId: tenantADefaultUnitId,
             ...metadata(tenantA),
             allowedStoreIds: [
               "store_northstar_downtown",
@@ -160,6 +231,7 @@ async function main() {
             normalizedSku: "GS-ANNUAL",
             type: "simple",
             optionGroups: [],
+            unitId: tenantBDefaultUnitId,
             slug: "growth-suite",
             priceMinor: 14900,
             currency: "USD",

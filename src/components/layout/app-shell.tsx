@@ -14,6 +14,7 @@ import {
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
+  Ruler,
   Search,
   Settings,
   Store,
@@ -136,6 +137,7 @@ function SidebarContent({
           href: "/products/categories",
         },
         { label: "Tags", icon: Tags, href: "/products/tags" },
+        { label: "Units of measure", icon: Ruler, href: "/products/units" },
       ],
     },
     {

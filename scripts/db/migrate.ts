@@ -721,6 +721,103 @@ const migrations: Migration[] = [
       ]);
     },
   },
+  {
+    version: 16,
+    name: "tenant unit of measure lifecycle",
+    run: async (database) => {
+      const now = new Date();
+      const tenants = await database
+        .collection<{ tenantId: string }>("tenantProfiles")
+        .find(
+          { tenantId: { $type: "string" } },
+          { projection: { tenantId: 1 } },
+        )
+        .toArray();
+      for (const tenant of tenants) {
+        const existing = await database
+          .collection<{ _id: string }>("units")
+          .findOne(
+            {
+              tenantId: tenant.tenantId,
+              status: "active",
+              deletedAt: { $exists: false },
+            },
+            { sort: { isDefault: -1, createdAt: 1 }, projection: { _id: 1 } },
+          );
+        let unitId = String(existing?._id ?? "");
+        if (!unitId) {
+          const digest = createHash("sha256")
+            .update(`${tenant.tenantId}:unit:each`)
+            .digest("hex");
+          unitId = `uom_${digest.slice(0, 24)}`;
+          await database
+            .collection<{ _id: string } & Record<string, unknown>>("units")
+            .insertOne({
+              _id: unitId,
+              tenantId: tenant.tenantId,
+              name: "Each",
+              normalizedName: "each",
+              symbol: "ea",
+              normalizedSymbol: "ea",
+              slug: `each-${digest.slice(0, 8)}`,
+              description: "Default unit for individually counted products.",
+              status: "active",
+              isDefault: true,
+              version: 1,
+              createdAt: now,
+              updatedAt: now,
+              createdBy: "migration_16",
+              updatedBy: "migration_16",
+            });
+        }
+        await database.collection("products").updateMany(
+          {
+            tenantId: tenant.tenantId,
+            unitId: { $exists: false },
+            deletedAt: { $exists: false },
+          },
+          {
+            $set: {
+              unitId,
+              updatedAt: now,
+              updatedBy: "migration_16",
+            },
+            $inc: { version: 1 },
+          },
+        );
+      }
+      await indexes(database, "units", [
+        {
+          key: { tenantId: 1, normalizedName: 1 },
+          name: "tenant_unit_name_active_unique",
+          unique: true,
+          partialFilterExpression: {
+            normalizedName: { $type: "string" },
+            deletedAt: null,
+          },
+        },
+        {
+          key: { tenantId: 1, normalizedSymbol: 1 },
+          name: "tenant_unit_symbol_active_unique",
+          unique: true,
+          partialFilterExpression: {
+            normalizedSymbol: { $type: "string" },
+            deletedAt: null,
+          },
+        },
+        {
+          key: { tenantId: 1, status: 1, updatedAt: -1 },
+          name: "tenant_unit_status_updated",
+        },
+      ]);
+      await indexes(database, "products", [
+        {
+          key: { tenantId: 1, unitId: 1, status: 1 },
+          name: "tenant_product_unit_status",
+        },
+      ]);
+    },
+  },
 ];
 
 async function main() {

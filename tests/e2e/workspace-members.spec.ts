@@ -54,6 +54,7 @@ test.describe("authenticated workspace and member administration", () => {
       "sessionStoreSelections",
       "stores",
       "tenantProfiles",
+      "units",
       "products",
       "productVariants",
       "stockAdjustments",
@@ -156,6 +157,8 @@ test.describe("authenticated workspace and member administration", () => {
 
     const productName = `Counter Display ${suffix}`;
     const updatedProductName = `Counter Display Pro ${suffix}`;
+    const unitName = `Case ${suffix}`;
+    const unitSymbol = `cs-${suffix.slice(0, 4)}`;
     await page.goto(`/app/${primarySlug}/products`);
     await expect(
       page.getByText("Live tenant data", { exact: true }),
@@ -226,6 +229,57 @@ test.describe("authenticated workspace and member administration", () => {
       .findOne({ tenantId: primaryTenantId, name: updatedProductName });
     expect(createdProduct).toBeTruthy();
     const productDetailUrl = page.url();
+
+    await page.goto(`/app/${primarySlug}/products/units`);
+    await expect(
+      page.getByRole("heading", { name: "Units of measure", exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(0);
+    await page.getByRole("button", { name: "New unit" }).click();
+    const unitDialog = page.getByRole("dialog");
+    await unitDialog.getByLabel("Unit name").fill(unitName);
+    await unitDialog.getByLabel("Symbol").fill(unitSymbol);
+    await unitDialog
+      .getByLabel("Description")
+      .fill("A complete retail shipping case.");
+    await unitDialog.getByRole("button", { name: "Create unit" }).click();
+    await expect(
+      page.getByRole("button", { name: `Edit ${unitName}` }),
+    ).toBeVisible();
+    const createdUnit = await database
+      .collection<StringDocument>("units")
+      .findOne({ tenantId: primaryTenantId, name: unitName });
+    expect(createdUnit).toBeTruthy();
+
+    await page.goto(productDetailUrl);
+    await page.waitForLoadState("networkidle");
+    await page
+      .getByLabel("Unit of measure")
+      .selectOption(String(createdUnit?._id));
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect
+      .poll(async () => {
+        const product = await database
+          .collection<StringDocument>("products")
+          .findOne({
+            _id: String(createdProduct?._id),
+            tenantId: primaryTenantId,
+          });
+        return { unitId: product?.unitId, version: product?.version };
+      })
+      .toEqual({ unitId: String(createdUnit?._id), version: 3 });
+    await page.goto(`/app/${primarySlug}/products/units`);
+    await expect(
+      page.getByRole("button", { name: `Archive ${unitName}` }),
+    ).toBeDisabled();
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
     await page.goto(`/app/${primarySlug}/products/categories`);
     await expect(
       page.getByRole("button", { name: "Archive Retail Hardware" }),
@@ -270,9 +324,34 @@ test.describe("authenticated workspace and member administration", () => {
         productStock: 6,
         levelQuantity: 6,
         movementCount: 1,
-        auditCount: 2,
+        auditCount: 3,
       });
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+    await page.goto(`/app/${primarySlug}/products/units`);
+    await page.getByRole("button", { name: `Archive ${unitName}` }).click();
+    await page.getByRole("button", { name: "Confirm archive" }).click();
+    await expect
+      .poll(async () => {
+        const [unit, audit] = await Promise.all([
+          database.collection<StringDocument>("units").findOne({
+            _id: String(createdUnit?._id),
+            tenantId: primaryTenantId,
+          }),
+          database.collection<StringDocument>("auditLogs").findOne({
+            entityId: String(createdUnit?._id),
+            tenantId: primaryTenantId,
+            action: "unit.archived",
+          }),
+        ]);
+        return {
+          status: unit?.status,
+          version: unit?.version,
+          audited: Boolean(audit),
+        };
+      })
+      .toEqual({ status: "archived", version: 2, audited: true });
+
     await page.goto(`/app/${primarySlug}/products/categories`);
     await page.getByRole("button", { name: "Archive Retail Hardware" }).click();
     await page.getByRole("button", { name: "Confirm archive" }).click();
@@ -576,7 +655,7 @@ test.describe("authenticated workspace and member administration", () => {
         };
       })
       .toEqual({ source: 4, destination: 3, lineCount: 1, movementCount: 2 });
-    await page.getByRole("link", { name: "Transfers", exact: true }).click();
+    await page.goto(`/app/${primarySlug}/inventory/transfers`);
     await expect(
       page.getByRole("heading", { name: "Stock transfers" }),
     ).toBeVisible();
@@ -585,6 +664,159 @@ test.describe("authenticated workspace and member administration", () => {
         .locator("p:visible")
         .filter({ hasText: "Browser warehouse replenishment" }),
     ).toBeVisible();
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+    await page.goto(`/app/${primarySlug}/inventory`);
+    await page.getByRole("button", { name: "New adjustment" }).click();
+    inventoryDialog = page.getByRole("dialog");
+    await inventoryDialog.getByLabel("Store").selectOption(warehouseStoreId);
+    await inventoryDialog
+      .getByLabel("Product / SKU")
+      .selectOption(adjustmentVariantId!);
+    await inventoryDialog.getByLabel("Change").selectOption("set");
+    await inventoryDialog.getByLabel("Quantity").fill("0");
+    await inventoryDialog.getByLabel("Reason").selectOption("correction");
+    await inventoryDialog
+      .getByLabel("Note")
+      .fill("Cleared warehouse before availability update");
+    await inventoryDialog
+      .getByRole("button", { name: "Post adjustment" })
+      .click();
+    await expect
+      .poll(async () => {
+        const level = await database
+          .collection<StringDocument>("inventoryLevels")
+          .findOne({
+            tenantId: primaryTenantId,
+            storeId: warehouseStoreId,
+            variantId: adjustmentVariantId,
+          });
+        return level?.quantity;
+      })
+      .toBe(0);
+
+    await page.goto(`/app/${primarySlug}/inventory/availability`);
+    await expect(
+      page.getByRole("heading", { name: "Product availability" }),
+    ).toBeVisible();
+    await page.getByLabel("Search products or SKUs").fill(csvSku);
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await expect(page).toHaveURL(/inventory\/availability\?q=/);
+    await page.waitForLoadState("networkidle");
+    const manageAvailability = page
+      .locator(
+        'button:visible[aria-label^="Manage availability for CSV Travel Mug"]',
+      )
+      .first();
+    await manageAvailability.click();
+    inventoryDialog = page.getByRole("dialog");
+    await expect(
+      inventoryDialog.getByRole("checkbox", { name: /Main Floor/ }),
+    ).toBeDisabled();
+    await inventoryDialog
+      .getByRole("checkbox", { name: /Warehouse/ })
+      .uncheck();
+    await inventoryDialog
+      .getByRole("button", { name: "Save availability" })
+      .click();
+    await expect
+      .poll(async () => {
+        const [product, audit] = await Promise.all([
+          database.collection<StringDocument>("products").findOne({
+            tenantId: primaryTenantId,
+            normalizedSku: csvSku.toUpperCase(),
+          }),
+          database.collection<StringDocument>("auditLogs").findOne({
+            tenantId: primaryTenantId,
+            action: "product.store_availability.updated",
+          }),
+        ]);
+        return {
+          storeIds: product?.allowedStoreIds,
+          version: product?.version,
+          audited: Boolean(audit),
+        };
+      })
+      .toEqual({
+        storeIds: [String(primaryStore?._id)],
+        version: 2,
+        audited: true,
+      });
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+    await page.goto(`/app/${primarySlug}/inventory`);
+    await page.getByRole("button", { name: "New adjustment" }).click();
+    inventoryDialog = page.getByRole("dialog");
+    await inventoryDialog
+      .getByLabel("Product / SKU")
+      .selectOption(adjustmentVariantId!);
+    await inventoryDialog.getByLabel("Change").selectOption("set");
+    await inventoryDialog.getByLabel("Quantity").fill("1");
+    await inventoryDialog.getByLabel("Reason").selectOption("correction");
+    await inventoryDialog
+      .getByLabel("Note")
+      .fill("Reduced to verify the low-stock attention queue");
+    await inventoryDialog
+      .getByRole("button", { name: "Post adjustment" })
+      .click();
+    await expect
+      .poll(async () => {
+        const level = await database
+          .collection<StringDocument>("inventoryLevels")
+          .findOne({
+            tenantId: primaryTenantId,
+            storeId: String(primaryStore?._id),
+            variantId: adjustmentVariantId,
+          });
+        return level?.quantity;
+      })
+      .toBe(1);
+
+    await page.goto(`/app/${primarySlug}/inventory/alerts`);
+    await expect(
+      page.getByRole("heading", { name: "Low-stock alerts" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Inventory alerts are currently disabled."),
+    ).toBeVisible();
+    await page.getByLabel("Enable inventory alerts").check();
+    await page.getByRole("button", { name: "Save policy" }).click();
+    await expect(
+      page.getByRole("link", { name: csvProductName }),
+    ).toBeVisible();
+    await expect
+      .poll(async () => {
+        const [profile, audit] = await Promise.all([
+          database.collection<StringDocument>("tenantProfiles").findOne({
+            tenantId: primaryTenantId,
+          }),
+          database.collection<StringDocument>("auditLogs").findOne({
+            tenantId: primaryTenantId,
+            action: "inventory.low_stock_alerts.updated",
+          }),
+        ]);
+        return {
+          enabled: (
+            profile?.inventorySettings as
+              | { lowStockAlerts?: { enabled?: boolean; version?: number } }
+              | undefined
+          )?.lowStockAlerts?.enabled,
+          version: (
+            profile?.inventorySettings as
+              | { lowStockAlerts?: { enabled?: boolean; version?: number } }
+              | undefined
+          )?.lowStockAlerts?.version,
+          audited: Boolean(audit),
+        };
+      })
+      .toEqual({ enabled: true, version: 2, audited: true });
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(0);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 
     await page.reload();

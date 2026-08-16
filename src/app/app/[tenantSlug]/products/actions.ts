@@ -11,9 +11,11 @@ import {
   ProductNotFoundError,
   ProductService,
   ProductTagUnavailableError,
+  ProductUnitUnavailableError,
   ProductVersionConflictError,
 } from "@/modules/products/service";
 import { productTagIdsSchema } from "@/modules/tags/schemas";
+import { unitIdSchema } from "@/modules/units/schemas";
 import { requireTenantContext } from "@/server/tenancy/resolve-context";
 
 const formSchema = z.object({
@@ -25,6 +27,7 @@ const formSchema = z.object({
     .max(64)
     .regex(/^[A-Za-z0-9._-]+$/),
   category: z.string().trim().min(2).max(80),
+  unitId: unitIdSchema,
   price: z.string().trim(),
   stock: z.coerce.number().int().min(0).max(1_000_000),
   tagIds: productTagIdsSchema,
@@ -42,6 +45,7 @@ const updateFormSchema = z
       .max(64)
       .regex(/^[A-Za-z0-9._-]+$/),
     category: z.string().trim().min(2).max(80),
+    unitId: unitIdSchema,
     price: z.string().trim(),
     reorderLevel: z.coerce.number().int().min(0).max(1_000_000),
     status: z.enum(["draft", "active"]),
@@ -77,6 +81,8 @@ function actionErrorState(error: unknown): ProductActionState {
     return { status: "error", message: error.message };
   if (error instanceof ProductTagUnavailableError)
     return { status: "error", message: error.message };
+  if (error instanceof ProductUnitUnavailableError)
+    return { status: "error", message: error.message };
   if (error instanceof ProductNotFoundError)
     return { status: "error", message: "Product not found or unavailable." };
   if (error instanceof PermissionError)
@@ -109,13 +115,19 @@ export async function createProductAction(
   try {
     const context = await requireTenantContext(tenantSlug);
     const input = formSchema.parse({
-      ...Object.fromEntries(formData),
+      name: formData.get("name"),
+      sku: formData.get("sku"),
+      category: formData.get("category"),
+      unitId: formData.get("unitId"),
+      price: formData.get("price"),
+      stock: formData.get("stock"),
       tagIds: formData.getAll("tagIds"),
     });
     await new ProductService().createSimple(context, {
       name: input.name,
       sku: input.sku,
       category: input.category,
+      unitId: input.unitId,
       priceMinor: parseDecimalToMinor(input.price),
       openingStock: input.stock,
       tagIds: input.tagIds,
@@ -136,7 +148,15 @@ export async function updateProductAction(
   try {
     const context = await requireTenantContext(tenantSlug);
     const input = updateFormSchema.parse({
-      ...Object.fromEntries(formData),
+      expectedVersion: formData.get("expectedVersion"),
+      name: formData.get("name"),
+      subtitle: formData.get("subtitle"),
+      sku: formData.get("sku"),
+      category: formData.get("category"),
+      unitId: formData.get("unitId"),
+      price: formData.get("price"),
+      reorderLevel: formData.get("reorderLevel"),
+      status: formData.get("status"),
       tagIds: formData.getAll("tagIds"),
     });
     const result = await new ProductService().update(context, {
@@ -146,6 +166,7 @@ export async function updateProductAction(
       subtitle: input.subtitle,
       sku: input.sku,
       category: input.category,
+      unitId: input.unitId,
       priceMinor: parseDecimalToMinor(input.price),
       reorderLevel: input.reorderLevel,
       status: input.status,
@@ -171,7 +192,9 @@ export async function archiveProductAction(
 ): Promise<ProductActionState> {
   try {
     const context = await requireTenantContext(tenantSlug);
-    const input = archiveFormSchema.parse(Object.fromEntries(formData));
+    const input = archiveFormSchema.parse({
+      expectedVersion: formData.get("expectedVersion"),
+    });
     const result = await new ProductService().archive(context, {
       productId,
       expectedVersion: input.expectedVersion,
