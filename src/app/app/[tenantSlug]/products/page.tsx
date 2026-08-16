@@ -5,6 +5,7 @@ import {
   FolderTree,
   PackageCheck,
   PackageSearch,
+  Tags,
   TriangleAlert,
   Upload,
 } from "lucide-react";
@@ -19,14 +20,22 @@ import { ProductToolbar } from "@/components/products/product-toolbar";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { formatMoney } from "@/lib/money";
 import { env } from "@/config/env";
 import { demoProducts } from "@/modules/products/demo-data";
+import { getDemoTagOptions } from "@/modules/tags/demo-data";
 import { hasPermission } from "@/modules/permissions/permissions";
 import { queryDemoProducts } from "@/modules/products/queries";
 import { productListQuerySchema } from "@/modules/products/schemas";
 import { ProductRepository } from "@/server/repositories/products";
+import { TagRepository } from "@/server/repositories/tags";
 import { requireTenantContext } from "@/server/tenancy/resolve-context";
 
 export const metadata: Metadata = { title: "Products" };
@@ -42,6 +51,7 @@ export default async function ProductsPage({
   const rawQuery = await searchParams;
   let result = queryDemoProducts(rawQuery);
   let categories = result.categories;
+  let tags = getDemoTagOptions();
   let metrics = {
     total: demoProducts.length,
     active: demoProducts.filter((product) => product.status === "active")
@@ -65,11 +75,13 @@ export default async function ProductsPage({
       const context = await requireTenantContext(tenantSlug);
       const repository = new ProductRepository();
       const query = productListQuerySchema.parse(rawQuery);
-      const [data, databaseCategories, databaseMetrics] = await Promise.all([
-        repository.list(context, query),
-        repository.categories(context),
-        repository.metrics(context),
-      ]);
+      const [data, databaseCategories, databaseTags, databaseMetrics] =
+        await Promise.all([
+          repository.list(context, query),
+          repository.categories(context),
+          new TagRepository().activeOptions(context),
+          repository.metrics(context),
+        ]);
       const pageCount = Math.max(1, Math.ceil(data.total / query.pageSize));
       result = {
         items: data.items,
@@ -81,6 +93,7 @@ export default async function ProductsPage({
         categories: databaseCategories,
       };
       categories = databaseCategories;
+      tags = databaseTags;
       metrics = databaseMetrics;
       isDemo = false;
       canCreate = hasPermission(context.permissions, "product:create");
@@ -91,9 +104,13 @@ export default async function ProductsPage({
     }
   }
   return (
-    <div className="mx-auto w-full max-w-[1680px] space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
+    <div className="mx-auto w-full max-w-[1680px] space-y-6 p-4 sm:p-6 lg:p-8 xl:p-9">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge
+          variant={isDemo ? "warning" : "success"}
+          className="gap-1.5 px-2.5 py-1"
+        >
+          <span className="size-1.5 rounded-full bg-current opacity-75" />
           {isDemo ? "Demo data" : "Live tenant data"}
         </Badge>
         <span className="text-muted-foreground text-xs">
@@ -107,9 +124,20 @@ export default async function ProductsPage({
         description="Manage the catalog, availability, and product performance across every store."
         actions={
           <>
+            <NewProductDialog
+              tenantSlug={tenantSlug}
+              categories={categories}
+              tags={tags}
+              disabled={isDemo || !canCreate}
+            />
             <Button asChild variant="outline">
               <Link href={`/app/${tenantSlug}/products/categories`}>
                 <FolderTree /> Categories
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={`/app/${tenantSlug}/products/tags`}>
+                <Tags /> Tags
               </Link>
             </Button>
             <Button
@@ -126,16 +154,11 @@ export default async function ProductsPage({
             >
               <Download /> Export
             </Button>
-            <NewProductDialog
-              tenantSlug={tenantSlug}
-              categories={categories}
-              disabled={isDemo || !canCreate}
-            />
           </>
         }
       />
       <section
-        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
         aria-label="Product metrics"
       >
         <MetricCard
@@ -168,18 +191,22 @@ export default async function ProductsPage({
           icon={CircleDollarSign}
         />
       </section>
-      <ProductInsights />
-      <Card className="overflow-hidden">
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <div>
-            <h2 className="font-semibold">Product catalog</h2>
-            <p className="text-muted-foreground text-xs">
-              Server-shaped results with shareable URL filters
-            </p>
-          </div>
-          <PackageSearch className="text-muted-foreground size-5" />
-        </div>
-        <ProductToolbar query={result.query} categories={categories} />
+      <ProductInsights isDemo={isDemo} catalogTotal={metrics.total} />
+      <Card>
+        <CardHeader>
+          <CardTitle>Product catalog</CardTitle>
+          <CardDescription>
+            Server-shaped results with shareable URL filters
+          </CardDescription>
+          <CardAction>
+            <PackageSearch className="text-muted-foreground size-5" />
+          </CardAction>
+        </CardHeader>
+        <ProductToolbar
+          query={result.query}
+          categories={categories}
+          tags={tags}
+        />
         <ProductTable
           items={result.items}
           page={result.page}

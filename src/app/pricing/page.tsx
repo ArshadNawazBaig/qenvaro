@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { PricingGrid } from "@/components/marketing/pricing-grid";
 import { brand } from "@/config/brand";
 
@@ -39,15 +40,17 @@ export default function PricingPage() {
           </p>
         </div>
         <PricingGrid />
-        <div className="bg-card mt-12 rounded-xl border p-8 text-center">
-          <h2 className="text-xl font-semibold">
-            Every plan starts with a 14-day trial.
-          </h2>
-          <p className="text-muted-foreground mt-2 text-sm">
-            No credit card required. Prices are display metadata until
-            configured Stripe test Price IDs are present.
-          </p>
-        </div>
+        <Card className="mt-12">
+          <CardContent className="p-8 text-center">
+            <h2 className="text-xl font-semibold">
+              Every plan starts with a 14-day trial.
+            </h2>
+            <p className="text-muted-foreground mt-2 text-sm">
+              No credit card required. Prices are display metadata until
+              configured Stripe test Price IDs are present.
+            </p>
+          </CardContent>
+        </Card>
       </section>
     </main>
   );

@@ -1,5 +1,6 @@
 import { getScriptDatabase } from "./shared";
 import { demoProducts } from "../../src/modules/products/demo-data";
+import { getDemoTags } from "../../src/modules/tags/demo-data";
 
 const now = new Date("2026-08-16T09:00:00.000Z");
 const tenantA = "org_northstar";
@@ -144,6 +145,7 @@ async function main() {
         update: {
           $set: {
             _id: "prd_harbor_growth",
+            id: "prd_harbor_growth",
             name: "Growth Suite",
             subtitle: "Harbor display set",
             sku: "GS-ANNUAL",
@@ -154,6 +156,7 @@ async function main() {
             stock: 38,
             reorderLevel: 8,
             category: "Fixtures",
+            tagIds: [],
             status: "active",
             views: 410,
             revenueMinor: 640000,
@@ -200,6 +203,25 @@ async function main() {
           },
         };
       }),
+    );
+    await database.collection<StringIdDocument>("tags").bulkWrite(
+      getDemoTags().map((tag) => ({
+        updateOne: {
+          filter: { _id: tag.id, tenantId: tenantA },
+          update: {
+            $set: {
+              name: tag.name,
+              normalizedName: tag.name.toLowerCase(),
+              slug: tag.slug,
+              description: tag.description,
+              color: tag.color,
+              status: tag.status,
+              ...metadata(tenantA),
+            },
+          },
+          upsert: true,
+        },
+      })),
     );
     const fixtures = [
       [

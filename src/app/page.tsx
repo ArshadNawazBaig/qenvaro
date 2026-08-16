@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { brand } from "@/config/brand";
 
 export default function HomePage() {
@@ -156,18 +157,17 @@ export default function HomePage() {
               text: "Tenant isolation, fine-grained permissions, audit history, and protected sensitive data.",
             },
           ].map((feature) => (
-            <article
-              key={feature.title}
-              className="bg-card rounded-xl border p-6"
-            >
-              <div className="bg-accent text-accent-foreground mb-5 flex size-10 items-center justify-center rounded-lg">
-                <feature.icon className="size-5" />
-              </div>
-              <h2 className="font-semibold">{feature.title}</h2>
-              <p className="text-muted-foreground mt-2 text-sm leading-6">
-                {feature.text}
-              </p>
-            </article>
+            <Card key={feature.title}>
+              <CardContent>
+                <div className="bg-accent text-accent-foreground mb-5 flex size-10 items-center justify-center rounded-lg">
+                  <feature.icon className="size-5" />
+                </div>
+                <h2 className="font-semibold">{feature.title}</h2>
+                <p className="text-muted-foreground mt-2 text-sm leading-6">
+                  {feature.text}
+                </p>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </section>

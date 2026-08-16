@@ -4,7 +4,14 @@ import { Check } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { formatMoney } from "@/lib/money";
 import { plans, type PlanKey } from "@/config/plans";
 import { cn } from "@/lib/utils";
@@ -61,7 +68,7 @@ export function PricingGrid() {
           )}
           onClick={() => setAnnual(true)}
         >
-          Annual <span className="text-success-foreground ml-1">save 17%</span>
+          Annual <span className="ml-1 opacity-70">save 17%</span>
         </button>
       </div>
       <div className="grid gap-4 lg:grid-cols-4">
@@ -76,51 +83,50 @@ export function PricingGrid() {
                 });
           const highlighted = plan.key === "growth";
           return (
-            <Card
-              key={plan.key}
-              className={cn(
-                "relative flex flex-col p-6",
-                highlighted &&
-                  "border-primary shadow-[0_12px_40px_rgb(40_85_200/0.10)]",
-              )}
-            >
-              {highlighted && (
-                <Badge className="absolute -top-3 left-5">Most popular</Badge>
-              )}
-              <h2 className="text-lg font-semibold">{plan.name}</h2>
-              <p className="text-muted-foreground mt-2 min-h-10 text-sm">
-                {plan.description}
-              </p>
-              <div className="mt-6">
-                <span className="text-3xl font-semibold tracking-tight">
-                  {display}
-                </span>
-                {price !== null && (
-                  <span className="text-muted-foreground text-sm">
-                    {" "}
-                    / month
-                  </span>
+            <Card key={plan.key} className="flex flex-col">
+              <CardHeader>
+                <CardTitle>{plan.name}</CardTitle>
+                <CardDescription className="min-h-10">
+                  {plan.description}
+                </CardDescription>
+                {highlighted && (
+                  <CardAction>
+                    <Badge>Most popular</Badge>
+                  </CardAction>
                 )}
-              </div>
-              <p className="text-muted-foreground mt-1 text-xs">
-                {price !== null && annual ? "Billed annually" : " "}
-              </p>
-              <Button
-                className="mt-6"
-                variant={highlighted ? "default" : "outline"}
-              >
-                {plan.key === "enterprise"
-                  ? "Contact sales"
-                  : "Start free trial"}
-              </Button>
-              <ul className="mt-6 space-y-3">
-                {features[plan.key].map((feature) => (
-                  <li key={feature} className="flex gap-2 text-sm">
-                    <Check className="text-success-foreground mt-0.5 size-4 shrink-0" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
+              </CardHeader>
+              <CardContent className="flex flex-1 flex-col">
+                <div>
+                  <span className="text-3xl font-semibold tracking-tight">
+                    {display}
+                  </span>
+                  {price !== null && (
+                    <span className="text-muted-foreground text-sm">
+                      {" "}
+                      / month
+                    </span>
+                  )}
+                </div>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {price !== null && annual ? "Billed annually" : " "}
+                </p>
+                <Button
+                  className="mt-6"
+                  variant={highlighted ? "default" : "outline"}
+                >
+                  {plan.key === "enterprise"
+                    ? "Contact sales"
+                    : "Start free trial"}
+                </Button>
+                <ul className="mt-6 space-y-3">
+                  {features[plan.key].map((feature) => (
+                    <li key={feature} className="flex gap-2 text-sm">
+                      <Check className="text-success-foreground mt-0.5 size-4 shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
             </Card>
           );
         })}

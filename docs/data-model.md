@@ -24,6 +24,8 @@ Product catalog records carry an integer `version`. Detail reads scope the produ
 
 `categories` stores the tenant taxonomy authority with normalized name, stable slug, description, lifecycle status, and integer version. Migration 8 backfills records from existing product category strings. Active and draft products retain the canonical category name for indexed filtering. A category rename updates those assignments and increments their product versions inside the category transaction; archived products keep the prior name as a historical snapshot. Category archive is idempotent and is rejected while active or draft products remain assigned.
 
+`tags` stores reusable merchandising labels with a normalized tenant-unique name, stable opaque identifier, display color, lifecycle status, and integer version. Products carry up to 20 stable tag IDs, which lets tag names and colors change without rewriting product documents. Reads resolve labels inside the server-derived tenant scope. Only active tags can be assigned, and archive is idempotent but rejected while an active or draft product references the tag. Archived products retain their historical assignments. Migration 9 backfills empty product tag arrays and creates the tag lifecycle indexes.
+
 ## Important indexes
 
 All tenant query indexes begin with `tenantId`. The migration runner creates and versions:
@@ -38,6 +40,7 @@ All tenant query indexes begin with `tenantId`. The migration runner creates and
 - unique `tenantId + storeId + variantId` inventory projection;
 - `tenantId + status + updatedAt` and `tenantId + category + status` product lists;
 - unique active `tenantId + normalized category name`, stable category slug, and `tenantId + category status + updatedAt` taxonomy queries;
+- unique active `tenantId + normalized tag name`, `tenantId + tag status + updatedAt` tag queries, and `tenantId + tagIds + product status` assignment filtering;
 - `tenantId + storeId + occurredAt` inventory ledger/report queries;
 - unique provider and event ID for webhook replay protection;
 - unique Stripe subscription identity, tenant subscription-status scans, unique billing event identity, and webhook processing-status scans;

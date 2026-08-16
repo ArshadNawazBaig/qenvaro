@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 export function MetricCard({
   label,
@@ -15,27 +15,31 @@ export function MetricCard({
   tone?: "primary" | "success" | "warning" | "muted";
 }) {
   const tones = {
-    primary: "bg-primary/10 text-primary",
-    success: "bg-success/30 text-success-foreground",
-    warning: "bg-warning/30 text-warning-foreground",
+    primary: "bg-primary/10 text-primary ring-primary/10",
+    success: "bg-success/30 text-success-foreground ring-success/20",
+    warning: "bg-warning/30 text-warning-foreground ring-warning/20",
     muted: "bg-muted text-muted-foreground",
   } as const;
   return (
-    <Card className="min-w-0 p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-3">
+    <Card className="group min-w-0">
+      <CardContent className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-muted-foreground text-xs font-medium">{label}</p>
-          <p className="mt-1 text-2xl font-semibold tracking-tight">{value}</p>
-          <p className="text-muted-foreground mt-1 truncate text-xs">
+          <p className="text-muted-foreground text-xs font-medium tracking-[0.01em]">
+            {label}
+          </p>
+          <p className="mt-1.5 text-2xl font-semibold tracking-[-0.035em] tabular-nums">
+            {value}
+          </p>
+          <p className="text-muted-foreground mt-1.5 truncate text-xs">
             {detail}
           </p>
         </div>
         <div
-          className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${tones[tone]}`}
+          className={`flex size-9 shrink-0 items-center justify-center rounded-lg ring-1 ${tones[tone]}`}
         >
           <Icon className="size-4" />
         </div>
-      </div>
+      </CardContent>
     </Card>
   );
 }

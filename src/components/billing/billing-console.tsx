@@ -13,7 +13,16 @@ import {
   restoreSubscriptionAction,
   startCheckoutAction,
 } from "@/app/app/[tenantSlug]/settings/billing/actions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { plans, type PlanKey } from "@/config/plans";
 import type { BillingActionState } from "@/modules/billing/schemas";
 
@@ -167,65 +176,59 @@ function PlanCheckoutCard({
   );
   const price = interval === "monthly" ? monthlyPrice : annualPrice;
   return (
-    <div
-      className={
-        featured
-          ? "border-primary bg-primary/3 rounded-xl border p-5 shadow-sm"
-          : "bg-card rounded-xl border p-5"
-      }
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="font-semibold">{name}</h3>
-          <p className="text-muted-foreground mt-1 min-h-10 text-sm">
-            {description}
-          </p>
-        </div>
-        {current && (
-          <span className="bg-success/30 text-success-foreground rounded-full px-2 py-0.5 text-xs font-medium">
-            Current
-          </span>
+    <Card>
+      <CardHeader>
+        <CardTitle>{name}</CardTitle>
+        <CardDescription className="min-h-10">{description}</CardDescription>
+        {(current || featured) && (
+          <CardAction>
+            <Badge variant={current ? "success" : "info"}>
+              {current ? "Current" : "Recommended"}
+            </Badge>
+          </CardAction>
         )}
-      </div>
-      <p className="mt-5">
-        <span className="text-3xl font-semibold">
-          ${price.toLocaleString()}
-        </span>
-        <span className="text-muted-foreground text-sm">
-          /{interval === "monthly" ? "month" : "year"}
-        </span>
-      </p>
-      <ul className="text-muted-foreground my-5 space-y-2 text-sm">
-        {highlights.map((highlight) => (
-          <li key={highlight} className="flex items-center gap-2">
-            <span className="bg-success size-1.5 rounded-full" /> {highlight}
-          </li>
-        ))}
-      </ul>
-      <form action={action}>
-        <input type="hidden" name="plan" value={plan} />
-        <input type="hidden" name="interval" value={interval} />
-        <Button
-          type="submit"
-          variant={featured ? "default" : "outline"}
-          className="w-full"
-          disabled={!canManage || !configured || pending}
-        >
-          {pending
-            ? "Opening Stripe…"
-            : current
-              ? "Change billing interval"
-              : `Choose ${name}`}
-          <ArrowRight />
-        </Button>
-      </form>
-      {!configured && (
-        <p className="text-muted-foreground mt-2 text-center text-xs">
-          Stripe price not configured
+      </CardHeader>
+      <CardContent>
+        <p>
+          <span className="text-3xl font-semibold">
+            ${price.toLocaleString()}
+          </span>
+          <span className="text-muted-foreground text-sm">
+            /{interval === "monthly" ? "month" : "year"}
+          </span>
         </p>
-      )}
-      <ActionMessage state={state} />
-    </div>
+        <ul className="text-muted-foreground my-5 space-y-2 text-sm">
+          {highlights.map((highlight) => (
+            <li key={highlight} className="flex items-center gap-2">
+              <span className="bg-success size-1.5 rounded-full" /> {highlight}
+            </li>
+          ))}
+        </ul>
+        <form action={action}>
+          <input type="hidden" name="plan" value={plan} />
+          <input type="hidden" name="interval" value={interval} />
+          <Button
+            type="submit"
+            variant={featured ? "default" : "outline"}
+            className="w-full"
+            disabled={!canManage || !configured || pending}
+          >
+            {pending
+              ? "Opening Stripe…"
+              : current
+                ? "Change billing interval"
+                : `Choose ${name}`}
+            <ArrowRight />
+          </Button>
+        </form>
+        {!configured && (
+          <p className="text-muted-foreground mt-2 text-center text-xs">
+            Stripe price not configured
+          </p>
+        )}
+        <ActionMessage state={state} />
+      </CardContent>
+    </Card>
   );
 }
 

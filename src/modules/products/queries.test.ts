@@ -17,4 +17,14 @@ describe("product list query", () => {
     expect(result.page).toBe(result.pageCount);
     expect(result.items.length).toBeGreaterThan(0);
   });
+  it("filters products by stable tag identifier", () => {
+    const result = queryDemoProducts({ tag: "tag_low_margin" });
+    expect(result.items.map((product) => product.id)).toEqual([
+      "prd_analytics",
+      "prd_receipts",
+    ]);
+    expect(result.items.every((product) => product.tagIds.length > 0)).toBe(
+      true,
+    );
+  });
 });

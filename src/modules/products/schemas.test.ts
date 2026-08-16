@@ -14,6 +14,7 @@ const validUpdate = {
   priceMinor: 89_000,
   reorderLevel: 18,
   status: "active" as const,
+  tagIds: ["tag_featured"],
 };
 
 describe("product lifecycle schemas", () => {

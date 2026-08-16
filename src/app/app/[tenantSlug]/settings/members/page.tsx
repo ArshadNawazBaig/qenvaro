@@ -16,6 +16,8 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
+  CardList,
+  CardListItem,
   CardTitle,
 } from "@/components/ui/card";
 import { getTenantMemberManagementData } from "@/modules/members/member-service";
@@ -61,7 +63,7 @@ export default async function MembersPage({
       />
       <section className="grid gap-3 sm:grid-cols-3" aria-label="Team summary">
         <Card>
-          <CardContent className="flex items-center gap-4 p-5">
+          <CardContent className="flex items-center gap-4">
             <span className="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-lg">
               <UsersRound className="size-5" />
             </span>
@@ -72,7 +74,7 @@ export default async function MembersPage({
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-4 p-5">
+          <CardContent className="flex items-center gap-4">
             <span className="bg-warning/20 text-warning-foreground flex size-10 items-center justify-center rounded-lg">
               <Clock3 className="size-5" />
             </span>
@@ -83,7 +85,7 @@ export default async function MembersPage({
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-4 p-5">
+          <CardContent className="flex items-center gap-4">
             <span className="bg-success/20 text-success-foreground flex size-10 items-center justify-center rounded-lg">
               <ShieldCheck className="size-5" />
             </span>
@@ -106,57 +108,55 @@ export default async function MembersPage({
             scope.
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="divide-y">
-            {data.members.map((member) => (
-              <div
-                key={member.id}
-                className="grid gap-4 p-4 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,0.7fr)_minmax(0,1fr)_auto] sm:items-center sm:px-6"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <Avatar>
-                    <AvatarFallback>{initials(member.name)}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">
-                      {member.name}
-                      {member.isCurrentUser && (
-                        <span className="text-muted-foreground ml-1 text-xs">
-                          (you)
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-muted-foreground truncate text-xs">
-                      {member.email}
-                    </p>
-                  </div>
-                </div>
-                <div>
-                  <Badge
-                    variant={
-                      member.role.includes("owner") ? "success" : "secondary"
-                    }
-                  >
-                    {memberRoleLabel(member.role.split(",")[0] ?? member.role)}
-                  </Badge>
-                </div>
-                <StoreAccessBadges
-                  stores={data.stores}
-                  storeIds={member.storeIds}
-                />
-                <div className="justify-self-start sm:justify-self-end">
-                  <MemberAccessDialog
-                    tenantSlug={tenantSlug}
-                    member={member}
-                    stores={data.stores}
-                    canUpdate={canUpdate}
-                    canRemove={canRemove}
-                  />
+        <CardList>
+          {data.members.map((member) => (
+            <CardListItem
+              key={member.id}
+              className="grid gap-4 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,0.7fr)_minmax(0,1fr)_auto] sm:items-center"
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <Avatar>
+                  <AvatarFallback>{initials(member.name)}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {member.name}
+                    {member.isCurrentUser && (
+                      <span className="text-muted-foreground ml-1 text-xs">
+                        (you)
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-muted-foreground truncate text-xs">
+                    {member.email}
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
-        </CardContent>
+              <div>
+                <Badge
+                  variant={
+                    member.role.includes("owner") ? "success" : "secondary"
+                  }
+                >
+                  {memberRoleLabel(member.role.split(",")[0] ?? member.role)}
+                </Badge>
+              </div>
+              <StoreAccessBadges
+                stores={data.stores}
+                storeIds={member.storeIds}
+              />
+              <div className="justify-self-start sm:justify-self-end">
+                <MemberAccessDialog
+                  tenantSlug={tenantSlug}
+                  member={member}
+                  stores={data.stores}
+                  canUpdate={canUpdate}
+                  canRemove={canRemove}
+                />
+              </div>
+            </CardListItem>
+          ))}
+        </CardList>
       </Card>
 
       <Card>
@@ -166,45 +166,45 @@ export default async function MembersPage({
             Invitations expire automatically after 48 hours.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          {data.invitations.length === 0 ? (
+        {data.invitations.length === 0 ? (
+          <CardContent>
             <div className="text-muted-foreground flex flex-col items-center py-8 text-center text-sm">
               <Mail className="mb-3 size-7" />
               No pending invitations.
             </div>
-          ) : (
-            <div className="divide-y">
-              {data.invitations.map((invitation) => (
-                <div
-                  key={invitation.id}
-                  className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">
-                      {invitation.email}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      {memberRoleLabel(invitation.role)} · expires{" "}
-                      {new Intl.DateTimeFormat("en", {
-                        dateStyle: "medium",
-                      }).format(new Date(invitation.expiresAt))}
-                    </p>
-                  </div>
-                  <StoreAccessBadges
-                    stores={data.stores}
-                    storeIds={invitation.storeIds}
-                  />
-                  {canInvite && (
-                    <CancelInvitationButton
-                      tenantSlug={tenantSlug}
-                      invitation={invitation}
-                    />
-                  )}
+          </CardContent>
+        ) : (
+          <CardList>
+            {data.invitations.map((invitation) => (
+              <CardListItem
+                key={invitation.id}
+                className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {invitation.email}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    {memberRoleLabel(invitation.role)} · expires{" "}
+                    {new Intl.DateTimeFormat("en", {
+                      dateStyle: "medium",
+                    }).format(new Date(invitation.expiresAt))}
+                  </p>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
+                <StoreAccessBadges
+                  stores={data.stores}
+                  storeIds={invitation.storeIds}
+                />
+                {canInvite && (
+                  <CancelInvitationButton
+                    tenantSlug={tenantSlug}
+                    invitation={invitation}
+                  />
+                )}
+              </CardListItem>
+            ))}
+          </CardList>
+        )}
       </Card>
     </div>
   );

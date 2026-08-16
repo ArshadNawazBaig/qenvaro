@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { moneySchema } from "@/lib/money";
+import { productTagIdsSchema, type TagOption } from "@/modules/tags/schemas";
 
 export const productStatusSchema = z.enum(["draft", "active", "archived"]);
 export const productTypeSchema = z.enum(["simple", "variant", "service"]);
@@ -49,6 +50,7 @@ export const updateProductSchema = z
     priceMinor: z.number().int().min(0).max(1_000_000_000),
     reorderLevel: z.number().int().min(0).max(1_000_000),
     status: z.enum(["draft", "active"]),
+    tagIds: productTagIdsSchema.default([]),
   })
   .strict();
 
@@ -59,7 +61,7 @@ export const archiveProductSchema = z
   })
   .strict();
 
-export type UpdateProductInput = z.infer<typeof updateProductSchema>;
+export type UpdateProductInput = z.input<typeof updateProductSchema>;
 export type ArchiveProductInput = z.infer<typeof archiveProductSchema>;
 
 export interface ProductListItem {
@@ -73,6 +75,7 @@ export interface ProductListItem {
   stock: number | null;
   reorderLevel: number;
   category: string;
+  tagIds: string[];
   status: ProductStatus;
   views: number;
   revenueMinor: number;
@@ -80,6 +83,7 @@ export interface ProductListItem {
 }
 
 export interface ProductDetail extends ProductListItem {
+  tags: TagOption[];
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -108,6 +112,7 @@ export const productListQuerySchema = z.object({
   direction: z.enum(["asc", "desc"]).catch("desc"),
   status: z.enum(["all", "draft", "active", "archived"]).catch("all"),
   category: z.string().trim().max(80).catch("all"),
+  tag: z.string().trim().max(120).catch("all"),
   stock: z.enum(["all", "in-stock", "low", "out", "service"]).catch("all"),
 });
 

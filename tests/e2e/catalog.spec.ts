@@ -8,11 +8,26 @@ test("public landing and product demo are usable", async ({ page }) => {
   ).toBeVisible();
   await page.getByRole("link", { name: /Explore demo/i }).click();
   await expect(
-    page.getByRole("heading", { name: /Good morning/i }),
+    page.getByRole("heading", { name: "Business overview" }),
   ).toBeVisible({ timeout: 20_000 });
-  await page
-    .getByRole("link", { name: "Review products", exact: true })
-    .click();
+  const originalViewport = page.viewportSize();
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(
+    page.getByRole("heading", { name: "Business overview" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(0);
+  if (originalViewport) {
+    await page.setViewportSize(originalViewport);
+    await page.reload({ waitUntil: "networkidle" });
+  }
+  await page.getByRole("link", { name: "View catalog", exact: true }).click();
   await expect(page).toHaveURL(/\/products$/, { timeout: 20_000 });
   await expect(page.getByRole("heading", { name: "Products" })).toBeVisible();
   await expect(page.getByRole("table")).toBeVisible();
@@ -26,6 +41,26 @@ test("public landing and product demo are usable", async ({ page }) => {
     page.getByRole("button", { name: "New category" }),
   ).toBeDisabled();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.goto(productsUrl);
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: "Tags", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Tags", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("table")).toBeVisible();
+  await expect(page.getByRole("button", { name: "New tag" })).toBeDisabled();
+  await page.setViewportSize({ width: 320, height: 700 });
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(0);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  if (originalViewport) await page.setViewportSize(originalViewport);
   await page.goto(productsUrl);
   await page.getByRole("link", { name: "Growth Suite", exact: true }).click();
   await expect(page).toHaveURL(/\/products\/prd_growth_suite$/);

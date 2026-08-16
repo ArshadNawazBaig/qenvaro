@@ -18,16 +18,20 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { TagBadge } from "@/components/tags/tag-badge";
+import type { TagOption } from "@/modules/tags/schemas";
 
 const initialState: ProductActionState = { status: "idle", message: "" };
 
 export function NewProductDialog({
   tenantSlug,
   categories = [],
+  tags = [],
   disabled = false,
 }: {
   tenantSlug: string;
   categories?: string[];
+  tags?: TagOption[];
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -118,6 +122,30 @@ export function NewProductDialog({
               />
             </label>
           </div>
+          {tags.length > 0 && (
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">Tags</legend>
+              <p className="text-muted-foreground text-xs">
+                Optional labels for merchandising and catalog filters.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {tags.map((tag) => (
+                  <label
+                    key={tag.id}
+                    className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2"
+                  >
+                    <input
+                      type="checkbox"
+                      name="tagIds"
+                      value={tag.id}
+                      className="accent-primary size-4"
+                    />
+                    <TagBadge name={tag.name} color={tag.color} />
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
           {state.status === "error" && (
             <p
               role="alert"

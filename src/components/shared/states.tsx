@@ -1,5 +1,6 @@
 import { AlertTriangle, FileQuestion, LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 function State({
   icon,
@@ -13,25 +14,27 @@ function State({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="bg-card flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed p-8 text-center">
-      <div className="bg-muted text-muted-foreground mb-4 flex size-11 items-center justify-center rounded-full">
-        {icon}
-      </div>
-      <h2 className="font-semibold">{title}</h2>
-      <p className="text-muted-foreground mt-1 max-w-sm text-sm">
-        {description}
-      </p>
-      {action && <div className="mt-5">{action}</div>}
-    </div>
+    <Card>
+      <CardContent className="flex min-h-64 flex-col items-center justify-center p-8 text-center">
+        <div className="bg-muted text-muted-foreground mb-4 flex size-11 items-center justify-center rounded-full">
+          {icon}
+        </div>
+        <h2 className="font-semibold">{title}</h2>
+        <p className="text-muted-foreground mt-1 max-w-sm text-sm">
+          {description}
+        </p>
+        {action && <div className="mt-5">{action}</div>}
+      </CardContent>
+    </Card>
   );
 }
-export function EmptyState() {
+export function EmptyState({ action }: { action?: React.ReactNode }) {
   return (
     <State
       icon={<FileQuestion className="size-5" />}
       title="No products match these filters"
       description="Clear a filter or add your first product to start building the catalog."
-      action={<Button variant="outline">Clear filters</Button>}
+      action={action}
     />
   );
 }

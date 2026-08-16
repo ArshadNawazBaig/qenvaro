@@ -14,6 +14,7 @@ import {
   type ArchiveProductInput,
   type UpdateProductInput,
 } from "@/modules/products/schemas";
+import { productTagIdsSchema } from "@/modules/tags/schemas";
 import { env } from "@/config/env";
 import { getMongoClient } from "@/server/db/client";
 import type { TenantContext } from "@/server/tenancy/context";
@@ -26,6 +27,7 @@ interface MutableProductDocument {
   subtitle: string;
   sku: string;
   category: string;
+  tagIds?: string[];
   priceMinor: number;
   reorderLevel: number;
   status: "draft" | "active" | "archived";
@@ -77,6 +79,7 @@ export interface CreateSimpleProductInput {
   category: string;
   priceMinor: number;
   openingStock: number;
+  tagIds?: string[];
 }
 
 export class ProductNotFoundError extends Error {
@@ -104,6 +107,13 @@ export class ProductCategoryUnavailableError extends Error {
   constructor() {
     super("Choose an active category from this tenant catalog.");
     this.name = "ProductCategoryUnavailableError";
+  }
+}
+
+export class ProductTagUnavailableError extends Error {
+  constructor() {
+    super("Choose active tags from this tenant catalog.");
+    this.name = "ProductTagUnavailableError";
   }
 }
 
@@ -194,6 +204,29 @@ async function resolveProductCategory(
   return requestedName;
 }
 
+async function resolveProductTags(
+  database: Db,
+  session: ClientSession,
+  context: TenantContext,
+  untrustedTagIds: string[] | undefined,
+): Promise<string[]> {
+  const tagIds = productTagIdsSchema.parse(untrustedTagIds ?? []);
+  if (tagIds.length === 0) return [];
+  const matchingTags = await database
+    .collection<StringIdDocument>("tags")
+    .countDocuments(
+      {
+        _id: { $in: tagIds },
+        tenantId: context.tenantId,
+        status: "active",
+        deletedAt: { $exists: false },
+      },
+      { session },
+    );
+  if (matchingTags !== tagIds.length) throw new ProductTagUnavailableError();
+  return tagIds;
+}
+
 export class ProductService {
   async createSimple(
     context: TenantContext,
@@ -232,6 +265,12 @@ export class ProductService {
           now,
           true,
         );
+        const tagIds = await resolveProductTags(
+          database,
+          session,
+          context,
+          input.tagIds,
+        );
         await database.collection<StringIdDocument>("products").insertOne(
           {
             _id: productId,
@@ -247,6 +286,7 @@ export class ProductService {
               .replace(/[^a-z0-9]+/g, "-")
               .replace(/(^-|-$)/g, ""),
             category,
+            tagIds,
             priceMinor: input.priceMinor,
             currency: profile.currency,
             stock: input.openingStock,
@@ -330,6 +370,7 @@ export class ProductService {
             entityId: productId,
             requestId: context.requestId,
             summary: "Created a simple catalog product.",
+            changes: { after: { category, tagIds } },
             createdAt: now,
           },
           { session },
@@ -374,6 +415,12 @@ export class ProductService {
           now,
           false,
         );
+        const tagIds = await resolveProductTags(
+          database,
+          session,
+          context,
+          input.tagIds,
+        );
         const update = await products.updateOne(
           {
             _id: input.productId,
@@ -389,6 +436,7 @@ export class ProductService {
               sku: input.sku,
               normalizedSku: input.sku.toUpperCase(),
               category,
+              tagIds,
               priceMinor: input.priceMinor,
               reorderLevel: input.reorderLevel,
               status: input.status,
@@ -437,6 +485,7 @@ export class ProductService {
                 subtitle: existing.subtitle,
                 sku: existing.sku,
                 category: existing.category,
+                tagIds: existing.tagIds ?? [],
                 priceMinor: existing.priceMinor,
                 reorderLevel: existing.reorderLevel,
                 status: existing.status,
@@ -446,6 +495,7 @@ export class ProductService {
                 subtitle: input.subtitle,
                 sku: input.sku,
                 category,
+                tagIds,
                 priceMinor: input.priceMinor,
                 reorderLevel: input.reorderLevel,
                 status: input.status,

@@ -3,6 +3,7 @@ import type { Filter, Sort } from "mongodb";
 import { requirePermission } from "@/modules/permissions/permissions";
 import { getDatabase } from "@/server/db/client";
 import type { TenantContext } from "@/server/tenancy/context";
+import type { TagColor } from "@/modules/tags/schemas";
 import type {
   ProductDetail,
   ProductListItem,
@@ -22,6 +23,7 @@ interface ProductDocument {
   stock: number | null;
   reorderLevel: number;
   category: string;
+  tagIds?: string[];
   status: "draft" | "active" | "archived";
   views: number;
   revenueMinor: number;
@@ -53,6 +55,7 @@ export class ProductRepository {
     };
     if (query.status !== "all") filter.status = query.status;
     if (query.category !== "all") filter.category = query.category;
+    if (query.tag !== "all") filter.tagIds = query.tag;
     if (query.q) {
       const safe = escapeRegex(query.q);
       filter.$or = [
@@ -106,6 +109,7 @@ export class ProductRepository {
         stock: document.stock,
         reorderLevel: document.reorderLevel,
         category: document.category,
+        tagIds: document.tagIds ?? [],
         status: document.status,
         views: document.views,
         revenueMinor: document.revenueMinor,
@@ -218,30 +222,49 @@ export class ProductRepository {
       );
     if (!product) return null;
 
-    const variants = await database
-      .collection<{
-        _id: string;
-        tenantId: string;
-        productId: string;
-        name: string;
-        sku: string;
-        priceMinor: number;
-        currency: string;
-      }>("productVariants")
-      .find(
-        { tenantId: context.tenantId, productId },
-        {
-          projection: {
-            _id: 1,
-            name: 1,
-            sku: 1,
-            priceMinor: 1,
-            currency: 1,
+    const [variants, tags] = await Promise.all([
+      database
+        .collection<{
+          _id: string;
+          tenantId: string;
+          productId: string;
+          name: string;
+          sku: string;
+          priceMinor: number;
+          currency: string;
+        }>("productVariants")
+        .find(
+          { tenantId: context.tenantId, productId },
+          {
+            projection: {
+              _id: 1,
+              name: 1,
+              sku: 1,
+              priceMinor: 1,
+              currency: 1,
+            },
           },
-        },
-      )
-      .sort({ _id: 1 })
-      .toArray();
+        )
+        .sort({ _id: 1 })
+        .toArray(),
+      database
+        .collection<{
+          _id: string;
+          tenantId: string;
+          name: string;
+          color: TagColor;
+          status: string;
+        }>("tags")
+        .find(
+          {
+            tenantId: context.tenantId,
+            _id: { $in: product.tagIds ?? [] },
+          },
+          { projection: { _id: 1, name: 1, color: 1 } },
+        )
+        .sort({ name: 1, _id: 1 })
+        .toArray(),
+    ]);
     const variantIds = variants.map((variant) => variant._id);
     const productStoreIds = new Set(product.allowedStoreIds ?? []);
     const authorizedStoreIds = [...context.allowedStoreIds].filter(
@@ -314,6 +337,12 @@ export class ProductRepository {
       stock: authorizedStock,
       reorderLevel: product.reorderLevel,
       category: product.category,
+      tagIds: product.tagIds ?? [],
+      tags: tags.map((tag) => ({
+        id: tag._id,
+        name: tag.name,
+        color: tag.color,
+      })),
       status: product.status,
       views: product.views,
       revenueMinor: product.revenueMinor,

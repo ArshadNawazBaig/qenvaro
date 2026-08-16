@@ -283,14 +283,27 @@ export function ProductTable({
   if (items.length === 0)
     return (
       <div className="p-4">
-        <EmptyState />
+        <EmptyState
+          action={
+            params.toString() ? (
+              <Button variant="outline" onClick={() => router.push(pathname)}>
+                Clear filters
+              </Button>
+            ) : undefined
+          }
+        />
       </div>
     );
   return (
     <>
-      <div className="relative overflow-x-auto">
+      <div
+        className="relative overflow-x-auto"
+        tabIndex={0}
+        role="region"
+        aria-label="Product table"
+      >
         <table className="w-full min-w-[1050px] text-left text-xs">
-          <thead className="bg-muted/35 text-muted-foreground border-b">
+          <thead className="bg-muted/45 text-muted-foreground border-b">
             <tr>
               {table.getHeaderGroups()[0]?.headers.map((header) => (
                 <th
@@ -316,13 +329,13 @@ export function ProductTable({
               <tr
                 key={row.id}
                 data-state={row.getIsSelected() ? "selected" : undefined}
-                className="hover:bg-muted/25 data-[state=selected]:bg-accent/55 border-b transition-colors last:border-0"
+                className="hover:bg-muted/30 data-[state=selected]:bg-accent/55 border-b transition-colors last:border-0"
               >
                 {row.getAllCells().map((cell) => (
                   <td
                     key={cell.id}
                     className={cn(
-                      "h-[68px] px-3",
+                      "h-[72px] px-3",
                       cell.column.id === "select" && "pl-4",
                     )}
                   >

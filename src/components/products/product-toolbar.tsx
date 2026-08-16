@@ -6,6 +6,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ProductListQuery } from "@/modules/products/schemas";
+import type { TagOption } from "@/modules/tags/schemas";
 
 function FilterSelect({
   label,
@@ -24,7 +25,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="bg-card h-9 w-full appearance-none rounded-md border px-3 pr-8 text-xs font-medium shadow-[0_1px_1px_rgb(30_24_18/0.02)]"
+        className="bg-card h-10 w-full appearance-none rounded-lg border px-3 pr-8 text-xs font-medium shadow-[var(--shadow-button)]"
         style={{
           backgroundImage:
             "linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)",
@@ -46,9 +47,11 @@ function FilterSelect({
 export function ProductToolbar({
   query,
   categories,
+  tags,
 }: {
   query: ProductListQuery;
   categories: string[];
+  tags: TagOption[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -67,12 +70,13 @@ export function ProductToolbar({
   const hasFilters = Boolean(
     query.q ||
     query.category !== "all" ||
+    query.tag !== "all" ||
     query.stock !== "all" ||
     query.status !== "all",
   );
 
   return (
-    <div className="flex flex-col gap-3 border-b p-3 lg:flex-row lg:items-center">
+    <div className="flex flex-col gap-3 border-b p-3 sm:p-4 lg:flex-row lg:items-center">
       <form
         className="relative min-w-0 flex-1"
         onSubmit={(event) => {
@@ -84,7 +88,7 @@ export function ProductToolbar({
         <Input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          className="pl-9"
+          className="pl-9 lg:min-w-72"
           placeholder="Search products, SKU, or slug"
           aria-label="Search products"
         />
@@ -112,6 +116,15 @@ export function ProductToolbar({
             { label: "Low stock", value: "low" },
             { label: "Out of stock", value: "out" },
             { label: "Services", value: "service" },
+          ]}
+        />
+        <FilterSelect
+          label="Tag"
+          value={query.tag}
+          onChange={(value) => update("tag", value)}
+          options={[
+            { label: "All tags", value: "all" },
+            ...tags.map((tag) => ({ label: tag.name, value: tag.id })),
           ]}
         />
         <FilterSelect
@@ -149,7 +162,13 @@ export function ProductToolbar({
           </Button>
         )}
         {!hasFilters && (
-          <Button variant="ghost" size="icon" aria-label="More filters">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="More filters"
+            disabled
+            title="Store filters arrive with a future catalog slice"
+          >
             <ListFilter />
           </Button>
         )}

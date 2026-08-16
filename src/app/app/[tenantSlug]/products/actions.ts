@@ -10,8 +10,10 @@ import {
   ProductCategoryUnavailableError,
   ProductNotFoundError,
   ProductService,
+  ProductTagUnavailableError,
   ProductVersionConflictError,
 } from "@/modules/products/service";
+import { productTagIdsSchema } from "@/modules/tags/schemas";
 import { requireTenantContext } from "@/server/tenancy/resolve-context";
 
 const formSchema = z.object({
@@ -25,6 +27,7 @@ const formSchema = z.object({
   category: z.string().trim().min(2).max(80),
   price: z.string().trim(),
   stock: z.coerce.number().int().min(0).max(1_000_000),
+  tagIds: productTagIdsSchema,
 });
 
 const updateFormSchema = z
@@ -42,6 +45,7 @@ const updateFormSchema = z
     price: z.string().trim(),
     reorderLevel: z.coerce.number().int().min(0).max(1_000_000),
     status: z.enum(["draft", "active"]),
+    tagIds: productTagIdsSchema,
   })
   .strict();
 
@@ -70,6 +74,8 @@ function actionErrorState(error: unknown): ProductActionState {
   if (error instanceof ProductArchivedError)
     return { status: "error", message: error.message };
   if (error instanceof ProductCategoryUnavailableError)
+    return { status: "error", message: error.message };
+  if (error instanceof ProductTagUnavailableError)
     return { status: "error", message: error.message };
   if (error instanceof ProductNotFoundError)
     return { status: "error", message: "Product not found or unavailable." };
@@ -102,13 +108,17 @@ export async function createProductAction(
 ): Promise<ProductActionState> {
   try {
     const context = await requireTenantContext(tenantSlug);
-    const input = formSchema.parse(Object.fromEntries(formData));
+    const input = formSchema.parse({
+      ...Object.fromEntries(formData),
+      tagIds: formData.getAll("tagIds"),
+    });
     await new ProductService().createSimple(context, {
       name: input.name,
       sku: input.sku,
       category: input.category,
       priceMinor: parseDecimalToMinor(input.price),
       openingStock: input.stock,
+      tagIds: input.tagIds,
     });
     revalidatePath(`/app/${context.tenantSlug}/products`);
     return { status: "success", message: "Product created." };
@@ -125,7 +135,10 @@ export async function updateProductAction(
 ): Promise<ProductActionState> {
   try {
     const context = await requireTenantContext(tenantSlug);
-    const input = updateFormSchema.parse(Object.fromEntries(formData));
+    const input = updateFormSchema.parse({
+      ...Object.fromEntries(formData),
+      tagIds: formData.getAll("tagIds"),
+    });
     const result = await new ProductService().update(context, {
       productId,
       expectedVersion: input.expectedVersion,
@@ -136,6 +149,7 @@ export async function updateProductAction(
       priceMinor: parseDecimalToMinor(input.price),
       reorderLevel: input.reorderLevel,
       status: input.status,
+      tagIds: input.tagIds,
     });
     revalidatePath(`/app/${context.tenantSlug}/products`);
     revalidatePath(`/app/${context.tenantSlug}/products/${productId}`);

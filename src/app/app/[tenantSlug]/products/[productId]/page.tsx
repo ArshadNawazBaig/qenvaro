@@ -6,12 +6,14 @@ import {
   PackageCheck,
   Store,
   Tag,
+  Tags as TagsIcon,
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProductDetailConsole } from "@/components/products/product-detail-console";
 import { PageHeader } from "@/components/shared/page-header";
+import { TagBadge } from "@/components/tags/tag-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,8 +31,10 @@ import {
   getDemoProductDetail,
 } from "@/modules/products/demo-data";
 import type { ProductDetail } from "@/modules/products/schemas";
+import { getDemoTagOptions } from "@/modules/tags/demo-data";
 import { CategoryRepository } from "@/server/repositories/categories";
 import { ProductRepository } from "@/server/repositories/products";
+import { TagRepository } from "@/server/repositories/tags";
 import { requireTenantContext } from "@/server/tenancy/resolve-context";
 
 export const metadata: Metadata = { title: "Product details" };
@@ -74,14 +78,16 @@ export default async function ProductDetailPage({
   let categoryNames = [
     ...new Set(demoProducts.map((demoProduct) => demoProduct.category)),
   ].sort();
+  let tagOptions = getDemoTagOptions();
 
   if (env.MONGODB_URI) {
     try {
       const context = await requireTenantContext(tenantSlug);
       resolvedLiveTenant = true;
-      [product, categoryNames] = await Promise.all([
+      [product, categoryNames, tagOptions] = await Promise.all([
         new ProductRepository().detail(context, productId),
         new CategoryRepository().activeNames(context),
+        new TagRepository().activeOptions(context),
       ]);
       if (product) {
         isDemo = false;
@@ -181,11 +187,34 @@ export default async function ProductDetailPage({
           tenantSlug={tenantSlug}
           product={product}
           categories={categoryNames}
+          tags={tagOptions}
           canUpdate={canUpdate}
           canArchive={canArchive}
           isDemo={isDemo}
         />
         <aside className="space-y-6" aria-label="Product supporting details">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TagsIcon className="size-4" /> Tags
+              </CardTitle>
+              <CardDescription>
+                Reusable labels assigned to this product.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              {product.tags.length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  No tags are assigned.
+                </p>
+              ) : (
+                product.tags.map((tag) => (
+                  <TagBadge key={tag.id} name={tag.name} color={tag.color} />
+                ))
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

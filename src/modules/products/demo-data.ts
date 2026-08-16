@@ -1,6 +1,18 @@
 import type { ProductDetail, ProductListItem } from "./schemas";
+import { getDemoTagOptions } from "@/modules/tags/demo-data";
 
-export const demoProducts: readonly ProductListItem[] = [
+const demoProductTagIds: Record<string, string[]> = {
+  prd_growth_suite: ["tag_featured", "tag_new_arrival"],
+  prd_commerce_pro: ["tag_featured"],
+  prd_analytics: ["tag_low_margin"],
+  prd_content: ["tag_new_arrival"],
+  prd_devices: ["tag_featured", "tag_seasonal"],
+  prd_receipts: ["tag_low_margin"],
+  prd_launch: ["tag_new_arrival", "tag_seasonal"],
+  prd_loyalty: ["tag_featured"],
+};
+
+const demoProductRecords: readonly Omit<ProductListItem, "tagIds">[] = [
   {
     id: "prd_growth_suite",
     name: "Growth Suite",
@@ -259,11 +271,23 @@ export const demoProducts: readonly ProductListItem[] = [
   },
 ];
 
+export const demoProducts: readonly ProductListItem[] = demoProductRecords.map(
+  (product) => ({
+    ...product,
+    tagIds: demoProductTagIds[product.id] ?? [],
+  }),
+);
+
 export function getDemoProductDetail(productId: string): ProductDetail | null {
   const product = demoProducts.find((item) => item.id === productId);
   if (!product) return null;
+  const tagOptions = getDemoTagOptions();
   return {
     ...product,
+    tags: product.tagIds.flatMap((tagId) => {
+      const tag = tagOptions.find((option) => option.id === tagId);
+      return tag ? [tag] : [];
+    }),
     version: 1,
     createdAt: "2026-01-08T09:00:00.000Z",
     updatedAt: "2026-08-12T14:30:00.000Z",

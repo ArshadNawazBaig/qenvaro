@@ -26,7 +26,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { TagBadge } from "@/components/tags/tag-badge";
 import type { ProductDetail } from "@/modules/products/schemas";
+import type { TagOption } from "@/modules/tags/schemas";
 
 const initialState: ProductActionState = { status: "idle", message: "" };
 
@@ -50,6 +52,7 @@ export function ProductDetailConsole({
   tenantSlug,
   product,
   categories,
+  tags,
   canUpdate,
   canArchive,
   isDemo,
@@ -57,6 +60,7 @@ export function ProductDetailConsole({
   tenantSlug: string;
   product: ProductDetail;
   categories: string[];
+  tags: TagOption[];
   canUpdate: boolean;
   canArchive: boolean;
   isDemo: boolean;
@@ -190,6 +194,36 @@ export function ProductDetailConsole({
                     {product.slug}
                   </div>
                 </div>
+                <fieldset className="space-y-2 sm:col-span-2">
+                  <legend className="text-sm font-medium">Tags</legend>
+                  <p className="text-muted-foreground text-xs">
+                    Assign up to 20 active catalog tags.
+                  </p>
+                  {tags.length === 0 ? (
+                    <p className="text-muted-foreground rounded-lg border px-3 py-3 text-xs">
+                      No active tags are available. Create one from the Tags
+                      page first.
+                    </p>
+                  ) : (
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {tags.map((tag) => (
+                        <label
+                          key={tag.id}
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2"
+                        >
+                          <input
+                            type="checkbox"
+                            name="tagIds"
+                            value={tag.id}
+                            defaultChecked={product.tagIds.includes(tag.id)}
+                            className="accent-primary size-4"
+                          />
+                          <TagBadge name={tag.name} color={tag.color} />
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </fieldset>
               </div>
             </fieldset>
             {updateDisabled && (

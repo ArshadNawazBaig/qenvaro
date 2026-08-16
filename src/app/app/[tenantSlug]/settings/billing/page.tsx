@@ -122,7 +122,7 @@ export default async function BillingPage({
         aria-label="Current billing summary"
       >
         <Card>
-          <CardContent className="flex items-center gap-4 p-5">
+          <CardContent className="flex items-center gap-4">
             <span className="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-lg">
               <CreditCard className="size-5" />
             </span>
@@ -136,7 +136,7 @@ export default async function BillingPage({
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-4 p-5">
+          <CardContent className="flex items-center gap-4">
             <span className="bg-accent text-accent-foreground flex size-10 items-center justify-center rounded-lg">
               <CalendarDays className="size-5" />
             </span>
@@ -164,7 +164,7 @@ export default async function BillingPage({
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-4 p-5">
+          <CardContent className="flex items-center gap-4">
             <span className="bg-success/20 text-success-foreground flex size-10 items-center justify-center rounded-lg">
               <Gauge className="size-5" />
             </span>

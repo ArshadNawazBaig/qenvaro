@@ -445,6 +445,44 @@ const migrations: Migration[] = [
       ]);
     },
   },
+  {
+    version: 9,
+    name: "catalog tag lifecycle",
+    run: async (database) => {
+      const now = new Date();
+      await database.collection("products").updateMany(
+        { tagIds: { $exists: false } },
+        {
+          $set: {
+            tagIds: [],
+            updatedAt: now,
+            updatedBy: "migration_9",
+          },
+        },
+      );
+      await indexes(database, "tags", [
+        {
+          key: { tenantId: 1, normalizedName: 1 },
+          name: "tenant_tag_name_active_unique",
+          unique: true,
+          partialFilterExpression: {
+            normalizedName: { $type: "string" },
+            deletedAt: null,
+          },
+        },
+        {
+          key: { tenantId: 1, status: 1, updatedAt: -1 },
+          name: "tenant_tag_status_updated",
+        },
+      ]);
+      await indexes(database, "products", [
+        {
+          key: { tenantId: 1, tagIds: 1, status: 1 },
+          name: "tenant_product_tag_status",
+        },
+      ]);
+    },
+  },
 ];
 
 async function main() {

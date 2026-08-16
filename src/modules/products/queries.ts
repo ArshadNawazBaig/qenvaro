@@ -43,6 +43,7 @@ export function queryDemoProducts(
       (!search || searchable.includes(search)) &&
       (query.status === "all" || product.status === query.status) &&
       (query.category === "all" || product.category === query.category) &&
+      (query.tag === "all" || product.tagIds.includes(query.tag)) &&
       stockMatches(product, query.stock)
     );
   });

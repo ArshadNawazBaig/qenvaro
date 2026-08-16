@@ -1,6 +1,11 @@
 "use client";
 
-import { Eye, TrendingUp } from "lucide-react";
+import {
+  ChartNoAxesColumnIncreasing,
+  Eye,
+  PieChartIcon,
+  TrendingUp,
+} from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -33,8 +38,8 @@ function TrendCard({ mode }: { mode: "views" | "revenue" }) {
   const revenue = mode === "revenue";
   const title = revenue ? "Product revenue" : "Product views";
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="pb-2">
+    <Card>
+      <CardHeader>
         <CardTitle className="flex items-center gap-2">
           {revenue ? (
             <TrendingUp className="size-4" />
@@ -105,6 +110,7 @@ function TrendCard({ mode }: { mode: "views" | "revenue" }) {
               stroke={revenue ? "var(--chart-1)" : "var(--chart-2)"}
               strokeWidth={2}
               fill={`url(#fill-${mode})`}
+              isAnimationActive={false}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -113,13 +119,84 @@ function TrendCard({ mode }: { mode: "views" | "revenue" }) {
   );
 }
 
-export function ProductInsights() {
+function PendingInsight({
+  title,
+  description,
+  emptyDescription,
+  icon: Icon,
+}: {
+  title: string;
+  description: string;
+  emptyDescription: string;
+  icon: typeof Eye;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Icon className="size-4" />
+          {title}
+        </CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="h-44 sm:h-48">
+        <div className="bg-muted/25 relative flex h-full flex-col items-center justify-center overflow-hidden rounded-lg border border-dashed px-6 text-center">
+          <div className="pointer-events-none absolute inset-0 [background-image:linear-gradient(to_bottom,transparent_calc(25%-1px),var(--border)_25%,transparent_calc(25%+1px),transparent_calc(50%-1px),var(--border)_50%,transparent_calc(50%+1px),transparent_calc(75%-1px),var(--border)_75%,transparent_calc(75%+1px))] opacity-55" />
+          <span className="bg-card text-muted-foreground relative flex size-9 items-center justify-center rounded-full border shadow-[var(--shadow-button)]">
+            <Icon className="size-4" />
+          </span>
+          <p className="relative mt-3 text-sm font-medium">Awaiting activity</p>
+          <p className="text-muted-foreground relative mt-1 max-w-56 text-xs leading-5">
+            {emptyDescription}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function ProductInsights({
+  isDemo,
+  catalogTotal,
+}: {
+  isDemo: boolean;
+  catalogTotal: number;
+}) {
+  if (!isDemo) {
+    const emptyDescription =
+      catalogTotal === 0
+        ? "Add your first product to begin building this view."
+        : "Insights will populate from verified tenant activity.";
+    return (
+      <div className="grid gap-4 xl:grid-cols-[1fr_1fr_0.9fr]">
+        <PendingInsight
+          title="Product views"
+          description="Catalog discovery over the last seven days"
+          emptyDescription={emptyDescription}
+          icon={Eye}
+        />
+        <PendingInsight
+          title="Product revenue"
+          description="Revenue from completed sale line items"
+          emptyDescription={emptyDescription}
+          icon={ChartNoAxesColumnIncreasing}
+        />
+        <PendingInsight
+          title="Catalog mix"
+          description="Products grouped by category"
+          emptyDescription={emptyDescription}
+          icon={PieChartIcon}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-4 xl:grid-cols-[1fr_1fr_0.9fr]">
       <TrendCard mode="views" />
       <TrendCard mode="revenue" />
       <Card>
-        <CardHeader className="pb-1">
+        <CardHeader>
           <CardTitle>Catalog mix</CardTitle>
           <CardDescription>Products grouped by category</CardDescription>
         </CardHeader>
@@ -149,6 +226,7 @@ export function ProductInsights() {
                   outerRadius={58}
                   stroke="var(--card)"
                   strokeWidth={3}
+                  isAnimationActive={false}
                 >
                   {mix.map((entry) => (
                     <Cell key={entry.name} fill={entry.color} />
