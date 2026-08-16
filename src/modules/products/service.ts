@@ -322,6 +322,7 @@ export class ProductService {
             type: "simple",
             optionGroups: [],
             inventoryTracking: true,
+            taxRateBps: 0,
             sku: input.sku,
             normalizedSku: input.sku.toUpperCase(),
             slug: input.name

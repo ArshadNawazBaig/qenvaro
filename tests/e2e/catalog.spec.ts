@@ -161,3 +161,28 @@ test("public landing and product demo are usable", async ({ page }) => {
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
 });
+
+test("demo point of sale is responsive and honestly read-only", async ({
+  page,
+}) => {
+  await page.goto("/app/demo/sales/new");
+  await expect(
+    page.getByRole("heading", { name: "New sale", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Add Counter Kit" }).click();
+  await expect(page.getByText("Current sale", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Fill remaining total" }).click();
+  await expect(page.getByLabel("Payment amount 1")).not.toHaveValue("");
+  await expect(
+    page.getByRole("button", { name: "Complete sale" }),
+  ).toBeDisabled();
+  await page.setViewportSize({ width: 320, height: 700 });
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(0);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});

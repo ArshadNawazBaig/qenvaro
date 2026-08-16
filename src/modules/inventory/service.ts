@@ -109,6 +109,13 @@ interface ExistingTransferDocument {
   idempotencyKey: string;
 }
 
+export interface SaleInventoryLine {
+  productId: string;
+  variantId: string;
+  quantity: number;
+  expectedLevelVersion: number;
+}
+
 export class InventoryNotFoundError extends Error {
   constructor() {
     super("The requested inventory record was not found.");
@@ -354,7 +361,7 @@ async function appendMovement(
     type: InventoryMovementType;
     quantityDelta: number;
     resultingQuantity: number;
-    sourceType: "stock_adjustment" | "stock_transfer" | "product";
+    sourceType: "stock_adjustment" | "stock_transfer" | "product" | "sale";
     sourceId: string;
     note: string;
     idempotencyKey: string;
@@ -1034,5 +1041,106 @@ export class InventoryService {
       },
       { session },
     );
+  }
+
+  async recordSaleInTransaction(
+    database: Db,
+    session: ClientSession,
+    context: TenantContext,
+    input: {
+      saleId: string;
+      receiptNumber: string;
+      storeId: string;
+      lines: SaleInventoryLine[];
+      idempotencyKey: string;
+      now: Date;
+    },
+  ): Promise<Array<{ variantId: string; resultingQuantity: number }>> {
+    requirePermission(context.permissions, "sale:complete");
+    if (input.lines.length === 0) return [];
+    const profile = await loadWriteProfile(database, context.tenantId, session);
+    await requireActiveStores(database, session, context, [input.storeId]);
+    const variantIds = input.lines.map((line) => line.variantId);
+    const { variantById, productById } = await loadVariantProducts(
+      database,
+      session,
+      context,
+      variantIds,
+    );
+    const results: Array<{
+      variantId: string;
+      resultingQuantity: number;
+    }> = [];
+    for (const [index, line] of input.lines.entries()) {
+      const variant = variantById.get(line.variantId);
+      const product = variant && productById.get(variant.productId);
+      if (
+        !variant ||
+        !product ||
+        product._id !== line.productId ||
+        product.status !== "active" ||
+        variant.status === "archived" ||
+        !productAvailableAtStore(product, input.storeId)
+      )
+        throw new InventoryProductUnavailableError(
+          "A sale item is no longer available at this store.",
+        );
+      const current = await loadLevel(
+        database,
+        session,
+        context,
+        input.storeId,
+        line.variantId,
+      );
+      const previousQuantity = current?.quantity ?? 0;
+      const resultingQuantity = previousQuantity - line.quantity;
+      if (
+        resultingQuantity < 0 &&
+        profile.inventorySettings?.allowNegativeStock !== true
+      )
+        throw new InventoryNegativeStockError();
+      await writeLevel(database, session, context, {
+        storeId: input.storeId,
+        variantId: line.variantId,
+        current,
+        expectedVersion: line.expectedLevelVersion,
+        newQuantity: resultingQuantity,
+        now: input.now,
+      });
+      const productUpdate = await database
+        .collection<ProductDocument>("products")
+        .updateOne(
+          {
+            _id: product._id,
+            tenantId: context.tenantId,
+            stock: { $ne: null },
+            inventoryTracking: { $ne: false },
+            status: "active",
+            deletedAt: { $exists: false },
+          },
+          {
+            $inc: { stock: -line.quantity },
+            $set: { updatedAt: input.now, updatedBy: context.userId },
+          },
+          { session },
+        );
+      if (productUpdate.matchedCount !== 1)
+        throw new InventoryProductUnavailableError();
+      await appendMovement(database, session, context, {
+        storeId: input.storeId,
+        productId: product._id,
+        variantId: line.variantId,
+        type: "sale",
+        quantityDelta: -line.quantity,
+        resultingQuantity,
+        sourceType: "sale",
+        sourceId: input.saleId,
+        note: `Sale ${input.receiptNumber}`,
+        idempotencyKey: `${input.idempotencyKey}:movement:${index}`,
+        now: input.now,
+      });
+      results.push({ variantId: line.variantId, resultingQuantity });
+    }
+    return results;
   }
 }

@@ -63,6 +63,10 @@ test.describe("authenticated workspace and member administration", () => {
       "inventoryMovements",
       "inventoryLevels",
       "productImportPreviews",
+      "receipts",
+      "salePayments",
+      "sales",
+      "sequenceCounters",
     ])
       await database.collection(collection).deleteMany({
         tenantId: { $in: tenantIds },
@@ -348,6 +352,121 @@ test.describe("authenticated workspace and member administration", () => {
     await expect(
       page.locator("p:visible").filter({ hasText: /^Amina Commerce Lab$/ }),
     ).toBeVisible();
+
+    const checkoutNote = `Private checkout ${suffix}`;
+    await page.goto(`/app/${primarySlug}/sales/new`);
+    await expect(
+      page.getByRole("heading", { name: "New sale", exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(0);
+    await page
+      .getByRole("button", { name: `Add ${updatedProductName}` })
+      .click();
+    const saleCustomerId = await page
+      .getByLabel("Sale customer")
+      .locator("option")
+      .filter({ hasText: customerName })
+      .getAttribute("value");
+    expect(saleCustomerId).toBeTruthy();
+    await page.getByLabel("Sale customer").selectOption(saleCustomerId!);
+    await page.getByRole("button", { name: "Fill remaining total" }).click();
+    await page.getByLabel(/Sale note/).fill(checkoutNote);
+    await page.getByRole("button", { name: "Complete sale" }).click();
+    await expect(page).toHaveURL(/\/sales\/sal_[A-Za-z0-9_-]+$/);
+    await expect(
+      page.getByRole("heading", { name: "Sale completed", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(updatedProductName, { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText(/^MAIN-\d{6}$/).first()).toBeVisible();
+    const completedSale = await database
+      .collection<StringDocument>("sales")
+      .findOne({ tenantId: primaryTenantId, status: "completed" });
+    expect(completedSale).toMatchObject({
+      customer: { name: customerName },
+      subtotalMinor: 15_900,
+      discountMinor: 0,
+      taxMinor: 0,
+      netTotalMinor: 15_900,
+      totalMinor: 15_900,
+      tenderedMinor: 15_900,
+      changeMinor: 0,
+    });
+    await expect
+      .poll(async () => {
+        const [level, product, payment, receipt, movement, audit] =
+          await Promise.all([
+            database.collection<StringDocument>("inventoryLevels").findOne({
+              tenantId: primaryTenantId,
+              variantId: `${String(createdProduct?._id)}_default`,
+            }),
+            database.collection<StringDocument>("products").findOne({
+              tenantId: primaryTenantId,
+              _id: String(createdProduct?._id),
+            }),
+            database.collection<StringDocument>("salePayments").findOne({
+              tenantId: primaryTenantId,
+              saleId: String(completedSale?._id),
+            }),
+            database.collection<StringDocument>("receipts").findOne({
+              tenantId: primaryTenantId,
+              saleId: String(completedSale?._id),
+            }),
+            database.collection<StringDocument>("inventoryMovements").findOne({
+              tenantId: primaryTenantId,
+              sourceType: "sale",
+              sourceId: String(completedSale?._id),
+            }),
+            database.collection<StringDocument>("auditLogs").findOne({
+              tenantId: primaryTenantId,
+              entityId: String(completedSale?._id),
+              action: "sale.completed",
+            }),
+          ]);
+        return {
+          quantity: level?.quantity,
+          levelVersion: level?.version,
+          productStock: product?.stock,
+          paymentMethod: payment?.method,
+          paymentStatus: payment?.status,
+          receiptStatus: receipt?.status,
+          movementDelta: movement?.quantityDelta,
+          auditText: JSON.stringify(audit),
+        };
+      })
+      .toMatchObject({
+        quantity: 5,
+        levelVersion: 2,
+        productStock: 5,
+        paymentMethod: "cash",
+        paymentStatus: "recorded",
+        receiptStatus: "issued",
+        movementDelta: -1,
+      });
+    const saleAudit = await database.collection("auditLogs").findOne({
+      tenantId: primaryTenantId,
+      entityId: String(completedSale?._id),
+      action: "sale.completed",
+    });
+    const saleAuditText = JSON.stringify(saleAudit);
+    for (const privateValue of [
+      customerName,
+      `amina-${suffix}@example.test`,
+      checkoutNote,
+      "cash",
+      "15900",
+    ])
+      expect(saleAuditText).not.toContain(privateValue);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+    await page.goto(`/app/${primarySlug}/customers?q=amina-${suffix}`);
     await page.getByRole("button", { name: `Archive ${customerName}` }).click();
     customerDialog = page.getByRole("dialog");
     await customerDialog
@@ -434,9 +553,9 @@ test.describe("authenticated workspace and member administration", () => {
       })
       .toEqual({
         status: "archived",
-        productStock: 6,
-        levelQuantity: 6,
-        movementCount: 1,
+        productStock: 5,
+        levelQuantity: 5,
+        movementCount: 2,
         auditCount: 3,
       });
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);

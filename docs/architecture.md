@@ -33,6 +33,8 @@ Product CSV operations also use authenticated Route Handlers. Uploads are UTF-8,
 
 The dashboard remains a read-heavy Server Component. A dedicated repository receives trusted tenant context and one of two Zod-bounded periods, aligns calendar buckets to the tenant timezone, and runs indexed sales/audit projections. Active-store trends never broaden beyond the selected authorized store; comparisons are capped to authorized active stores; and activity is both time/row bounded and allowlisted before safe summaries reach the view. Recharts is isolated to a narrow Client Component and receives serializable projection data with an equivalent screen-reader table.
 
+Point of sale uses a Server Component for the tenant/store-scoped catalog and customer projection, a narrow Client Component for the provisional cart interaction, and a Server Action for completion. Browser totals are estimates only. The sale service re-resolves ownership, commercial values, tax, entitlement, availability, and inventory versions; then one MongoDB transaction creates immutable sale/payment/receipt evidence, calls the inventory service, updates revenue, and appends a safe audit. Recorded payment handling sits behind a provider interface so a future tenant payment integration does not cross-contaminate Stripe subscription billing.
+
 First-workspace onboarding uses Better Auth to create the organization and owner membership, sets that organization on the authenticated session, then commits the tenant profile, first store, owner store assignment, signup-trial projection, and audit entry in one MongoDB transaction. A failed application transaction compensates by removing the just-created organization, so partial workspaces are not retained.
 
 ## Module boundary

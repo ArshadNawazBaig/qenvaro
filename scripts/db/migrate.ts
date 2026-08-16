@@ -960,6 +960,73 @@ const migrations: Migration[] = [
       ]);
     },
   },
+  {
+    version: 18,
+    name: "atomic point of sale",
+    run: async (database) => {
+      const products = database.collection("products");
+      await products.updateMany(
+        { taxRateBps: { $exists: false } },
+        { $set: { taxRateBps: 0 } },
+      );
+      await products.updateMany(
+        { stock: { $type: "null" } },
+        { $set: { type: "service", inventoryTracking: false } },
+      );
+      await products.updateMany(
+        { stock: { $ne: null }, inventoryTracking: { $exists: false } },
+        { $set: { inventoryTracking: true } },
+      );
+      await indexes(database, "products", [
+        {
+          key: { tenantId: 1, status: 1, name: 1, _id: 1 },
+          name: "tenant_product_status_name",
+          partialFilterExpression: { deletedAt: null },
+        },
+      ]);
+      await indexes(database, "sales", [
+        {
+          key: { tenantId: 1, storeId: 1, receiptNumber: 1 },
+          name: "tenant_store_receipt_unique",
+          unique: true,
+          partialFilterExpression: {
+            receiptNumber: { $type: "string" },
+          },
+        },
+      ]);
+      await indexes(database, "salePayments", [
+        {
+          key: { tenantId: 1, saleId: 1, recordedAt: 1, _id: 1 },
+          name: "tenant_sale_payments",
+        },
+      ]);
+      await indexes(database, "receipts", [
+        {
+          key: { tenantId: 1, saleId: 1 },
+          name: "tenant_sale_receipt_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, storeId: 1, receiptNumber: 1 },
+          name: "tenant_receipt_number_unique",
+          unique: true,
+        },
+      ]);
+    },
+  },
+  {
+    version: 19,
+    name: "point of sale catalog access",
+    run: async (database) => {
+      await indexes(database, "productVariants", [
+        {
+          key: { tenantId: 1, status: 1, sku: 1, productId: 1, _id: 1 },
+          name: "tenant_variant_pos_catalog",
+          partialFilterExpression: { deletedAt: null },
+        },
+      ]);
+    },
+  },
 ];
 
 async function main() {

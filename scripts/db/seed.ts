@@ -32,6 +32,9 @@ function metadata(tenantId: string, actor = "seed_system") {
 function productSeedRecord(product: (typeof demoProducts)[number]) {
   const record: Record<string, unknown> = { ...product };
   delete record.primaryImage;
+  record.type = product.stock === null ? "service" : "simple";
+  record.inventoryTracking = product.stock !== null;
+  record.taxRateBps = 0;
   return record;
 }
 
@@ -205,7 +208,9 @@ async function main() {
             ...productSeedRecord(product),
             _id: product.id,
             normalizedSku: product.sku.toUpperCase(),
-            type: "simple",
+            type: product.stock === null ? "service" : "simple",
+            inventoryTracking: product.stock !== null,
+            taxRateBps: 0,
             optionGroups: [],
             unitId: tenantADefaultUnitId,
             ...metadata(tenantA),
@@ -230,6 +235,8 @@ async function main() {
             sku: "GS-ANNUAL",
             normalizedSku: "GS-ANNUAL",
             type: "simple",
+            inventoryTracking: true,
+            taxRateBps: 0,
             optionGroups: [],
             unitId: tenantBDefaultUnitId,
             slug: "growth-suite",

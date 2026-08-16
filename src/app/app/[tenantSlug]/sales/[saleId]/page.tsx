@@ -1,0 +1,239 @@
+import { ArrowLeft, CheckCircle2, ReceiptText } from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { PrintReceiptButton } from "@/components/sales/print-receipt-button";
+import { PageHeader } from "@/components/shared/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { env } from "@/config/env";
+import { receiptIdSchema, salePaymentLabels } from "@/modules/sales/schemas";
+import { SaleRepository } from "@/server/repositories/sales";
+import { requireTenantContext } from "@/server/tenancy/resolve-context";
+
+export const metadata: Metadata = { title: "Sale receipt" };
+
+function money(amountMinor: number, currency: string, locale: string) {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+  }).format(amountMinor / 100);
+}
+
+export default async function SaleReceiptPage({
+  params,
+}: {
+  params: Promise<{ tenantSlug: string; saleId: string }>;
+}) {
+  if (!env.MONGODB_URI) notFound();
+  const { tenantSlug, saleId: untrustedSaleId } = await params;
+  const parsed = receiptIdSchema.safeParse(untrustedSaleId);
+  if (!parsed.success) notFound();
+  let receipt = null;
+  try {
+    const context = await requireTenantContext(tenantSlug);
+    receipt = await new SaleRepository().receipt(context, parsed.data);
+  } catch {
+    notFound();
+  }
+  if (!receipt) notFound();
+  const completedAt = new Intl.DateTimeFormat(receipt.locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: receipt.timezone,
+  }).format(new Date(receipt.completedAt));
+
+  return (
+    <div className="mx-auto w-full max-w-4xl space-y-6 p-4 sm:p-6 lg:p-8 print:max-w-none print:p-0">
+      <div className="print:hidden">
+        <PageHeader
+          eyebrow="Sales"
+          parentHref={`/app/${tenantSlug}/sales/new`}
+          title="Sale completed"
+          description="Inventory, payment records, and the receipt were committed together."
+          actions={
+            <>
+              <PrintReceiptButton />
+              <Button asChild>
+                <Link href={`/app/${tenantSlug}/sales/new`}>
+                  <ArrowLeft /> New sale
+                </Link>
+              </Button>
+            </>
+          }
+        />
+      </div>
+      <Card className="print:border-0">
+        <CardHeader className="gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-xl">
+                <ReceiptText className="size-5" />
+              </span>
+              <div>
+                <CardTitle>{receipt.businessName}</CardTitle>
+                <CardDescription>
+                  {receipt.store.name} · {receipt.store.code}
+                </CardDescription>
+              </div>
+            </div>
+          </div>
+          <div className="text-left sm:text-right">
+            <Badge variant="success">
+              <CheckCircle2 /> Completed
+            </Badge>
+            <p className="mt-2 font-mono text-sm font-semibold">
+              {receipt.receiptNumber}
+            </p>
+            <p className="text-muted-foreground mt-1 text-xs">{completedAt}</p>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid gap-3 rounded-xl border p-4 sm:grid-cols-2">
+            <div>
+              <p className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
+                Customer
+              </p>
+              <p className="mt-1 text-sm font-medium">
+                {receipt.customer?.name ?? "Walk-in customer"}
+              </p>
+              {receipt.customer && (
+                <p className="text-muted-foreground mt-0.5 font-mono text-xs">
+                  {receipt.customer.code}
+                </p>
+              )}
+            </div>
+            <div className="sm:text-right">
+              <p className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
+                Receipt
+              </p>
+              <p className="mt-1 font-mono text-sm font-semibold">
+                {receipt.receiptNumber}
+              </p>
+            </div>
+          </div>
+
+          <div className="divide-y rounded-xl border">
+            {receipt.lines.map((line) => (
+              <div
+                key={line.lineId}
+                className="flex min-w-0 flex-col gap-2 p-4 sm:flex-row sm:items-start"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{line.productName}</p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">
+                    {line.variantName === "Default"
+                      ? line.sku
+                      : `${line.variantName} · ${line.sku}`}
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    {line.quantity} ×{" "}
+                    {money(
+                      line.unitPriceMinor,
+                      receipt.currency,
+                      receipt.locale,
+                    )}
+                    {line.discountMinor > 0
+                      ? ` · ${line.discountBps / 100}% discount`
+                      : ""}
+                  </p>
+                </div>
+                <p className="font-semibold tabular-nums sm:text-right">
+                  {money(line.lineTotalMinor, receipt.currency, receipt.locale)}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <h2 className="text-sm font-semibold">Payment record</h2>
+              <div className="mt-3 space-y-2">
+                {receipt.payments.map((payment) => (
+                  <div
+                    key={payment.id}
+                    className="flex items-center justify-between gap-4 text-sm"
+                  >
+                    <span className="text-muted-foreground">
+                      {salePaymentLabels[payment.method]}
+                    </span>
+                    <span className="tabular-nums">
+                      {money(
+                        payment.tenderedMinor,
+                        receipt.currency,
+                        receipt.locale,
+                      )}
+                    </span>
+                  </div>
+                ))}
+                {receipt.changeMinor > 0 && (
+                  <div className="flex items-center justify-between gap-4 border-t pt-2 text-sm font-medium">
+                    <span>Change</span>
+                    <span className="tabular-nums">
+                      {money(
+                        receipt.changeMinor,
+                        receipt.currency,
+                        receipt.locale,
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {receipt.note && (
+                <div className="mt-5">
+                  <h2 className="text-sm font-semibold">Note</h2>
+                  <p className="text-muted-foreground mt-1 text-sm leading-6">
+                    {receipt.note}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="space-y-2 rounded-xl border p-4 text-sm">
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="tabular-nums">
+                  {money(
+                    receipt.subtotalMinor,
+                    receipt.currency,
+                    receipt.locale,
+                  )}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Discounts</span>
+                <span className="tabular-nums">
+                  −
+                  {money(
+                    receipt.discountMinor,
+                    receipt.currency,
+                    receipt.locale,
+                  )}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Tax</span>
+                <span className="tabular-nums">
+                  {money(receipt.taxMinor, receipt.currency, receipt.locale)}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4 border-t pt-3 text-base font-semibold">
+                <span>Total</span>
+                <span className="tabular-nums">
+                  {money(receipt.totalMinor, receipt.currency, receipt.locale)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

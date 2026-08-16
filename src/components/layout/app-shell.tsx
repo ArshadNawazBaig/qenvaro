@@ -18,6 +18,7 @@ import {
   Ruler,
   Search,
   Settings,
+  ShoppingCart,
   Store,
   Sun,
   Tags,
@@ -92,6 +93,7 @@ const demoWorkspace: WorkspaceShellData = {
   canViewBilling: true,
   canViewInventory: true,
   canViewCustomers: true,
+  canCreateSales: true,
   isDemo: true,
 };
 
@@ -170,9 +172,20 @@ function SidebarContent({
     {
       id: "sales",
       label: "Sales",
-      items: workspace.canViewCustomers
-        ? [{ label: "Customers", icon: ContactRound, href: "/customers" }]
-        : [],
+      items: [
+        ...(workspace.canCreateSales
+          ? [
+              {
+                label: "New sale",
+                icon: ShoppingCart,
+                href: "/sales/new",
+              },
+            ]
+          : []),
+        ...(workspace.canViewCustomers
+          ? [{ label: "Customers", icon: ContactRound, href: "/customers" }]
+          : []),
+      ],
     },
     {
       id: "manage",
