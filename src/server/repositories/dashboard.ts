@@ -186,9 +186,21 @@ export class DashboardRepository {
                     timezone,
                   },
                 },
-                netSalesMinor: { $sum: { $ifNull: ["$netTotalMinor", 0] } },
+                netSalesMinor: {
+                  $sum: {
+                    $subtract: [
+                      { $ifNull: ["$netTotalMinor", 0] },
+                      { $ifNull: ["$returnedNetTotalMinor", 0] },
+                    ],
+                  },
+                },
                 grossProfitMinor: {
-                  $sum: { $ifNull: ["$grossProfitMinor", 0] },
+                  $sum: {
+                    $subtract: [
+                      { $ifNull: ["$grossProfitMinor", 0] },
+                      { $ifNull: ["$returnedGrossProfitMinor", 0] },
+                    ],
+                  },
                 },
                 completedSales: { $sum: 1 },
                 profitRecordCount: {
@@ -216,7 +228,14 @@ export class DashboardRepository {
             {
               $group: {
                 _id: null,
-                netSalesMinor: { $sum: { $ifNull: ["$netTotalMinor", 0] } },
+                netSalesMinor: {
+                  $sum: {
+                    $subtract: [
+                      { $ifNull: ["$netTotalMinor", 0] },
+                      { $ifNull: ["$returnedNetTotalMinor", 0] },
+                    ],
+                  },
+                },
               },
             },
           ])
@@ -235,7 +254,14 @@ export class DashboardRepository {
             {
               $group: {
                 _id: "$storeId",
-                netSalesMinor: { $sum: { $ifNull: ["$netTotalMinor", 0] } },
+                netSalesMinor: {
+                  $sum: {
+                    $subtract: [
+                      { $ifNull: ["$netTotalMinor", 0] },
+                      { $ifNull: ["$returnedNetTotalMinor", 0] },
+                    ],
+                  },
+                },
                 completedSales: { $sum: 1 },
               },
             },

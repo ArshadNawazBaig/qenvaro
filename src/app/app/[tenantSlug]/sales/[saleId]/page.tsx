@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, ReceiptText } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ReceiptText, RotateCcw } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -14,7 +14,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { env } from "@/config/env";
+import { hasPermission } from "@/modules/permissions/permissions";
 import { receiptIdSchema, salePaymentLabels } from "@/modules/sales/schemas";
+import { SaleReturnRepository } from "@/server/repositories/sale-returns";
 import { SaleRepository } from "@/server/repositories/sales";
 import { requireTenantContext } from "@/server/tenancy/resolve-context";
 
@@ -38,9 +40,15 @@ export default async function SaleReceiptPage({
   const parsed = receiptIdSchema.safeParse(untrustedSaleId);
   if (!parsed.success) notFound();
   let receipt = null;
+  let returnWorkspace = null;
   try {
     const context = await requireTenantContext(tenantSlug);
     receipt = await new SaleRepository().receipt(context, parsed.data);
+    if (receipt && hasPermission(context.permissions, "sale:refund"))
+      returnWorkspace = await new SaleReturnRepository().workspace(
+        context,
+        parsed.data,
+      );
   } catch {
     notFound();
   }
@@ -62,6 +70,15 @@ export default async function SaleReceiptPage({
           actions={
             <>
               <PrintReceiptButton />
+              {returnWorkspace?.lines.some(
+                (line) => line.remainingQuantity > 0,
+              ) && (
+                <Button variant="outline" asChild>
+                  <Link href={`/app/${tenantSlug}/sales/${receipt.id}/return`}>
+                    <RotateCcw /> Return items
+                  </Link>
+                </Button>
+              )}
               <Button asChild>
                 <Link href={`/app/${tenantSlug}/sales/new`}>
                   <ArrowLeft /> New sale
@@ -232,6 +249,46 @@ export default async function SaleReceiptPage({
               </div>
             </div>
           </div>
+
+          {returnWorkspace && returnWorkspace.previousReturns.length > 0 && (
+            <div>
+              <h2 className="text-sm font-semibold">Returns</h2>
+              <div className="mt-3 divide-y rounded-xl border">
+                {returnWorkspace.previousReturns.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="font-mono text-sm font-semibold">
+                        {item.returnNumber}
+                      </p>
+                      <p className="text-muted-foreground mt-0.5 text-xs">
+                        {item.unitCount} returned unit
+                        {item.unitCount === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 sm:justify-end">
+                      <span className="text-sm font-semibold tabular-nums">
+                        {money(
+                          item.totalMinor,
+                          receipt.currency,
+                          receipt.locale,
+                        )}
+                      </span>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link
+                          href={`/app/${tenantSlug}/sales/${receipt.id}/returns/${item.id}`}
+                        >
+                          View return
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

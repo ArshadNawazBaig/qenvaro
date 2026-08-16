@@ -116,6 +116,8 @@ export interface SaleInventoryLine {
   expectedLevelVersion: number;
 }
 
+export type SaleReturnInventoryLine = SaleInventoryLine;
+
 export class InventoryNotFoundError extends Error {
   constructor() {
     super("The requested inventory record was not found.");
@@ -361,7 +363,12 @@ async function appendMovement(
     type: InventoryMovementType;
     quantityDelta: number;
     resultingQuantity: number;
-    sourceType: "stock_adjustment" | "stock_transfer" | "product" | "sale";
+    sourceType:
+      | "stock_adjustment"
+      | "stock_transfer"
+      | "product"
+      | "sale"
+      | "sale_return";
     sourceId: string;
     note: string;
     idempotencyKey: string;
@@ -1136,6 +1143,125 @@ export class InventoryService {
         sourceType: "sale",
         sourceId: input.saleId,
         note: `Sale ${input.receiptNumber}`,
+        idempotencyKey: `${input.idempotencyKey}:movement:${index}`,
+        now: input.now,
+      });
+      results.push({ variantId: line.variantId, resultingQuantity });
+    }
+    return results;
+  }
+
+  async recordSaleReturnInTransaction(
+    database: Db,
+    session: ClientSession,
+    context: TenantContext,
+    input: {
+      returnId: string;
+      returnNumber: string;
+      storeId: string;
+      lines: SaleReturnInventoryLine[];
+      idempotencyKey: string;
+      now: Date;
+    },
+  ): Promise<Array<{ variantId: string; resultingQuantity: number }>> {
+    requirePermission(context.permissions, "sale:refund");
+    if (input.lines.length === 0) return [];
+    await loadWriteProfile(database, context.tenantId, session);
+    await requireActiveStores(database, session, context, [input.storeId]);
+    const variantIds = input.lines.map((line) => line.variantId);
+    const variants = await database
+      .collection<VariantDocument>("productVariants")
+      .find(
+        { tenantId: context.tenantId, _id: { $in: variantIds } },
+        { session },
+      )
+      .toArray();
+    if (variants.length !== variantIds.length)
+      throw new InventoryProductUnavailableError(
+        "A historical return SKU could not be resolved.",
+      );
+    const variantById = new Map(
+      variants.map((variant) => [String(variant._id), variant]),
+    );
+    const productIds = [...new Set(variants.map((item) => item.productId))];
+    const products = await database
+      .collection<ProductDocument>("products")
+      .find(
+        {
+          tenantId: context.tenantId,
+          _id: { $in: productIds },
+          stock: { $ne: null },
+          inventoryTracking: { $ne: false },
+        },
+        { session },
+      )
+      .toArray();
+    if (products.length !== productIds.length)
+      throw new InventoryProductUnavailableError(
+        "A historical return product could not be resolved.",
+      );
+    const productById = new Map(
+      products.map((product) => [String(product._id), product]),
+    );
+    const results: Array<{
+      variantId: string;
+      resultingQuantity: number;
+    }> = [];
+    for (const [index, line] of input.lines.entries()) {
+      const variant = variantById.get(line.variantId);
+      const product = variant && productById.get(variant.productId);
+      if (!variant || !product || product._id !== line.productId)
+        throw new InventoryProductUnavailableError(
+          "A historical return item no longer matches its sale snapshot.",
+        );
+      const current = await loadLevel(
+        database,
+        session,
+        context,
+        input.storeId,
+        line.variantId,
+      );
+      const previousQuantity = current?.quantity ?? 0;
+      const resultingQuantity = previousQuantity + line.quantity;
+      if (!Number.isSafeInteger(resultingQuantity))
+        throw new InventoryProductUnavailableError(
+          "The returned stock quantity is outside the supported range.",
+        );
+      await writeLevel(database, session, context, {
+        storeId: input.storeId,
+        variantId: line.variantId,
+        current,
+        expectedVersion: line.expectedLevelVersion,
+        newQuantity: resultingQuantity,
+        now: input.now,
+      });
+      const productUpdate = await database
+        .collection<ProductDocument>("products")
+        .updateOne(
+          {
+            _id: product._id,
+            tenantId: context.tenantId,
+            stock: { $ne: null },
+            inventoryTracking: { $ne: false },
+          },
+          {
+            $inc: { stock: line.quantity },
+            $set: { updatedAt: input.now, updatedBy: context.userId },
+          },
+          { session },
+        );
+      if (productUpdate.matchedCount !== 1)
+        throw new InventoryProductUnavailableError();
+      await appendMovement(database, session, context, {
+        storeId: input.storeId,
+        productId: product._id,
+        variantId: line.variantId,
+        type: "sale_return",
+        quantityDelta: line.quantity,
+        resultingQuantity,
+        sourceType: "sale_return",
+        sourceId: input.returnId,
+        note: `Return ${input.returnNumber}`,
         idempotencyKey: `${input.idempotencyKey}:movement:${index}`,
         now: input.now,
       });

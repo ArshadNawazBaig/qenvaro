@@ -356,6 +356,7 @@ export class SaleRepository {
         saleId: sale._id,
         receiptNumber: sale.receiptNumber,
         status: "issued",
+        $or: [{ entityType: "sale" }, { entityType: { $exists: false } }],
       }),
       database
         .collection<ReceiptPaymentDocument>("salePayments")

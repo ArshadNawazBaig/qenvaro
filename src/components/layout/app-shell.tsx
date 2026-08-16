@@ -15,6 +15,7 @@ import {
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
+  ReceiptText,
   Ruler,
   Search,
   Settings,
@@ -94,6 +95,7 @@ const demoWorkspace: WorkspaceShellData = {
   canViewInventory: true,
   canViewCustomers: true,
   canCreateSales: true,
+  canViewSales: true,
   isDemo: true,
 };
 
@@ -173,6 +175,15 @@ function SidebarContent({
       id: "sales",
       label: "Sales",
       items: [
+        ...(workspace.canViewSales
+          ? [
+              {
+                label: "Sales history",
+                icon: ReceiptText,
+                href: "/sales",
+              },
+            ]
+          : []),
         ...(workspace.canCreateSales
           ? [
               {
@@ -228,6 +239,12 @@ function SidebarContent({
         pathname === href ||
         pathname.startsWith(`${href}/adjustments`) ||
         pathname.startsWith(`${href}/transfers`)
+      );
+    if (item.href === "/sales")
+      return (
+        (pathname === href || pathname.startsWith(`${href}/`)) &&
+        pathname !== `${href}/new` &&
+        !pathname.startsWith(`${href}/new/`)
       );
     return pathname === href || pathname.startsWith(`${href}/`);
   }

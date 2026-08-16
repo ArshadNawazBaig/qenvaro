@@ -64,6 +64,8 @@ test.describe("authenticated workspace and member administration", () => {
       "inventoryLevels",
       "productImportPreviews",
       "receipts",
+      "refunds",
+      "returns",
       "salePayments",
       "sales",
       "sequenceCounters",
@@ -466,6 +468,147 @@ test.describe("authenticated workspace and member administration", () => {
       expect(saleAuditText).not.toContain(privateValue);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 
+    const returnNote = `Private browser return ${suffix}`;
+    await page.getByRole("link", { name: "Return items" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Return sale items", exact: true }),
+    ).toBeVisible();
+    const returnViewport = page.viewportSize();
+    await page.setViewportSize({ width: 320, height: 700 });
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(0);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    if (returnViewport) await page.setViewportSize(returnViewport);
+    await page.getByLabel(`Return ${updatedProductName}`).check();
+    await page.getByLabel("Return reason").selectOption("wrong_item");
+    await page.getByLabel("Refund method").selectOption("bank_transfer");
+    await page.getByLabel(/Return note/).fill(returnNote);
+    await page
+      .getByRole("button", { name: "Complete return & refund" })
+      .click();
+    await expect(page).toHaveURL(
+      /\/sales\/sal_[A-Za-z0-9_-]+\/returns\/ret_[A-Za-z0-9_-]+$/,
+    );
+    await expect(
+      page.getByRole("heading", { name: "Return completed", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText(/^MAIN-R-\d{6}$/).first()).toBeVisible();
+    const completedReturn = await database
+      .collection<StringDocument>("returns")
+      .findOne({
+        tenantId: primaryTenantId,
+        saleId: String(completedSale?._id),
+        status: "completed",
+      });
+    expect(completedReturn).toMatchObject({
+      reason: "wrong_item",
+      refundMethod: "bank_transfer",
+      subtotalMinor: 15_900,
+      discountMinor: 0,
+      taxMinor: 0,
+      netTotalMinor: 15_900,
+      totalMinor: 15_900,
+    });
+    await expect
+      .poll(async () => {
+        const [level, product, refund, receipt, movement, audit] =
+          await Promise.all([
+            database.collection<StringDocument>("inventoryLevels").findOne({
+              tenantId: primaryTenantId,
+              variantId: `${String(createdProduct?._id)}_default`,
+            }),
+            database.collection<StringDocument>("products").findOne({
+              tenantId: primaryTenantId,
+              _id: String(createdProduct?._id),
+            }),
+            database.collection<StringDocument>("refunds").findOne({
+              tenantId: primaryTenantId,
+              returnId: String(completedReturn?._id),
+            }),
+            database.collection<StringDocument>("receipts").findOne({
+              tenantId: primaryTenantId,
+              returnId: String(completedReturn?._id),
+            }),
+            database.collection<StringDocument>("inventoryMovements").findOne({
+              tenantId: primaryTenantId,
+              sourceType: "sale_return",
+              sourceId: String(completedReturn?._id),
+            }),
+            database.collection<StringDocument>("auditLogs").findOne({
+              tenantId: primaryTenantId,
+              entityId: String(completedReturn?._id),
+              action: "sale.returned",
+            }),
+          ]);
+        return {
+          quantity: level?.quantity,
+          levelVersion: level?.version,
+          productStock: product?.stock,
+          productRevenue: product?.revenueMinor,
+          refundMethod: refund?.method,
+          refundAmount: refund?.amountMinor,
+          refundStatus: refund?.status,
+          receiptType: receipt?.entityType,
+          movementDelta: movement?.quantityDelta,
+          audited: Boolean(audit),
+        };
+      })
+      .toEqual({
+        quantity: 6,
+        levelVersion: 3,
+        productStock: 6,
+        productRevenue: 0,
+        refundMethod: "bank_transfer",
+        refundAmount: 15_900,
+        refundStatus: "recorded",
+        receiptType: "return",
+        movementDelta: 1,
+        audited: true,
+      });
+    const returnAudit = await database.collection("auditLogs").findOne({
+      tenantId: primaryTenantId,
+      entityId: String(completedReturn?._id),
+      action: "sale.returned",
+    });
+    const returnAuditText = JSON.stringify(returnAudit);
+    for (const privateValue of [
+      customerName,
+      returnNote,
+      "wrong_item",
+      "bank_transfer",
+      "15900",
+    ])
+      expect(returnAuditText).not.toContain(privateValue);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page.goto(`/app/${primarySlug}/sales`);
+    await expect(
+      page.getByRole("heading", { name: "Sales history", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.locator("span:visible", { hasText: /^Fully returned$/ }),
+    ).toBeVisible();
+    await expect(
+      page.locator("p:visible", {
+        hasText: String(completedSale?.receiptNumber),
+      }),
+    ).toBeVisible();
+    const salesViewport = page.viewportSize();
+    await page.setViewportSize({ width: 320, height: 700 });
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(0);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    if (salesViewport) await page.setViewportSize(salesViewport);
+
     await page.goto(`/app/${primarySlug}/customers?q=amina-${suffix}`);
     await page.getByRole("button", { name: `Archive ${customerName}` }).click();
     customerDialog = page.getByRole("dialog");
@@ -553,9 +696,9 @@ test.describe("authenticated workspace and member administration", () => {
       })
       .toEqual({
         status: "archived",
-        productStock: 5,
-        levelQuantity: 5,
-        movementCount: 2,
+        productStock: 6,
+        levelQuantity: 6,
+        movementCount: 3,
         auditCount: 3,
       });
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);

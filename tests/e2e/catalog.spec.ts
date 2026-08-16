@@ -165,10 +165,33 @@ test("public landing and product demo are usable", async ({ page }) => {
 test("demo point of sale is responsive and honestly read-only", async ({
   page,
 }) => {
+  await page.goto("/app/demo/sales");
+  await expect(
+    page.getByRole("heading", { name: "Sales history", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('a[aria-current="page"]')).toHaveCount(1);
+  await expect(page.locator('a[aria-current="page"]')).toHaveAttribute(
+    "href",
+    "/app/demo/sales",
+  );
+  await page.setViewportSize({ width: 320, height: 700 });
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(0);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.goto("/app/demo/sales/new");
   await expect(
     page.getByRole("heading", { name: "New sale", exact: true }),
   ).toBeVisible();
+  await expect(page.locator('a[aria-current="page"]')).toHaveCount(1);
+  await expect(page.locator('a[aria-current="page"]')).toHaveAttribute(
+    "href",
+    "/app/demo/sales/new",
+  );
   await page.getByRole("button", { name: "Add Counter Kit" }).click();
   await expect(page.getByText("Current sale", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Fill remaining total" }).click();

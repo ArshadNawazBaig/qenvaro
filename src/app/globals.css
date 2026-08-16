@@ -164,10 +164,6 @@ select {
   scrollbar-width: thin;
 }
 
-[data-sonner-toaster][data-sonner-theme="light"] {
-  --success-text: hsl(140, 100%, 22%) !important;
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

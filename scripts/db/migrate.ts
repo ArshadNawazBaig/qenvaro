@@ -1027,6 +1027,65 @@ const migrations: Migration[] = [
       ]);
     },
   },
+  {
+    version: 20,
+    name: "sale returns and recorded refunds",
+    run: async (database) => {
+      const receipts = database.collection("receipts");
+      await receipts.updateMany(
+        { entityType: { $exists: false } },
+        { $set: { entityType: "sale" } },
+      );
+      const receiptIndexes = await receipts.indexes();
+      if (
+        receiptIndexes.some(
+          (index) => index.name === "tenant_sale_receipt_unique",
+        )
+      )
+        await receipts.dropIndex("tenant_sale_receipt_unique");
+      await indexes(database, "receipts", [
+        {
+          key: { tenantId: 1, saleId: 1 },
+          name: "tenant_sale_receipt_unique",
+          unique: true,
+          partialFilterExpression: { entityType: "sale" },
+        },
+        {
+          key: { tenantId: 1, returnId: 1 },
+          name: "tenant_return_receipt_unique",
+          unique: true,
+          partialFilterExpression: { entityType: "return" },
+        },
+      ]);
+      await indexes(database, "returns", [
+        {
+          key: { tenantId: 1, idempotencyKey: 1 },
+          name: "tenant_return_idempotency_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, storeId: 1, returnNumber: 1 },
+          name: "tenant_store_return_number_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, saleId: 1, completedAt: -1, _id: 1 },
+          name: "tenant_sale_returns",
+        },
+      ]);
+      await indexes(database, "refunds", [
+        {
+          key: { tenantId: 1, returnId: 1 },
+          name: "tenant_return_refund_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, saleId: 1, recordedAt: -1, _id: 1 },
+          name: "tenant_sale_refunds",
+        },
+      ]);
+    },
+  },
 ];
 
 async function main() {
