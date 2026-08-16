@@ -310,6 +310,9 @@ const migrations: Migration[] = [
           key: { idempotencyKey: 1 },
           name: "platform_audit_idempotency_unique",
           unique: true,
+          partialFilterExpression: {
+            idempotencyKey: { $type: "string" },
+          },
         },
         { key: { createdAt: -1 }, name: "platform_audit_date" },
       ]);

@@ -33,7 +33,9 @@ export function TwoFactorChallenge() {
               trustDevice: false,
             });
         if (response.error) {
-          setError(response.error.message ?? "The verification code is invalid.");
+          setError(
+            response.error.message ?? "The verification code is invalid.",
+          );
           setPending(false);
           return;
         }

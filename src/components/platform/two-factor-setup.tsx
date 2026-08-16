@@ -1,6 +1,12 @@
 "use client";
 
-import { CheckCircle2, Copy, KeyRound, Loader2, ShieldCheck } from "lucide-react";
+import {
+  CheckCircle2,
+  Copy,
+  KeyRound,
+  Loader2,
+  ShieldCheck,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -41,7 +47,9 @@ export function PlatformTwoFactorSetup({
           <span className="bg-success/30 text-success-foreground flex size-11 items-center justify-center rounded-full">
             <CheckCircle2 className="size-5" />
           </span>
-          <h2 className="mt-5 text-xl font-semibold">This session is verified</h2>
+          <h2 className="mt-5 text-xl font-semibold">
+            This session is verified
+          </h2>
           <p className="text-muted-foreground mt-2 max-w-xl text-sm leading-6">
             Two-factor authentication is enabled and this browser session has
             completed a second-factor check.
@@ -164,7 +172,8 @@ export function PlatformTwoFactorSetup({
               const response = await authClient.twoFactor.enable({ password });
               if (response.error || !response.data) {
                 setError(
-                  response.error?.message ?? "Two-factor setup could not start.",
+                  response.error?.message ??
+                    "Two-factor setup could not start.",
                 );
                 setPending(false);
                 return;
@@ -201,11 +210,12 @@ export function PlatformTwoFactorSetup({
                 1. Add the manual setup key
               </h3>
               <p className="text-muted-foreground text-sm">
-                Add a time-based account in your authenticator app with this key.
+                Add a time-based account in your authenticator app with this
+                key.
               </p>
               <div className="bg-muted flex flex-col gap-3 rounded-lg p-4 sm:flex-row sm:items-center">
                 <code
-                  className="min-w-0 flex-1 break-all font-mono text-sm font-semibold tracking-wider"
+                  className="min-w-0 flex-1 font-mono text-sm font-semibold tracking-wider break-all"
                   data-testid="totp-secret"
                 >
                   {secretFromTotpUri(totpUri)}
@@ -215,7 +225,9 @@ export function PlatformTwoFactorSetup({
                   size="sm"
                   variant="outline"
                   onClick={async () => {
-                    await navigator.clipboard.writeText(secretFromTotpUri(totpUri));
+                    await navigator.clipboard.writeText(
+                      secretFromTotpUri(totpUri),
+                    );
                     toast.success("Setup key copied.");
                   }}
                 >
@@ -228,7 +240,8 @@ export function PlatformTwoFactorSetup({
                 2. Save your recovery codes
               </h3>
               <p className="text-muted-foreground text-sm">
-                Store these one-time codes offline. They will not be shown again.
+                Store these one-time codes offline. They will not be shown
+                again.
               </p>
               <div className="bg-muted grid gap-2 rounded-lg p-4 font-mono text-sm sm:grid-cols-2">
                 {backupCodes.map((code) => (
@@ -258,7 +271,8 @@ export function PlatformTwoFactorSetup({
                 });
                 if (response.error) {
                   setError(
-                    response.error.message ?? "The verification code is invalid.",
+                    response.error.message ??
+                      "The verification code is invalid.",
                   );
                   setPending(false);
                   return;

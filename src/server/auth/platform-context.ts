@@ -34,8 +34,7 @@ export class PlatformNotFoundError extends Error {
 export class PlatformTwoFactorRequiredError extends Error {
   constructor(
     public readonly reason:
-      | "require_two_factor_enrollment"
-      | "require_two_factor_verification",
+      "require_two_factor_enrollment" | "require_two_factor_verification",
   ) {
     super("Two-factor verification is required for platform access.");
     this.name = "PlatformTwoFactorRequiredError";

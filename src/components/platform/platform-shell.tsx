@@ -147,7 +147,9 @@ export function PlatformShell({ identity, children }: PlatformShellProps) {
             <Menu />
           </Button>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">Platform operations</p>
+            <p className="truncate text-sm font-semibold">
+              Platform operations
+            </p>
             <p className="text-muted-foreground hidden text-xs sm:block">
               Aggregate service metadata only
             </p>
@@ -178,7 +180,7 @@ export function PlatformShell({ identity, children }: PlatformShellProps) {
             <Avatar className="ml-1">
               <AvatarFallback>{initials(identity.name)}</AvatarFallback>
             </Avatar>
-            <div className="hidden min-w-0 max-w-40 sm:block">
+            <div className="hidden max-w-40 min-w-0 sm:block">
               <p className="truncate text-xs font-semibold">{identity.name}</p>
               <p className="text-muted-foreground truncate text-[11px]">
                 {identity.email}

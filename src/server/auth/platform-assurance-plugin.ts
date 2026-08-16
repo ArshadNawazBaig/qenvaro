@@ -19,9 +19,7 @@ async function readReturnedAuthResult(
     : null;
 }
 
-export function platformSessionAssurancePlugin(
-  database: Db,
-): BetterAuthPlugin {
+export function platformSessionAssurancePlugin(database: Db): BetterAuthPlugin {
   return {
     id: "platform-session-assurance",
     hooks: {
@@ -68,31 +66,29 @@ export function platformSessionAssurancePlugin(
               )
                 return;
               const now = new Date();
-              await database
-                .collection("platformSessionAssurances")
-                .updateOne(
-                  { sessionId: String(session._id) },
-                  {
-                    $set: {
-                      userId: session.userId,
-                      verifiedAt: now,
-                      verifiedBy:
-                        context.path === "/two-factor/verify-backup-code"
-                          ? "backup_code"
-                          : context.path === "/sign-in/email"
-                            ? "trusted_device"
-                            : "totp",
-                      expiresAt: session.expiresAt,
-                      updatedAt: now,
-                    },
-                    $setOnInsert: {
-                      _id: `passure_${crypto.randomUUID()}`,
-                      sessionId: String(session._id),
-                      createdAt: now,
-                    },
+              await database.collection("platformSessionAssurances").updateOne(
+                { sessionId: String(session._id) },
+                {
+                  $set: {
+                    userId: session.userId,
+                    verifiedAt: now,
+                    verifiedBy:
+                      context.path === "/two-factor/verify-backup-code"
+                        ? "backup_code"
+                        : context.path === "/sign-in/email"
+                          ? "trusted_device"
+                          : "totp",
+                    expiresAt: session.expiresAt,
+                    updatedAt: now,
                   },
-                  { upsert: true },
-                );
+                  $setOnInsert: {
+                    _id: `passure_${crypto.randomUUID()}`,
+                    sessionId: String(session._id),
+                    createdAt: now,
+                  },
+                },
+                { upsert: true },
+              );
             } catch (error) {
               context.context.logger.error(
                 "Failed to persist platform session 2FA assurance",

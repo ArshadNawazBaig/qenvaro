@@ -70,20 +70,24 @@ export async function bootstrapConfiguredSuperAdmins(
     const now = new Date();
     await database.client.withSession(async (session) => {
       await session.withTransaction(async () => {
-        const promoted = await database.collection("user").updateOne(
-          { _id: user._id, emailVerified: true },
-          {
-            $set: {
-              role: "PLATFORM_SUPER_ADMIN",
-              updatedAt: now,
+        const promoted = await database
+          .collection<StringDocument>("user")
+          .updateOne(
+            { _id: user._id, emailVerified: true },
+            {
+              $set: {
+                role: "PLATFORM_SUPER_ADMIN",
+                updatedAt: now,
+              },
             },
-          },
-          { session },
-        );
+            { session },
+          );
         if (promoted.matchedCount !== 1) {
           throw new Error("The configured account changed during bootstrap.");
         }
-        await database.collection("session").deleteMany({ userId }, { session });
+        await database
+          .collection("session")
+          .deleteMany({ userId }, { session });
         await database
           .collection<StringDocument>("platformAuditLogs")
           .updateOne(
