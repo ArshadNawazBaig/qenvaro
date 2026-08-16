@@ -30,6 +30,7 @@ export interface WorkspaceShellData {
   activeStoreId: string | null;
   canViewMembers: boolean;
   canViewBilling: boolean;
+  canViewInventory: boolean;
   isDemo: boolean;
 }
 
@@ -128,6 +129,7 @@ export async function getWorkspaceShellData(
     activeStoreId: context.activeStoreId,
     canViewMembers: hasPermission(context.permissions, "member:read"),
     canViewBilling: hasPermission(context.permissions, "billing:read"),
+    canViewInventory: hasPermission(context.permissions, "inventory:read"),
     isDemo: false,
   };
 }

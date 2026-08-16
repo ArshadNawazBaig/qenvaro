@@ -160,6 +160,15 @@ export class TenantOnboardingService {
             billingStatus: "trialing",
             billingSource: "signup_trial",
             trialEndsAt,
+            inventorySettings: {
+              allowNegativeStock: false,
+              lowStockAlerts: {
+                enabled: false,
+                includeLowStock: true,
+                includeOutOfStock: true,
+                version: 1,
+              },
+            },
             onboardingVersion: 1,
             onboardingCompletedAt: now,
             createdAt: now,

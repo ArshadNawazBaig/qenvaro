@@ -32,6 +32,8 @@ Products embed up to three option groups with stable option/value identifiers, c
 
 `productImportPreviews` stores only bounded parsed CSV values and validated mutation intent; it does not store a binary file. Every preview belongs to one tenant and user, expires after 30 minutes, carries an optimistic version, and records the chosen mapping and existing-SKU behavior. A successful commit converts the preview into an idempotent completed result and writes a durable `importExportJobs` summary plus audit records in the same transaction as catalog changes. New-product opening stock uses the append-only inventory ledger and projection; updates and skips never alter inventory. Migration 12 adds preview TTL and tenant job indexes. `applicationRateLimits` contains short-lived fixed-window counters for application routes such as CSV operations; migration 13 adds TTL cleanup.
 
+`inventoryMovements` is the immutable stock source of truth. Every entry identifies its tenant, store, product variant, signed quantity delta, resulting quantity, source record, note, actor, occurrence time, and unique request-derived idempotency key. `inventoryLevels` is the tenant/store/variant read projection and carries an optimistic integer version. `stockAdjustments` retains the posted mode, reason, entered quantity, signed delta, before/after counts, note, actor, and request identity. `stockTransfers` is a completed immutable header with source/destination stores and up to 20 embedded line snapshots; each line records the SKU quantity and both stores' before/after counts. One transaction writes the transfer header, paired `transfer_out`/`transfer_in` movements, both projections, and audit event. Transfers never change tenant-wide product stock. Migration 14 backfills projection versions and the default no-negative-stock setting, then adds adjustment/transfer idempotency and inventory reporting indexes.
+
 ## Important indexes
 
 All tenant query indexes begin with `tenantId`. The migration runner creates and versions:
@@ -51,6 +53,8 @@ All tenant query indexes begin with `tenantId`. The migration runner creates and
 - unique active `tenantId + normalized category name`, stable category slug, and `tenantId + category status + updatedAt` taxonomy queries;
 - unique active `tenantId + normalized tag name`, `tenantId + tag status + updatedAt` tag queries, and `tenantId + tagIds + product status` assignment filtering;
 - `tenantId + storeId + occurredAt` inventory ledger/report queries;
+- `tenantId + variantId + occurredAt` variant ledger queries and `tenantId + storeId + quantity` stock-attention scans;
+- unique `tenantId + idempotencyKey` adjustment and transfer requests, plus store/date adjustment and transfer-history indexes;
 - unique provider and event ID for webhook replay protection;
 - unique Stripe subscription identity, tenant subscription-status scans, unique billing event identity, and webhook processing-status scans;
 - platform user-role, tenant billing/plan, and verified-webhook scans;

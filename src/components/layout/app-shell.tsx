@@ -21,6 +21,7 @@ import {
   Tags,
   UserRound,
   UsersRound,
+  Warehouse,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -62,7 +63,7 @@ interface NavigationItem {
 }
 
 interface NavigationGroup {
-  id: "overview" | "catalog" | "manage";
+  id: "overview" | "catalog" | "inventory" | "manage";
   label: string;
   items: NavigationItem[];
 }
@@ -87,6 +88,7 @@ const demoWorkspace: WorkspaceShellData = {
   activeStoreId: "demo-store",
   canViewMembers: true,
   canViewBilling: true,
+  canViewInventory: true,
   isDemo: true,
 };
 
@@ -115,7 +117,7 @@ function SidebarContent({
   const [isSwitching, startSwitching] = React.useTransition();
   const [openGroups, setOpenGroups] = React.useState<
     Record<NavigationGroup["id"], boolean>
-  >({ overview: true, catalog: true, manage: true });
+  >({ overview: true, catalog: true, inventory: true, manage: true });
   const base = `/app/${tenantSlug}`;
   const navigationGroups: NavigationGroup[] = [
     {
@@ -135,6 +137,25 @@ function SidebarContent({
         },
         { label: "Tags", icon: Tags, href: "/products/tags" },
       ],
+    },
+    {
+      id: "inventory",
+      label: "Inventory",
+      items: workspace.canViewInventory
+        ? [
+            { label: "Stock control", icon: Warehouse, href: "/inventory" },
+            {
+              label: "Availability",
+              icon: Building2,
+              href: "/inventory/availability",
+            },
+            {
+              label: "Low-stock alerts",
+              icon: Bell,
+              href: "/inventory/alerts",
+            },
+          ]
+        : [],
     },
     {
       id: "manage",
@@ -170,6 +191,12 @@ function SidebarContent({
         (pathname === href || pathname.startsWith(`${href}/`)) &&
         !pathname.startsWith(`${href}/categories`) &&
         !pathname.startsWith(`${href}/tags`)
+      );
+    if (item.href === "/inventory")
+      return (
+        pathname === href ||
+        pathname.startsWith(`${href}/adjustments`) ||
+        pathname.startsWith(`${href}/transfers`)
       );
     return pathname === href || pathname.startsWith(`${href}/`);
   }

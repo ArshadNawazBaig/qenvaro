@@ -11,6 +11,7 @@ import { env } from "@/config/env";
 import { createOpaqueId } from "@/lib/utils";
 import { parseDecimalToMinor } from "@/lib/money";
 import { requireTenantWriteEntitlement } from "@/modules/billing/entitlements";
+import { InventoryService } from "@/modules/inventory/service";
 import {
   createCategorySlug,
   normalizeCategoryName,
@@ -1172,41 +1173,19 @@ export class ProductCsvService {
               },
               { session },
             );
-          if (row.openingStock > 0) {
-            await database
-              .collection<StringIdDocument>("inventoryMovements")
-              .insertOne(
-                {
-                  _id: createOpaqueId("mov"),
-                  tenantId: context.tenantId,
-                  storeId,
-                  variantId,
-                  type: "opening_balance",
-                  quantityDelta: row.openingStock,
-                  occurredAt: now,
-                  idempotencyKey: `product-csv:${preview._id}:${row.rowNumber}`,
-                  createdAt: now,
-                  createdBy: context.userId,
-                },
-                { session },
-              );
-            await database
-              .collection<StringIdDocument>("inventoryLevels")
-              .insertOne(
-                {
-                  _id: createOpaqueId("lvl"),
-                  tenantId: context.tenantId,
-                  storeId,
-                  variantId,
-                  quantity: row.openingStock,
-                  version: 1,
-                  createdAt: now,
-                  updatedAt: now,
-                  updatedBy: context.userId,
-                },
-                { session },
-              );
-          }
+          await new InventoryService().recordOpeningBalanceInTransaction(
+            database,
+            session,
+            context,
+            {
+              productId,
+              variantId,
+              storeId,
+              quantity: row.openingStock,
+              idempotencyKey: `product-csv:${preview._id}:${row.rowNumber}`,
+              now,
+            },
+          );
           createdCount += 1;
           await appendAudit(database, context, {
             action: "product.import_created",

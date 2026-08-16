@@ -4,6 +4,7 @@ import { requirePermission } from "@/modules/permissions/permissions";
 import { assertUsageAvailable } from "@/config/plans";
 import { createOpaqueId } from "@/lib/utils";
 import { requireTenantWriteEntitlement } from "@/modules/billing/entitlements";
+import { InventoryService } from "@/modules/inventory/service";
 import {
   createCategorySlug,
   normalizeCategoryName,
@@ -330,41 +331,19 @@ export class ProductService {
             },
             { session },
           );
-        if (input.openingStock > 0) {
-          await database
-            .collection<StringIdDocument>("inventoryMovements")
-            .insertOne(
-              {
-                _id: createOpaqueId("mov"),
-                tenantId: context.tenantId,
-                storeId,
-                variantId,
-                type: "opening_balance",
-                quantityDelta: input.openingStock,
-                occurredAt: now,
-                idempotencyKey: `product-create:${productId}`,
-                createdAt: now,
-                createdBy: context.userId,
-              },
-              { session },
-            );
-          await database
-            .collection<StringIdDocument>("inventoryLevels")
-            .insertOne(
-              {
-                _id: createOpaqueId("lvl"),
-                tenantId: context.tenantId,
-                storeId,
-                variantId,
-                quantity: input.openingStock,
-                version: 1,
-                createdAt: now,
-                updatedAt: now,
-                updatedBy: context.userId,
-              },
-              { session },
-            );
-        }
+        await new InventoryService().recordOpeningBalanceInTransaction(
+          database,
+          session,
+          context,
+          {
+            productId,
+            variantId,
+            storeId,
+            quantity: input.openingStock,
+            idempotencyKey: `product-create:${productId}`,
+            now,
+          },
+        );
         await database.collection<StringIdDocument>("auditLogs").insertOne(
           {
             _id: createOpaqueId("aud"),

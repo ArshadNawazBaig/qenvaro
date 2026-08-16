@@ -10,7 +10,7 @@ const enabled = process.env.RUN_WORKSPACE_E2E === "true";
 type StringDocument = { _id: string } & Record<string, unknown>;
 
 test.describe("authenticated workspace and member administration", () => {
-  test.setTimeout(90_000);
+  test.setTimeout(180_000);
   test.skip(
     !enabled,
     "Set RUN_WORKSPACE_E2E=true with MongoDB and Mailpit running.",
@@ -56,6 +56,8 @@ test.describe("authenticated workspace and member administration", () => {
       "tenantProfiles",
       "products",
       "productVariants",
+      "stockAdjustments",
+      "stockTransfers",
       "inventoryMovements",
       "inventoryLevels",
       "productImportPreviews",
@@ -470,6 +472,120 @@ test.describe("authenticated workspace and member administration", () => {
           createdBy: ownerId,
         },
       ]);
+    await database
+      .collection("products")
+      .updateOne(
+        { tenantId: primaryTenantId, normalizedSku: csvSku.toUpperCase() },
+        { $addToSet: { allowedStoreIds: warehouseStoreId } },
+      );
+
+    await page.goto(`/app/${primarySlug}/inventory`);
+    await expect(
+      page.getByRole("heading", { name: "Inventory", exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(0);
+    await page.getByRole("button", { name: "New adjustment" }).click();
+    let inventoryDialog = page.getByRole("dialog");
+    const adjustmentVariantId = await inventoryDialog
+      .getByLabel("Product / SKU")
+      .locator("option")
+      .filter({ hasText: csvSku })
+      .getAttribute("value");
+    expect(adjustmentVariantId).toBeTruthy();
+    await inventoryDialog
+      .getByLabel("Product / SKU")
+      .selectOption(adjustmentVariantId!);
+    await inventoryDialog.getByLabel("Quantity").fill("2");
+    await inventoryDialog
+      .getByLabel("Note")
+      .fill("Browser cycle count verification");
+    await inventoryDialog
+      .getByRole("button", { name: "Post adjustment" })
+      .click();
+    await expect
+      .poll(async () => {
+        const [level, adjustment] = await Promise.all([
+          database.collection<StringDocument>("inventoryLevels").findOne({
+            tenantId: primaryTenantId,
+            storeId: String(primaryStore?._id),
+            variantId: adjustmentVariantId,
+          }),
+          database.collection<StringDocument>("stockAdjustments").findOne({
+            tenantId: primaryTenantId,
+            variantId: adjustmentVariantId,
+          }),
+        ]);
+        return {
+          quantity: level?.quantity,
+          delta: adjustment?.quantityDelta,
+          status: adjustment?.status,
+        };
+      })
+      .toEqual({ quantity: 7, delta: 2, status: "posted" });
+    await page.reload();
+    await page.getByRole("button", { name: "New transfer" }).click();
+    inventoryDialog = page.getByRole("dialog");
+    await expect(inventoryDialog.getByLabel("From store")).toHaveValue(
+      String(primaryStore?._id),
+    );
+    await inventoryDialog.getByLabel("To store").selectOption(warehouseStoreId);
+    await inventoryDialog
+      .getByLabel("SKU 1")
+      .selectOption(adjustmentVariantId!);
+    await inventoryDialog.getByLabel("Quantity").fill("3");
+    await inventoryDialog
+      .getByLabel("Transfer note")
+      .fill("Browser warehouse replenishment");
+    await inventoryDialog
+      .getByRole("button", { name: "Complete transfer" })
+      .click();
+    await expect
+      .poll(async () => {
+        const [source, destination, transfer, movementCount] =
+          await Promise.all([
+            database.collection<StringDocument>("inventoryLevels").findOne({
+              tenantId: primaryTenantId,
+              storeId: String(primaryStore?._id),
+              variantId: adjustmentVariantId,
+            }),
+            database.collection<StringDocument>("inventoryLevels").findOne({
+              tenantId: primaryTenantId,
+              storeId: warehouseStoreId,
+              variantId: adjustmentVariantId,
+            }),
+            database.collection<StringDocument>("stockTransfers").findOne({
+              tenantId: primaryTenantId,
+              status: "completed",
+            }),
+            database.collection("inventoryMovements").countDocuments({
+              tenantId: primaryTenantId,
+              sourceType: "stock_transfer",
+            }),
+          ]);
+        return {
+          source: source?.quantity,
+          destination: destination?.quantity,
+          lineCount: (transfer?.lines as unknown[] | undefined)?.length,
+          movementCount,
+        };
+      })
+      .toEqual({ source: 4, destination: 3, lineCount: 1, movementCount: 2 });
+    await page.getByRole("link", { name: "Transfers", exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: "Stock transfers" }),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator("p:visible")
+        .filter({ hasText: "Browser warehouse replenishment" }),
+    ).toBeVisible();
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 
     await page.reload();
     if (testInfo.project.name === "mobile")

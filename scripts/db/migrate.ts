@@ -622,6 +622,105 @@ const migrations: Migration[] = [
       ]);
     },
   },
+  {
+    version: 14,
+    name: "inventory adjustment and transfer lifecycle",
+    run: async (database) => {
+      await database
+        .collection("inventoryLevels")
+        .updateMany({ version: { $exists: false } }, { $set: { version: 1 } });
+      await database
+        .collection("tenantProfiles")
+        .updateMany(
+          { "inventorySettings.allowNegativeStock": { $exists: false } },
+          { $set: { "inventorySettings.allowNegativeStock": false } },
+        );
+      await indexes(database, "inventoryLevels", [
+        {
+          key: { tenantId: 1, storeId: 1, quantity: 1 },
+          name: "tenant_store_inventory_quantity",
+        },
+      ]);
+      await indexes(database, "inventoryMovements", [
+        {
+          key: { tenantId: 1, variantId: 1, occurredAt: -1 },
+          name: "tenant_variant_inventory_ledger",
+        },
+      ]);
+      await indexes(database, "stockAdjustments", [
+        {
+          key: { tenantId: 1, idempotencyKey: 1 },
+          name: "tenant_stock_adjustment_idempotency_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, storeId: 1, createdAt: -1 },
+          name: "tenant_store_adjustment_date",
+        },
+      ]);
+      await indexes(database, "stockTransfers", [
+        {
+          key: { tenantId: 1, idempotencyKey: 1 },
+          name: "tenant_stock_transfer_idempotency_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, fromStoreId: 1, createdAt: -1 },
+          name: "tenant_transfer_source_date",
+        },
+        {
+          key: { tenantId: 1, toStoreId: 1, createdAt: -1 },
+          name: "tenant_transfer_destination_date",
+        },
+      ]);
+    },
+  },
+  {
+    version: 15,
+    name: "product store availability and inventory alert policy",
+    run: async (database) => {
+      await database
+        .collection("tenantProfiles")
+        .updateMany(
+          { "inventorySettings.lowStockAlerts.enabled": { $exists: false } },
+          { $set: { "inventorySettings.lowStockAlerts.enabled": false } },
+        );
+      await database.collection("tenantProfiles").updateMany(
+        {
+          "inventorySettings.lowStockAlerts.includeLowStock": {
+            $exists: false,
+          },
+        },
+        {
+          $set: { "inventorySettings.lowStockAlerts.includeLowStock": true },
+        },
+      );
+      await database.collection("tenantProfiles").updateMany(
+        {
+          "inventorySettings.lowStockAlerts.includeOutOfStock": {
+            $exists: false,
+          },
+        },
+        {
+          $set: {
+            "inventorySettings.lowStockAlerts.includeOutOfStock": true,
+          },
+        },
+      );
+      await database
+        .collection("tenantProfiles")
+        .updateMany(
+          { "inventorySettings.lowStockAlerts.version": { $exists: false } },
+          { $set: { "inventorySettings.lowStockAlerts.version": 1 } },
+        );
+      await indexes(database, "products", [
+        {
+          key: { tenantId: 1, allowedStoreIds: 1, status: 1, name: 1 },
+          name: "tenant_product_store_availability",
+        },
+      ]);
+    },
+  },
 ];
 
 async function main() {
