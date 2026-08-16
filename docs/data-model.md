@@ -11,12 +11,12 @@ Qenvaro uses opaque string identifiers and UTC `Date` values. Better Auth genera
 | Identity   | Better Auth `user`, `session`, `account`, `verification`, `twoFactor`, `organization`, `member`, `invitation`; `tenantProfiles`, `stores`, `memberStoreAssignments`, `invitationStoreAssignments`, `sessionStoreSelections` |
 | Billing    | Better Auth `subscription`; entitlement fields on `tenantProfiles`; `usageCounters`, `billingEvents`, `webhookEvents`                                                                                                       |
 | Platform   | `platformSessionAssurances`, `platformAuditLogs`; aggregate reads over identity, tenant entitlement, subscription, verified-webhook, and migration metadata                                                                 |
-| Catalog    | `products`, `productVariants`, `categories`, `tags`, `units`, `taxRates`                                                                                                                                                    |
+| Catalog    | `products`, `productVariants`, `productImages`, `categories`, `tags`, `units`, `taxRates`                                                                                                                                   |
 | Inventory  | `inventoryLevels`, `inventoryMovements`, `stockAdjustments`, `stockTransfers`                                                                                                                                               |
 | Sales/CRM  | `customers`, `sales`, `salePayments`, `returns`, `refunds`, `receipts`                                                                                                                                                      |
 | Purchasing | `suppliers`, `purchaseOrders`, `goodsReceipts`                                                                                                                                                                              |
 | People     | `employees`, `attendanceRecords`, `leaveRequests`, `salaryProfiles`, `payrollRuns`, `payrollItems`, `payslips`                                                                                                              |
-| Operations | `expenses`, `notifications`, `auditLogs`, `sequenceCounters`, `importExportJobs`                                                                                                                                            |
+| Operations | `expenses`, `notifications`, `auditLogs`, `sequenceCounters`, `importExportJobs`, `mediaCleanupTasks`                                                                                                                       |
 
 Bounded historical snapshots (sale lines, purchase lines, payroll summary lines) are embedded and immutable. Independently queried or frequently updated data stays in separate collections.
 
@@ -27,6 +27,8 @@ Product catalog records carry an integer `version`. Detail reads scope the produ
 `tags` stores reusable merchandising labels with a normalized tenant-unique name, stable opaque identifier, display color, lifecycle status, and integer version. Products carry up to 20 stable tag IDs, which lets tag names and colors change without rewriting product documents. Reads resolve labels inside the server-derived tenant scope. Only active tags can be assigned, and archive is idempotent but rejected while an active or draft product references the tag. Archived products retain their historical assignments. Migration 9 backfills empty product tag arrays and creates the tag lifecycle indexes.
 
 Products embed up to three option groups with stable option/value identifiers, current display labels, and lifecycle metadata. Sellable `productVariants` reference one value from every active group and store an immutable option signature; label changes resolve at read time without rewriting variant identity. The base/default variant mirrors the product SKU and price, while additional variants carry independent SKU, price, status, and version fields. Additional variants start with zero stock. Variant archive is idempotent, retains SKU/combination reservations and history, and is rejected while any tenant inventory projection is non-zero. Option groups cannot be added after active combinations exist, and cannot be archived while active variants reference them. Migration 10 backfills lifecycle fields and creates combination/status indexes.
+
+`productImages` stores Cloudinary identifiers and delivery metadata, never image binaries or credentials. Each tenant/product gallery is capped at eight active images with explicit position, one partial-unique primary image, required alternative text, lifecycle status, and optimistic version. The first upload is primary automatically; primary selection, alternative-text edits, reorder, and removal update the product version and append audit events transactionally. Removal archives metadata before requesting Cloudinary deletion and promotes the next image without touching inventory. Failed provider cleanup remains durably marked on the archived image; a failed compensating delete after an unsuccessful database attach is recorded in `mediaCleanupTasks`. Migration 11 adds tenant/order, primary, provider-identity, and cleanup indexes.
 
 ## Important indexes
 
@@ -40,6 +42,7 @@ All tenant query indexes begin with `tenantId`. The migration runner creates and
 - organization, invitation status, and expiry scans for capacity and cleanup;
 - unique active `tenantId + normalized SKU` and partial unique `tenantId + barcode`;
 - unique `tenantId + normalized variant SKU`, unique `tenantId + productId + option signature`, and `tenantId + productId + variant status + updatedAt` variant lifecycle queries;
+- `tenantId + productId + image status + position`, a partial unique active primary image, unique tenant Cloudinary public ID, and pending provider-cleanup scans;
 - unique `tenantId + storeId + variantId` inventory projection;
 - `tenantId + status + updatedAt` and `tenantId + category + status` product lists;
 - unique active `tenantId + normalized category name`, stable category slug, and `tenantId + category status + updatedAt` taxonomy queries;

@@ -67,10 +67,18 @@ test("public landing and product demo are usable", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Growth Suite", exact: true }),
   ).toBeVisible();
-  await expect(page.getByText("Demo products are read-only")).toBeVisible();
+  await expect(
+    page.getByText("Demo products are read-only.", { exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Variants & options" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Product images" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Upload image" }),
+  ).toBeDisabled();
   await expect(
     page.getByRole("region", { name: "Product variants" }),
   ).toBeVisible();

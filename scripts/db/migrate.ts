@@ -547,6 +547,45 @@ const migrations: Migration[] = [
       ]);
     },
   },
+  {
+    version: 11,
+    name: "tenant product image lifecycle",
+    run: async (database) => {
+      await indexes(database, "productImages", [
+        {
+          key: { tenantId: 1, productId: 1, status: 1, position: 1 },
+          name: "tenant_product_image_order",
+        },
+        {
+          key: { tenantId: 1, cloudinaryPublicId: 1 },
+          name: "tenant_cloudinary_public_id_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, productId: 1, isPrimary: 1 },
+          name: "tenant_product_primary_image_unique",
+          unique: true,
+          partialFilterExpression: { status: "active", isPrimary: true },
+        },
+        {
+          key: { cleanupStatus: 1, updatedAt: 1 },
+          name: "product_image_cleanup_queue",
+          partialFilterExpression: { cleanupStatus: "pending" },
+        },
+      ]);
+      await indexes(database, "mediaCleanupTasks", [
+        {
+          key: { provider: 1, publicId: 1 },
+          name: "media_cleanup_provider_public_id_unique",
+          unique: true,
+        },
+        {
+          key: { status: 1, updatedAt: 1 },
+          name: "media_cleanup_pending",
+        },
+      ]);
+    },
+  },
 ];
 
 async function main() {

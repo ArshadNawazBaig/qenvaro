@@ -31,7 +31,8 @@ The command accepts no account argument. It only promotes verified emails alread
 - **Google OAuth:** create a web application and register `${NEXT_PUBLIC_APP_URL}/api/auth/callback/google`; provide client ID/secret.
 - **Stripe test mode:** create monthly/annual Prices for each public plan, set Price IDs, and forward events to `/api/auth/stripe/webhook`. Configure the Customer Portal for plan changes and cancellation. The installed Better Auth Stripe plugin verifies the raw signature and updates its subscription row before Qenvaro transactionally projects entitlements and durable event status. Exercise Checkout, Portal, `customer.subscription.*`, and webhook retries before production enablement.
 - **MongoDB Atlas:** use a replica set, least-privilege database user, TLS, network restrictions, backups, and tested restore procedures.
-- **Object storage:** create a private S3-compatible bucket, restricted service credentials, CORS for the application origin, lifecycle rules, and a separate public delivery host if desired.
+- **Product images / Cloudinary:** create a restricted Cloudinary product environment and set `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` only in the server secret manager. The application uploads through an authenticated same-origin route; never expose the API secret through a `NEXT_PUBLIC_*` variable. Configure provider usage alerts and review pending `productImages.cleanupStatus` and `mediaCleanupTasks` records operationally.
+- **Other object storage:** the S3-compatible configuration remains available for future private exports and documents; it is not used for product images.
 - **Email:** verify the sending domain and set Resend credentials. Keep invitation and reset links on the canonical app origin.
 
 ## Production checklist

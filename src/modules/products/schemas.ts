@@ -5,6 +5,7 @@ import type {
   ProductOptionGroup,
   ProductVariantItem,
 } from "@/modules/variants/schemas";
+import type { ProductImageItem } from "@/modules/product-images/schemas";
 
 export const productStatusSchema = z.enum(["draft", "active", "archived"]);
 export const productTypeSchema = z.enum(["simple", "variant", "service"]);
@@ -84,6 +85,10 @@ export interface ProductListItem {
   views: number;
   revenueMinor: number;
   imageTone: "sky" | "ink" | "mint" | "sand" | "berry" | "slate";
+  primaryImage: Pick<
+    ProductImageItem,
+    "url" | "altText" | "width" | "height"
+  > | null;
 }
 
 export interface ProductDetail extends ProductListItem {
@@ -92,6 +97,7 @@ export interface ProductDetail extends ProductListItem {
   version: number;
   createdAt: string;
   updatedAt: string;
+  images: ProductImageItem[];
   optionGroups: ProductOptionGroup[];
   variants: ProductVariantItem[];
   inventory: Array<{

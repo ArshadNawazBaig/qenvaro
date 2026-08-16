@@ -5,6 +5,7 @@ import { getDatabase } from "@/server/db/client";
 import type { TenantContext } from "@/server/tenancy/context";
 import type { TagColor } from "@/modules/tags/schemas";
 import type { ProductOptionGroup } from "@/modules/variants/schemas";
+import type { ProductImageItem } from "@/modules/product-images/schemas";
 import type {
   ProductDetail,
   ProductListItem,
@@ -42,6 +43,22 @@ interface ProductDocument {
   createdBy: string;
   updatedBy: string;
   deletedAt?: Date;
+  version: number;
+}
+
+interface ProductImageDocument {
+  _id: string;
+  tenantId: string;
+  productId: string;
+  secureUrl: string;
+  altText: string;
+  width: number;
+  height: number;
+  format: string;
+  bytes: number;
+  position: number;
+  isPrimary: boolean;
+  status: "active" | "archived";
   version: number;
 }
 
@@ -105,8 +122,45 @@ export class ProductRepository {
         .toArray(),
       collection.countDocuments(filter, { limit: 100_001 }),
     ]);
+    const primaryImages =
+      documents.length === 0
+        ? []
+        : await db
+            .collection<ProductImageDocument>("productImages")
+            .find(
+              {
+                tenantId: context.tenantId,
+                productId: { $in: documents.map((document) => document._id) },
+                status: "active",
+                isPrimary: true,
+              },
+              {
+                projection: {
+                  productId: 1,
+                  secureUrl: 1,
+                  altText: 1,
+                  width: 1,
+                  height: 1,
+                },
+              },
+            )
+            .toArray();
+    const primaryImageByProduct = new Map(
+      primaryImages.map((image) => [image.productId, image] as const),
+    );
     return {
       items: documents.map((document) => ({
+        primaryImage: (() => {
+          const image = primaryImageByProduct.get(document._id);
+          return image
+            ? {
+                url: image.secureUrl,
+                altText: image.altText,
+                width: image.width,
+                height: image.height,
+              }
+            : null;
+        })(),
         id: document._id,
         name: document.name,
         subtitle: document.subtitle,
@@ -230,7 +284,7 @@ export class ProductRepository {
       );
     if (!product) return null;
 
-    const [variants, tags] = await Promise.all([
+    const [variants, tags, images] = await Promise.all([
       database
         .collection<{
           _id: string;
@@ -279,6 +333,31 @@ export class ProductRepository {
           { projection: { _id: 1, name: 1, color: 1 } },
         )
         .sort({ name: 1, _id: 1 })
+        .toArray(),
+      database
+        .collection<ProductImageDocument>("productImages")
+        .find(
+          {
+            tenantId: context.tenantId,
+            productId,
+            status: "active",
+          },
+          {
+            projection: {
+              _id: 1,
+              secureUrl: 1,
+              altText: 1,
+              width: 1,
+              height: 1,
+              format: 1,
+              bytes: 1,
+              position: 1,
+              isPrimary: 1,
+              version: 1,
+            },
+          },
+        )
+        .sort({ position: 1, _id: 1 })
         .toArray(),
     ]);
     const variantIds = variants.map((variant) => variant._id);
@@ -382,9 +461,36 @@ export class ProductRepository {
       views: product.views,
       revenueMinor: product.revenueMinor,
       imageTone: product.imageTone,
+      primaryImage: (() => {
+        const image =
+          images.find((candidate) => candidate.isPrimary) ?? images[0];
+        return image
+          ? {
+              url: image.secureUrl,
+              altText: image.altText,
+              width: image.width,
+              height: image.height,
+            }
+          : null;
+      })(),
       version: product.version,
       createdAt: product.createdAt.toISOString(),
       updatedAt: product.updatedAt.toISOString(),
+      images: images.map(
+        (image) =>
+          ({
+            id: image._id,
+            url: image.secureUrl,
+            altText: image.altText,
+            width: image.width,
+            height: image.height,
+            format: image.format,
+            bytes: image.bytes,
+            isPrimary: image.isPrimary,
+            position: image.position,
+            version: image.version,
+          }) satisfies ProductImageItem,
+      ),
       optionGroups: (product.optionGroups ?? []).map((group) => ({
         id: group.id,
         name: group.name,

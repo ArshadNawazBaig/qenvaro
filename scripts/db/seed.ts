@@ -18,6 +18,12 @@ function metadata(tenantId: string, actor = "seed_system") {
   };
 }
 
+function productSeedRecord(product: (typeof demoProducts)[number]) {
+  const record: Record<string, unknown> = { ...product };
+  delete record.primaryImage;
+  return record;
+}
+
 async function main() {
   const { client, databaseName } = getScriptDatabase();
   try {
@@ -126,7 +132,7 @@ async function main() {
         filter: { _id: product.id },
         update: {
           $set: {
-            ...product,
+            ...productSeedRecord(product),
             _id: product.id,
             normalizedSku: product.sku.toUpperCase(),
             type: "simple",

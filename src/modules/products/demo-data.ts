@@ -12,7 +12,10 @@ const demoProductTagIds: Record<string, string[]> = {
   prd_loyalty: ["tag_featured"],
 };
 
-const demoProductRecords: readonly Omit<ProductListItem, "tagIds">[] = [
+const demoProductRecords: readonly Omit<
+  ProductListItem,
+  "tagIds" | "primaryImage"
+>[] = [
   {
     id: "prd_growth_suite",
     name: "Growth Suite",
@@ -275,6 +278,7 @@ export const demoProducts: readonly ProductListItem[] = demoProductRecords.map(
   (product) => ({
     ...product,
     tagIds: demoProductTagIds[product.id] ?? [],
+    primaryImage: null,
   }),
 );
 
@@ -292,6 +296,7 @@ export function getDemoProductDetail(productId: string): ProductDetail | null {
     version: 1,
     createdAt: "2026-01-08T09:00:00.000Z",
     updatedAt: "2026-08-12T14:30:00.000Z",
+    images: [],
     optionGroups:
       product.id === "prd_growth_suite"
         ? [

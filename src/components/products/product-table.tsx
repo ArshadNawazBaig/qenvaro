@@ -17,6 +17,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
@@ -123,16 +124,29 @@ export function ProductTable({
         header: "Product",
         cell: ({ row }) => (
           <div className="flex min-w-48 items-center gap-3">
-            <div
-              className={cn(
-                "relative size-10 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br",
-                toneClasses[row.original.imageTone],
-              )}
-            >
-              <span className="absolute right-1 bottom-0 text-lg font-bold text-white/75">
-                {row.original.name.charAt(0)}
-              </span>
-            </div>
+            {row.original.primaryImage ? (
+              <div className="bg-muted relative size-10 shrink-0 overflow-hidden rounded-lg border">
+                <Image
+                  src={row.original.primaryImage.url}
+                  alt={row.original.primaryImage.altText}
+                  fill
+                  sizes="40px"
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <div
+                className={cn(
+                  "relative size-10 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br",
+                  toneClasses[row.original.imageTone],
+                )}
+                aria-hidden="true"
+              >
+                <span className="absolute right-1 bottom-0 text-lg font-bold text-white/75">
+                  {row.original.name.charAt(0)}
+                </span>
+              </div>
+            )}
             <div>
               <Link
                 href={`/app/${tenantSlug}/products/${row.original.id}`}

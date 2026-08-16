@@ -38,11 +38,34 @@ const envSchema = z
     S3_ACCESS_KEY_ID: optionalString,
     S3_SECRET_ACCESS_KEY: optionalString,
     PUBLIC_ASSET_URL: optionalString,
+    CLOUDINARY_CLOUD_NAME: optionalString,
+    CLOUDINARY_API_KEY: optionalString,
+    CLOUDINARY_API_SECRET: optionalString,
     LOG_LEVEL: z
       .enum(["fatal", "error", "warn", "info", "debug", "trace"])
       .default("info"),
   })
   .superRefine((value, context) => {
+    const cloudinaryKeys = [
+      "CLOUDINARY_CLOUD_NAME",
+      "CLOUDINARY_API_KEY",
+      "CLOUDINARY_API_SECRET",
+    ] as const;
+    const configuredCloudinaryKeys = cloudinaryKeys.filter((key) => value[key]);
+    if (
+      configuredCloudinaryKeys.length > 0 &&
+      configuredCloudinaryKeys.length < cloudinaryKeys.length
+    ) {
+      for (const key of cloudinaryKeys) {
+        if (!value[key])
+          context.addIssue({
+            code: "custom",
+            path: [key],
+            message:
+              "All Cloudinary credentials are required when image storage is configured.",
+          });
+      }
+    }
     const isNextBuild = process.env.NEXT_PHASE === "phase-production-build";
     if (value.NODE_ENV !== "production" || isNextBuild) return;
     if (value.ALLOW_DEV_BILLING_BYPASS) {

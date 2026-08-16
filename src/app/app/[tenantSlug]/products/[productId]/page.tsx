@@ -11,6 +11,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProductDetailConsole } from "@/components/products/product-detail-console";
+import { ProductImageManagement } from "@/components/products/product-image-management";
 import { VariantManagement } from "@/components/products/variant-management";
 import { PageHeader } from "@/components/shared/page-header";
 import { TagBadge } from "@/components/tags/tag-badge";
@@ -34,6 +35,7 @@ import type { ProductDetail } from "@/modules/products/schemas";
 import { getDemoTagOptions } from "@/modules/tags/demo-data";
 import { CategoryRepository } from "@/server/repositories/categories";
 import { ProductRepository } from "@/server/repositories/products";
+import { isCloudinaryConfigured } from "@/server/media/cloudinary";
 import { TagRepository } from "@/server/repositories/tags";
 import { requireTenantContext } from "@/server/tenancy/resolve-context";
 
@@ -180,6 +182,17 @@ export default async function ProductDetailPage({
           </CardContent>
         </Card>
       </section>
+
+      <ProductImageManagement
+        key={`images:${product.version}`}
+        tenantSlug={tenantSlug}
+        productId={product.id}
+        images={product.images}
+        canUpdate={canUpdate}
+        isDemo={isDemo}
+        archived={product.status === "archived"}
+        uploadEnabled={isCloudinaryConfigured()}
+      />
 
       <VariantManagement
         key={`variants:${product.version}`}
