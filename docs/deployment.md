@@ -15,6 +15,17 @@ pnpm dev
 MongoDB runs as a single-node replica set so transactions match production semantics. Mailpit exposes SMTP on `1025` and its UI on `8025`.
 Use `EMAIL_PROVIDER=smtp` with the example SMTP host/port to complete verification, reset, and invitation flows through the local Mailpit inbox.
 
+## Platform super-admin bootstrap
+
+Platform roles are never accepted from signup, profile, organization, or admin request input. Bootstrap one or more existing accounts with this server-only process:
+
+1. Create the account through the normal signup flow and complete email verification.
+2. Set `SUPER_ADMIN_EMAILS` to a comma-separated allowlist in the server secret manager.
+3. Run `pnpm platform:bootstrap-super-admin` from a trusted release or administrative environment with database access.
+4. Sign in again and visit `/platform` to enroll and verify TOTP.
+
+The command accepts no account argument. It only promotes verified emails already present in the environment allowlist, revokes pre-promotion sessions, and appends an idempotent platform audit. Missing and unverified accounts are counted without printing their addresses. Re-running the command is safe.
+
 ## External services
 
 - **Google OAuth:** create a web application and register `${NEXT_PUBLIC_APP_URL}/api/auth/callback/google`; provide client ID/secret.
@@ -25,6 +36,6 @@ Use `EMAIL_PROVIDER=smtp` with the example SMTP host/port to complete verificati
 
 ## Production checklist
 
-Run migrations as a separate release step, bootstrap super-admin emails with the server-only CLI, then deploy the immutable Docker image behind TLS. Configure secrets in the platform secret manager, `NODE_ENV=production`, health probes, log collection, optional Sentry/OpenTelemetry, Mongo/Stripe alerts, backups, and webhook retry monitoring.
+Run migrations as a separate release step, bootstrap super-admin emails with the server-only CLI, then deploy the immutable Docker image behind TLS. Configure secrets in the platform secret manager, `NODE_ENV=production`, health probes, log collection, optional Sentry/OpenTelemetry, Mongo/Stripe alerts, backups, and webhook retry monitoring. Treat the bootstrap environment and MongoDB credentials as privileged production access. Removing an address from `SUPER_ADMIN_EMAILS` prevents future bootstrap eligibility but does not revoke an existing role; a dedicated audited revocation workflow remains pending.
 
 Never run `db:seed` or `db:reset` in production. `ALLOW_DEV_BILLING_BYPASS=true` is rejected when `NODE_ENV=production`.

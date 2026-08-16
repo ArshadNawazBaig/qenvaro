@@ -8,10 +8,15 @@
 - Business switch targets are joined back to the signed-in user’s membership. Active-store selections are revalidated against active tenant store assignments before they affect a query.
 - Better Auth owns invitation acceptance and membership state. Pending application store grants are tenant-scoped and activated idempotently only for the accepted membership.
 - Better Auth verifies the raw Stripe webhook signature and updates its subscription row before invoking Qenvaro’s projection callback. The callback persists event identity/status and updates organization entitlements transactionally and idempotently; failed verified events remain visible for retry.
+- Platform identity is a separate global role. A server-only, environment-allowlisted bootstrap is the only implemented assignment path; it requires an existing verified account and revokes sessions on first promotion. The platform role intentionally lacks Better Auth’s request-time `set-role` permission.
+- Platform data routes require both Better Auth TOTP enrollment and a second-factor assurance bound to the current session. The enrollment/verification gateway loads no platform data. Expired, revoked, pre-enrollment, and otherwise unassured sessions cannot enter the control plane.
+- The platform overview repository exposes counts and grouped tenant entitlement, subscription, verified-webhook, migration, and database-health metadata only. It never queries products, sales, customers, employees, compensation, or other tenant business collections.
+- Product detail, edit, and archive derive tenant and store scope from the authenticated membership. Product IDs are re-read with `tenantId` in the mutation transaction, catalog reads require `product:read`, edits/archive require their specific permissions, and expected-version checks reject stale writes. Edit payloads cannot set tenant identity, stock, or archived state; archive retains inventory projections and ledger entries.
+- Category reads and mutations derive tenant identity from the same trusted context and re-read category IDs with `tenantId` inside each transaction. Normalized names are unique only within a tenant, expected versions reject stale changes, renames update only that tenant’s active/draft assignments, and archive re-counts assignments before changing state. Category payloads cannot supply tenant identity, assignment counts, lifecycle state, or product selectors.
 
 ## Controls
 
-- Email verification, password reset, safe redirects, optional 2FA, and persistent rate limits protect account entry points.
+- Email verification, password reset, safe redirects, optional tenant-user 2FA, mandatory platform TOTP, per-session platform assurance, account lockout, and persistent endpoint throttles protect account entry points.
 - Uploads enforce MIME/type/size policy and use presigned URLs. MongoDB never stores image binaries.
 - Logs and audits omit passwords, tokens, salary values, payment details, and unnecessary PII. Production responses omit stack traces.
 - Security headers deny framing and sniffing and restrict browser capabilities. A deployment-specific Content Security Policy must be finalized against its asset providers.
@@ -22,5 +27,7 @@
 ## Required evidence
 
 Tests cover tenant/store/entity IDOR, privilege escalation, platform-role mass assignment, salary access, plan quota races, webhook replay, invalid workflow transitions, CSV formula injection, and malicious upload metadata. Security findings block release.
+
+Current platform evidence covers configured verified-account bootstrap, unverified-account rejection, idempotent audit, session revocation, exact-role policy, current-session assurance, aggregate-only repository output, TOTP enrollment/re-verification/fresh login, and desktop/mobile accessibility. Product lifecycle evidence covers cross-tenant detail denial, permission enforcement, stale-version rejection, transactional product/default-variant edits, audited idempotent archive, unchanged inventory state, and accessible desktop/mobile browser flows. Category evidence covers per-tenant normalized uniqueness, repository isolation, permission denial, stale-write rejection, transactional rename cascades, assignment-aware archive, audit records, retained historical product values, and accessible desktop/mobile flows. Break-glass tenant access is not implemented and remains disabled.
 
 This application provides operational reporting and payroll workflows; it does not claim jurisdiction-specific tax, payroll, or statutory-accounting compliance.

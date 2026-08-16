@@ -1,8 +1,10 @@
 import "server-only";
 import type { Filter, Sort } from "mongodb";
+import { requirePermission } from "@/modules/permissions/permissions";
 import { getDatabase } from "@/server/db/client";
 import type { TenantContext } from "@/server/tenancy/context";
 import type {
+  ProductDetail,
   ProductListItem,
   ProductListQuery,
 } from "@/modules/products/schemas";
@@ -42,6 +44,7 @@ export class ProductRepository {
     context: TenantContext,
     query: ProductListQuery,
   ): Promise<{ items: ProductListItem[]; total: number }> {
+    requirePermission(context.permissions, "product:read");
     const db = await getDatabase();
     const collection = db.collection<ProductDocument>("products");
     const filter: Filter<ProductDocument> = {
@@ -113,6 +116,7 @@ export class ProductRepository {
   }
 
   async categories(context: TenantContext): Promise<string[]> {
+    requirePermission(context.permissions, "product:read");
     const database = await getDatabase();
     return database
       .collection<ProductDocument>("products")
@@ -129,6 +133,7 @@ export class ProductRepository {
     revenueMinor: number;
     currency: string;
   }> {
+    requirePermission(context.permissions, "product:read");
     const database = await getDatabase();
     const [result] = await database
       .collection<ProductDocument>("products")
@@ -186,5 +191,144 @@ export class ProductRepository {
         currency: "USD",
       }
     );
+  }
+
+  async detail(
+    context: TenantContext,
+    productId: string,
+  ): Promise<ProductDetail | null> {
+    requirePermission(context.permissions, "product:read");
+    const database = await getDatabase();
+    const product = await database
+      .collection<ProductDocument>("products")
+      .findOne(
+        {
+          _id: productId,
+          tenantId: context.tenantId,
+          deletedAt: { $exists: false },
+        },
+        {
+          projection: {
+            tenantId: 0,
+            createdBy: 0,
+            updatedBy: 0,
+            deletedAt: 0,
+          },
+        },
+      );
+    if (!product) return null;
+
+    const variants = await database
+      .collection<{
+        _id: string;
+        tenantId: string;
+        productId: string;
+        name: string;
+        sku: string;
+        priceMinor: number;
+        currency: string;
+      }>("productVariants")
+      .find(
+        { tenantId: context.tenantId, productId },
+        {
+          projection: {
+            _id: 1,
+            name: 1,
+            sku: 1,
+            priceMinor: 1,
+            currency: 1,
+          },
+        },
+      )
+      .sort({ _id: 1 })
+      .toArray();
+    const variantIds = variants.map((variant) => variant._id);
+    const productStoreIds = new Set(product.allowedStoreIds ?? []);
+    const authorizedStoreIds = [...context.allowedStoreIds].filter(
+      (storeId) => productStoreIds.size === 0 || productStoreIds.has(storeId),
+    );
+    const [stores, quantities] = await Promise.all([
+      database
+        .collection<{
+          _id: string;
+          tenantId: string;
+          name: string;
+          code: string;
+          status: string;
+        }>("stores")
+        .find(
+          {
+            tenantId: context.tenantId,
+            _id: { $in: authorizedStoreIds },
+            status: "active",
+          },
+          { projection: { _id: 1, name: 1, code: 1 } },
+        )
+        .sort({ name: 1, _id: 1 })
+        .toArray(),
+      variantIds.length === 0 || authorizedStoreIds.length === 0
+        ? Promise.resolve([])
+        : database
+            .collection<{
+              tenantId: string;
+              storeId: string;
+              variantId: string;
+              quantity: number;
+            }>("inventoryLevels")
+            .aggregate<{ _id: string; quantity: number }>([
+              {
+                $match: {
+                  tenantId: context.tenantId,
+                  storeId: { $in: authorizedStoreIds },
+                  variantId: { $in: variantIds },
+                },
+              },
+              { $group: { _id: "$storeId", quantity: { $sum: "$quantity" } } },
+            ])
+            .toArray(),
+    ]);
+    const quantityByStore = new Map(
+      quantities.map((quantity) => [quantity._id, quantity.quantity]),
+    );
+    const inventory = stores.map((store) => ({
+      storeId: store._id,
+      storeName: store.name,
+      storeCode: store.code,
+      quantity: quantityByStore.get(store._id) ?? 0,
+    }));
+    const authorizedStock =
+      product.stock === null
+        ? null
+        : variantIds.length === 0
+          ? product.stock
+          : inventory.reduce((sum, item) => sum + item.quantity, 0);
+
+    return {
+      id: product._id,
+      name: product.name,
+      subtitle: product.subtitle,
+      sku: product.sku,
+      slug: product.slug,
+      priceMinor: product.priceMinor,
+      currency: product.currency,
+      stock: authorizedStock,
+      reorderLevel: product.reorderLevel,
+      category: product.category,
+      status: product.status,
+      views: product.views,
+      revenueMinor: product.revenueMinor,
+      imageTone: product.imageTone,
+      version: product.version,
+      createdAt: product.createdAt.toISOString(),
+      updatedAt: product.updatedAt.toISOString(),
+      variants: variants.map((variant) => ({
+        id: variant._id,
+        name: variant.name,
+        sku: variant.sku,
+        priceMinor: variant.priceMinor,
+        currency: variant.currency,
+      })),
+      inventory,
+    };
   }
 }

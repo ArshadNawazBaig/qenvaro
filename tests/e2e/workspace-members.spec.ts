@@ -46,6 +46,7 @@ test.describe("authenticated workspace and member administration", () => {
     ];
     for (const collection of [
       "auditLogs",
+      "categories",
       "invitationStoreAssignments",
       "memberStoreAssignments",
       "sessionStoreSelections",
@@ -99,6 +100,10 @@ test.describe("authenticated workspace and member administration", () => {
     const password = `Qenvaro-workspace-${suffix}!2026`;
     const primarySlug = `primary-${project}-${suffix}`;
     const secondSlug = `second-${project}-${suffix}`;
+    await page.setExtraHTTPHeaders({
+      "x-forwarded-for":
+        project === "mobile" ? "198.51.100.21" : "198.51.100.20",
+    });
 
     await page.goto("/sign-up");
     await page.getByLabel("Full name").fill("Morgan Owner");
@@ -143,6 +148,149 @@ test.describe("authenticated workspace and member administration", () => {
     const primaryStore = await database
       .collection<StringDocument>("stores")
       .findOne({ tenantId: primaryTenantId, code: "MAIN" });
+
+    const productName = `Counter Display ${suffix}`;
+    const updatedProductName = `Counter Display Pro ${suffix}`;
+    await page.goto(`/app/${primarySlug}/products`);
+    await expect(
+      page.getByText("Live tenant data", { exact: true }),
+    ).toBeVisible();
+    await page.getByRole("link", { name: "Categories", exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: "Categories", exact: true }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "New category" }).click();
+    let categoryDialog = page.getByRole("dialog");
+    await categoryDialog.getByLabel("Category name").fill("Hardware");
+    await categoryDialog
+      .getByLabel("Description")
+      .fill("Counter and store devices.");
+    await categoryDialog
+      .getByRole("button", { name: "Create category" })
+      .click();
+    await expect(
+      page.getByText("Hardware", { exact: true }).first(),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Edit Hardware" }).click();
+    categoryDialog = page.getByRole("dialog");
+    await categoryDialog.getByLabel("Category name").fill("Retail Hardware");
+    await categoryDialog.getByRole("button", { name: "Save category" }).click();
+    await expect(
+      page.getByText("Retail Hardware", { exact: true }).first(),
+    ).toBeVisible();
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+    await page.goto(`/app/${primarySlug}/products`);
+    await page.getByRole("button", { name: "New product" }).click();
+    const createProductDialog = page.getByRole("dialog");
+    await createProductDialog.getByLabel("Product name").fill(productName);
+    await createProductDialog.getByLabel("SKU").fill(`CD-${suffix}`);
+    await createProductDialog.getByLabel("Category").fill("Retail Hardware");
+    await createProductDialog.getByLabel(/Price/).fill("149.00");
+    await createProductDialog.getByLabel("Opening stock").fill("6");
+    await createProductDialog
+      .getByRole("button", { name: "Create product" })
+      .click();
+    await expect(
+      page.getByRole("link", { name: productName, exact: true }),
+    ).toBeVisible();
+    await page.getByRole("link", { name: productName, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/products/prd_[A-Za-z0-9_-]+$`));
+    await expect(
+      page.getByRole("heading", { name: productName, exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("6", { exact: true }).first()).toBeVisible();
+
+    await page.getByLabel("Product name").fill(updatedProductName);
+    await page.getByLabel("Price (USD)").fill("159.00");
+    await page.getByLabel("Reorder threshold").fill("3");
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(
+      page.getByRole("heading", { name: updatedProductName, exact: true }),
+    ).toBeVisible();
+
+    const createdProduct = await database
+      .collection<StringDocument>("products")
+      .findOne({ tenantId: primaryTenantId, name: updatedProductName });
+    expect(createdProduct).toBeTruthy();
+    const productDetailUrl = page.url();
+    await page.goto(`/app/${primarySlug}/products/categories`);
+    await expect(
+      page.getByRole("button", { name: "Archive Retail Hardware" }),
+    ).toBeDisabled();
+    await page.goto(productDetailUrl);
+    await page.getByRole("button", { name: "Archive product" }).click();
+    await page.getByRole("button", { name: "Confirm archive" }).click();
+    await expect(
+      page.getByText("Archived products are read-only."),
+    ).toBeVisible();
+    await expect
+      .poll(async () => {
+        const [product, level, movementCount, auditCount] = await Promise.all([
+          database.collection<StringDocument>("products").findOne({
+            _id: String(createdProduct?._id),
+            tenantId: primaryTenantId,
+          }),
+          database.collection("inventoryLevels").findOne({
+            tenantId: primaryTenantId,
+            variantId: `${String(createdProduct?._id)}_default`,
+          }),
+          database.collection("inventoryMovements").countDocuments({
+            tenantId: primaryTenantId,
+            variantId: `${String(createdProduct?._id)}_default`,
+          }),
+          database.collection("auditLogs").countDocuments({
+            tenantId: primaryTenantId,
+            entityId: String(createdProduct?._id),
+            action: { $in: ["product.updated", "product.archived"] },
+          }),
+        ]);
+        return {
+          status: product?.status,
+          productStock: product?.stock,
+          levelQuantity: level?.quantity,
+          movementCount,
+          auditCount,
+        };
+      })
+      .toEqual({
+        status: "archived",
+        productStock: 6,
+        levelQuantity: 6,
+        movementCount: 1,
+        auditCount: 2,
+      });
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page.goto(`/app/${primarySlug}/products/categories`);
+    await page.getByRole("button", { name: "Archive Retail Hardware" }).click();
+    await page.getByRole("button", { name: "Confirm archive" }).click();
+    await expect
+      .poll(async () => {
+        const category = await database
+          .collection<StringDocument>("categories")
+          .findOne({ tenantId: primaryTenantId, name: "Retail Hardware" });
+        const auditCount = await database
+          .collection("auditLogs")
+          .countDocuments({
+            tenantId: primaryTenantId,
+            entityId: String(category?._id),
+            action: {
+              $in: [
+                "category.created",
+                "category.updated",
+                "category.archived",
+              ],
+            },
+          });
+        return {
+          status: category?.status,
+          version: category?.version,
+          auditCount,
+        };
+      })
+      .toEqual({ status: "archived", version: 3, auditCount: 3 });
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
     const warehouseStoreId = `store_warehouse_${project}_${suffix}`;
     const secondTenantId = `org_second_${project}_${suffix}`;
     const secondMembershipId = `member_second_${project}_${suffix}`;

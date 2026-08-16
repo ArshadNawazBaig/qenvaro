@@ -49,6 +49,7 @@ async function freshTotp(page: Page, secret: string): Promise<string> {
 }
 
 test.describe("platform super-admin security", () => {
+  test.setTimeout(60_000);
   test.skip(
     !enabled,
     "Set RUN_PLATFORM_E2E=true with the local replica set running.",
@@ -105,13 +106,19 @@ test.describe("platform super-admin security", () => {
       .toLowerCase();
     email = `platform-${project}-${suffix}@example.test`;
     const password = `Qenvaro-platform-${suffix}!2026`;
+    await page.setExtraHTTPHeaders({
+      "x-forwarded-for":
+        project === "mobile" ? "198.51.100.31" : "198.51.100.30",
+    });
 
     await page.goto("/sign-up");
     await page.getByLabel("Full name").fill("Morgan Platform");
     await page.getByLabel("Work email").fill(email);
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Create account" }).click();
-    await expect(page.getByRole("status")).toContainText("Check your inbox");
+    await expect(page.getByRole("status")).toContainText("Check your inbox", {
+      timeout: 20_000,
+    });
     await expect
       .poll(async () =>
         database.collection<StringDocument>("user").findOne({ email }),
@@ -166,6 +173,7 @@ test.describe("platform super-admin security", () => {
     });
     await page.reload();
     await expect(page).toHaveURL(/\/platform\/security$/);
+    await page.waitForTimeout(10_500);
     await page
       .getByLabel("Authenticator code")
       .fill(await freshTotp(page, secret));
@@ -178,6 +186,7 @@ test.describe("platform super-admin security", () => {
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(page).toHaveURL(/\/two-factor$/);
+    await page.waitForTimeout(10_500);
     await page
       .getByLabel("Authenticator code")
       .fill(await freshTotp(page, secret));

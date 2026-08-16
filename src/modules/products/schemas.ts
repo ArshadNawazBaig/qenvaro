@@ -26,6 +26,42 @@ export const createProductSchema = z.object({
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type ProductStatus = z.infer<typeof productStatusSchema>;
 
+const productIdSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120)
+  .regex(/^[A-Za-z0-9_-]+$/);
+
+export const updateProductSchema = z
+  .object({
+    productId: productIdSchema,
+    expectedVersion: z.number().int().min(1),
+    name: z.string().trim().min(2).max(120),
+    subtitle: z.string().trim().max(160),
+    sku: z
+      .string()
+      .trim()
+      .min(1)
+      .max(64)
+      .regex(/^[A-Za-z0-9._-]+$/),
+    category: z.string().trim().min(2).max(80),
+    priceMinor: z.number().int().min(0).max(1_000_000_000),
+    reorderLevel: z.number().int().min(0).max(1_000_000),
+    status: z.enum(["draft", "active"]),
+  })
+  .strict();
+
+export const archiveProductSchema = z
+  .object({
+    productId: productIdSchema,
+    expectedVersion: z.number().int().min(1),
+  })
+  .strict();
+
+export type UpdateProductInput = z.infer<typeof updateProductSchema>;
+export type ArchiveProductInput = z.infer<typeof archiveProductSchema>;
+
 export interface ProductListItem {
   id: string;
   name: string;
@@ -41,6 +77,25 @@ export interface ProductListItem {
   views: number;
   revenueMinor: number;
   imageTone: "sky" | "ink" | "mint" | "sand" | "berry" | "slate";
+}
+
+export interface ProductDetail extends ProductListItem {
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  variants: Array<{
+    id: string;
+    name: string;
+    sku: string;
+    priceMinor: number;
+    currency: string;
+  }>;
+  inventory: Array<{
+    storeId: string;
+    storeName: string;
+    storeCode: string;
+    quantity: number;
+  }>;
 }
 
 export const productListQuerySchema = z.object({

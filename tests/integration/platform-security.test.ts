@@ -1,6 +1,7 @@
 import { MongoClient, type Db } from "mongodb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootstrapConfiguredSuperAdmins } from "../../scripts/platform/bootstrap-service";
+import { betterAuthPlatformRoles } from "@/server/auth/access";
 import type { VerifiedPlatformContext } from "@/server/auth/platform-context";
 import { getPlatformOverview } from "@/server/repositories/platform-overview";
 
@@ -172,10 +173,14 @@ describe.skipIf(!enabled)("platform security boundary", () => {
       unverified: 1,
     });
     expect(
-      await database.collection("user").findOne({ _id: verifiedUserId }),
+      await database
+        .collection<StringDocument>("user")
+        .findOne({ _id: verifiedUserId }),
     ).toMatchObject({ role: "PLATFORM_SUPER_ADMIN" });
     expect(
-      await database.collection("user").findOne({ _id: unverifiedUserId }),
+      await database
+        .collection<StringDocument>("user")
+        .findOne({ _id: unverifiedUserId }),
     ).toMatchObject({ role: "user" });
     expect(
       await database.collection("session").countDocuments({
@@ -199,6 +204,19 @@ describe.skipIf(!enabled)("platform security boundary", () => {
         entityId: verifiedUserId,
       }),
     ).toBe(1);
+  });
+
+  it("does not grant request-time platform role assignment", () => {
+    expect(
+      betterAuthPlatformRoles.PLATFORM_SUPER_ADMIN.authorize({
+        user: ["set-role"],
+      }).success,
+    ).toBe(false);
+    expect(
+      betterAuthPlatformRoles.PLATFORM_SUPER_ADMIN.authorize({
+        user: ["list", "get", "update"],
+      }).success,
+    ).toBe(true);
   });
 
   it("returns only aggregate platform metadata from a verified context", async () => {

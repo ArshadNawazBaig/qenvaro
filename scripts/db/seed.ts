@@ -166,6 +166,41 @@ async function main() {
       },
     } as (typeof products)[number]);
     await database.collection<StringIdDocument>("products").bulkWrite(products);
+    const categorySeeds = [
+      ...new Set(demoProducts.map((product) => product.category)),
+    ].map((name) => ({ tenantId: tenantA, name }));
+    categorySeeds.push({ tenantId: tenantB, name: "Fixtures" });
+    await database.collection<StringIdDocument>("categories").bulkWrite(
+      categorySeeds.map(({ tenantId, name }) => {
+        const slugBase = name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "");
+        const tenantLabel = tenantId === tenantA ? "northstar" : "harbor";
+        return {
+          updateOne: {
+            filter: {
+              tenantId,
+              normalizedName: name.toLowerCase(),
+            },
+            update: {
+              $set: {
+                name,
+                normalizedName: name.toLowerCase(),
+                slug: `${slugBase}-${tenantLabel}`,
+                description: "",
+                status: "active",
+                ...metadata(tenantId),
+              },
+              $setOnInsert: {
+                _id: `cat_${tenantLabel}_${slugBase.replaceAll("-", "_")}`,
+              },
+            },
+            upsert: true,
+          },
+        };
+      }),
+    );
     const fixtures = [
       [
         "customers",

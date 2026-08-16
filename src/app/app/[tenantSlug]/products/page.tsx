@@ -2,12 +2,14 @@ import {
   Boxes,
   CircleDollarSign,
   Download,
+  FolderTree,
   PackageCheck,
   PackageSearch,
   TriangleAlert,
   Upload,
 } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { NewProductDialog } from "@/components/products/new-product-dialog";
@@ -21,6 +23,7 @@ import { Card } from "@/components/ui/card";
 import { formatMoney } from "@/lib/money";
 import { env } from "@/config/env";
 import { demoProducts } from "@/modules/products/demo-data";
+import { hasPermission } from "@/modules/permissions/permissions";
 import { queryDemoProducts } from "@/modules/products/queries";
 import { productListQuerySchema } from "@/modules/products/schemas";
 import { ProductRepository } from "@/server/repositories/products";
@@ -54,6 +57,9 @@ export default async function ProductsPage({
     currency: "USD",
   };
   let isDemo = true;
+  let canCreate = false;
+  let canUpdate = false;
+  let canArchive = false;
   if (env.MONGODB_URI) {
     try {
       const context = await requireTenantContext(tenantSlug);
@@ -77,6 +83,9 @@ export default async function ProductsPage({
       categories = databaseCategories;
       metrics = databaseMetrics;
       isDemo = false;
+      canCreate = hasPermission(context.permissions, "product:create");
+      canUpdate = hasPermission(context.permissions, "product:update");
+      canArchive = hasPermission(context.permissions, "product:archive");
     } catch {
       if (env.NODE_ENV === "production") notFound();
     }
@@ -98,6 +107,11 @@ export default async function ProductsPage({
         description="Manage the catalog, availability, and product performance across every store."
         actions={
           <>
+            <Button asChild variant="outline">
+              <Link href={`/app/${tenantSlug}/products/categories`}>
+                <FolderTree /> Categories
+              </Link>
+            </Button>
             <Button
               variant="outline"
               disabled
@@ -112,7 +126,11 @@ export default async function ProductsPage({
             >
               <Download /> Export
             </Button>
-            <NewProductDialog tenantSlug={tenantSlug} />
+            <NewProductDialog
+              tenantSlug={tenantSlug}
+              categories={categories}
+              disabled={isDemo || !canCreate}
+            />
           </>
         }
       />
@@ -123,7 +141,7 @@ export default async function ProductsPage({
         <MetricCard
           label="Total products"
           value={metrics.total.toLocaleString()}
-          detail="Across 6 categories"
+          detail={`Across ${categories.length.toLocaleString()} categories`}
           icon={Boxes}
         />
         <MetricCard
@@ -167,6 +185,10 @@ export default async function ProductsPage({
           page={result.page}
           pageCount={result.pageCount}
           total={result.total}
+          tenantSlug={tenantSlug}
+          canUpdate={canUpdate}
+          canArchive={canArchive}
+          isDemo={isDemo}
         />
       </Card>
     </div>

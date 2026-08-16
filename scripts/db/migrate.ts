@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { Db, IndexDescription } from "mongodb";
 import { getScriptDatabase } from "./shared";
 
@@ -315,6 +316,132 @@ const migrations: Migration[] = [
           },
         },
         { key: { createdAt: -1 }, name: "platform_audit_date" },
+      ]);
+    },
+  },
+  {
+    version: 8,
+    name: "catalog category lifecycle",
+    run: async (database) => {
+      const now = new Date();
+      const assignments = await database
+        .collection<{
+          tenantId: string;
+          category: string;
+          deletedAt?: Date;
+        }>("products")
+        .aggregate<{ _id: { tenantId: string; category: string } }>([
+          {
+            $match: {
+              tenantId: { $type: "string" },
+              category: { $type: "string", $ne: "" },
+              deletedAt: { $exists: false },
+            },
+          },
+          { $group: { _id: { tenantId: "$tenantId", category: "$category" } } },
+          { $sort: { "_id.tenantId": 1, "_id.category": 1 } },
+        ])
+        .toArray();
+      const categories = database.collection<{
+        _id: string;
+        tenantId: string;
+        name: string;
+        normalizedName?: string;
+        slug?: string;
+        description?: string;
+        status?: string;
+        version?: number;
+        createdAt?: Date;
+        updatedAt?: Date;
+        createdBy?: string;
+        updatedBy?: string;
+      }>("categories");
+      for (const assignment of assignments) {
+        const { tenantId, category: name } = assignment._id;
+        const normalizedName = name
+          .normalize("NFKC")
+          .trim()
+          .replace(/\s+/g, " ")
+          .toLowerCase();
+        const digest = createHash("sha256")
+          .update(`${tenantId}:${normalizedName}`)
+          .digest("hex");
+        const slugBase = name
+          .normalize("NFKD")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "")
+          .slice(0, 60);
+        const existing = await categories.findOne({
+          tenantId,
+          $or: [{ normalizedName }, { name }],
+        });
+        if (existing) {
+          await categories.updateOne(
+            { _id: existing._id, tenantId },
+            {
+              $set: {
+                normalizedName,
+                slug:
+                  existing.slug ??
+                  `${slugBase || "category"}-${digest.slice(0, 8)}`,
+                description: existing.description ?? "",
+                status: existing.status ?? "active",
+                version: existing.version ?? 1,
+                createdAt: existing.createdAt ?? now,
+                updatedAt: existing.updatedAt ?? now,
+                createdBy: existing.createdBy ?? "migration_8",
+                updatedBy: existing.updatedBy ?? "migration_8",
+              },
+            },
+          );
+          if (existing.name !== name)
+            await database.collection("products").updateMany(
+              {
+                tenantId,
+                category: name,
+                deletedAt: { $exists: false },
+              },
+              {
+                $set: {
+                  category: existing.name,
+                  updatedAt: now,
+                  updatedBy: "migration_8",
+                },
+                $inc: { version: 1 },
+              },
+            );
+          continue;
+        }
+        await categories.insertOne({
+          _id: `cat_${digest.slice(0, 24)}`,
+          tenantId,
+          name,
+          normalizedName,
+          slug: `${slugBase || "category"}-${digest.slice(0, 8)}`,
+          description: "",
+          status: "active",
+          version: 1,
+          createdAt: now,
+          updatedAt: now,
+          createdBy: "migration_8",
+          updatedBy: "migration_8",
+        });
+      }
+      await indexes(database, "categories", [
+        {
+          key: { tenantId: 1, normalizedName: 1 },
+          name: "tenant_category_name_active_unique",
+          unique: true,
+          partialFilterExpression: {
+            normalizedName: { $type: "string" },
+            deletedAt: null,
+          },
+        },
+        {
+          key: { tenantId: 1, status: 1, updatedAt: -1 },
+          name: "tenant_category_status_updated",
+        },
       ]);
     },
   },

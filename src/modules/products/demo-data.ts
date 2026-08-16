@@ -1,4 +1,4 @@
-import type { ProductListItem } from "./schemas";
+import type { ProductDetail, ProductListItem } from "./schemas";
 
 export const demoProducts: readonly ProductListItem[] = [
   {
@@ -258,6 +258,37 @@ export const demoProducts: readonly ProductListItem[] = [
     imageTone: "berry",
   },
 ];
+
+export function getDemoProductDetail(productId: string): ProductDetail | null {
+  const product = demoProducts.find((item) => item.id === productId);
+  if (!product) return null;
+  return {
+    ...product,
+    version: 1,
+    createdAt: "2026-01-08T09:00:00.000Z",
+    updatedAt: "2026-08-12T14:30:00.000Z",
+    variants: [
+      {
+        id: `${product.id}_default`,
+        name: "Default",
+        sku: product.sku,
+        priceMinor: product.priceMinor,
+        currency: product.currency,
+      },
+    ],
+    inventory:
+      product.stock === null
+        ? []
+        : [
+            {
+              storeId: "store_demo",
+              storeName: "Downtown",
+              storeCode: "MAIN",
+              quantity: product.stock,
+            },
+          ],
+  };
+}
 
 export const productTrend = [
   { label: "Aug 10", views: 3260, revenue: 28200 },

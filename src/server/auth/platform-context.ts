@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { auth } from "@/server/auth/auth";
 import { getDatabase } from "@/server/db/client";
 import {
@@ -28,16 +29,6 @@ export class PlatformNotFoundError extends Error {
   constructor() {
     super("The requested resource was not found.");
     this.name = "PlatformNotFoundError";
-  }
-}
-
-export class PlatformTwoFactorRequiredError extends Error {
-  constructor(
-    public readonly reason:
-      "require_two_factor_enrollment" | "require_two_factor_verification",
-  ) {
-    super("Two-factor verification is required for platform access.");
-    this.name = "PlatformTwoFactorRequiredError";
   }
 }
 
@@ -86,8 +77,7 @@ export const requirePlatformIdentity = cache(
 export const requireVerifiedPlatformContext = cache(
   async (): Promise<VerifiedPlatformContext> => {
     const identity = await requirePlatformIdentity();
-    if (identity.access !== "allow")
-      throw new PlatformTwoFactorRequiredError(identity.access);
+    if (identity.access !== "allow") redirect("/platform/security");
     return { ...identity, access: "allow" };
   },
 );

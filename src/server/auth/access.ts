@@ -40,7 +40,7 @@ export const betterAuthOrganizationRoles = {
 };
 
 const platformSuperAdmin = adminDefaultAc.newRole({
-  user: ["create", "list", "set-role", "ban", "delete", "get", "update"],
+  user: ["create", "list", "ban", "delete", "get", "update"],
   session: ["list", "revoke", "delete"],
 });
 

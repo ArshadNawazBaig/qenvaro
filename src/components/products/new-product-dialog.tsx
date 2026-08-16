@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import {
   createProductAction,
@@ -21,8 +21,17 @@ import { Input } from "@/components/ui/input";
 
 const initialState: ProductActionState = { status: "idle", message: "" };
 
-export function NewProductDialog({ tenantSlug }: { tenantSlug: string }) {
+export function NewProductDialog({
+  tenantSlug,
+  categories = [],
+  disabled = false,
+}: {
+  tenantSlug: string;
+  categories?: string[];
+  disabled?: boolean;
+}) {
   const [open, setOpen] = useState(false);
+  const categoryListId = useId();
   const router = useRouter();
   const [state, formAction, pending] = useActionState(
     createProductAction.bind(null, tenantSlug),
@@ -40,7 +49,14 @@ export function NewProductDialog({ tenantSlug }: { tenantSlug: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button
+          disabled={disabled}
+          title={
+            disabled
+              ? "Your current workspace cannot create products"
+              : undefined
+          }
+        >
           <Plus /> New product
         </Button>
       </DialogTrigger>
@@ -68,7 +84,17 @@ export function NewProductDialog({ tenantSlug }: { tenantSlug: string }) {
             </label>
             <label className="space-y-1.5 text-sm font-medium">
               Category
-              <Input name="category" required placeholder="Hardware" />
+              <Input
+                name="category"
+                required
+                placeholder="Hardware"
+                list={categoryListId}
+              />
+              <datalist id={categoryListId}>
+                {categories.map((category) => (
+                  <option key={category} value={category} />
+                ))}
+              </datalist>
             </label>
             <label className="space-y-1.5 text-sm font-medium">
               Price (USD)

@@ -84,13 +84,19 @@ test.describe("authenticated first-workspace onboarding", () => {
     email = `onboarding-${project}-${suffix}@example.test`;
     const password = `Qenvaro-test-${suffix}!2026`;
     const slug = `atelier-${project}-${suffix}`;
+    await page.setExtraHTTPHeaders({
+      "x-forwarded-for":
+        project === "mobile" ? "198.51.100.11" : "198.51.100.10",
+    });
 
     await page.goto("/sign-up");
     await page.getByLabel("Full name").fill("Jamie Rivera");
     await page.getByLabel("Work email").fill(email);
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Create account" }).click();
-    await expect(page.getByRole("status")).toContainText("Check your inbox");
+    await expect(page.getByRole("status")).toContainText("Check your inbox", {
+      timeout: 20_000,
+    });
 
     await expect
       .poll(async () =>

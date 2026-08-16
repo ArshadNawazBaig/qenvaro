@@ -16,6 +16,7 @@ import {
   Pencil,
   SlidersHorizontal,
 } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
@@ -67,11 +68,19 @@ export function ProductTable({
   page,
   pageCount,
   total,
+  tenantSlug,
+  canUpdate,
+  canArchive,
+  isDemo,
 }: {
   items: ProductListItem[];
   page: number;
   pageCount: number;
   total: number;
+  tenantSlug: string;
+  canUpdate: boolean;
+  canArchive: boolean;
+  isDemo: boolean;
 }) {
   const [rowSelection, setRowSelection] = React.useState({});
   const router = useRouter();
@@ -125,9 +134,12 @@ export function ProductTable({
               </span>
             </div>
             <div>
-              <p className="text-foreground font-semibold">
+              <Link
+                href={`/app/${tenantSlug}/products/${row.original.id}`}
+                className="text-foreground hover:text-primary font-semibold hover:underline"
+              >
                 {row.original.name}
-              </p>
+              </Link>
               <p className="text-muted-foreground max-w-44 truncate text-xs">
                 {row.original.subtitle}
               </p>
@@ -205,22 +217,59 @@ export function ProductTable({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem disabled>
-                <Eye /> View details
+              <DropdownMenuItem asChild>
+                <Link href={`/app/${tenantSlug}/products/${row.original.id}`}>
+                  <Eye /> View details
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem disabled>
-                <Pencil /> Edit product
+              <DropdownMenuItem
+                asChild={
+                  canUpdate && !isDemo && row.original.status !== "archived"
+                }
+                disabled={
+                  !canUpdate || isDemo || row.original.status === "archived"
+                }
+              >
+                {canUpdate && !isDemo && row.original.status !== "archived" ? (
+                  <Link
+                    href={`/app/${tenantSlug}/products/${row.original.id}#edit`}
+                  >
+                    <Pencil /> Edit product
+                  </Link>
+                ) : (
+                  <span>
+                    <Pencil /> Edit product
+                  </span>
+                )}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem disabled className="text-destructive">
-                <Archive /> Archive
+              <DropdownMenuItem
+                asChild={
+                  canArchive && !isDemo && row.original.status !== "archived"
+                }
+                disabled={
+                  !canArchive || isDemo || row.original.status === "archived"
+                }
+                className="text-destructive"
+              >
+                {canArchive && !isDemo && row.original.status !== "archived" ? (
+                  <Link
+                    href={`/app/${tenantSlug}/products/${row.original.id}#archive`}
+                  >
+                    <Archive /> Archive
+                  </Link>
+                ) : (
+                  <span>
+                    <Archive /> Archive
+                  </span>
+                )}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ),
       },
     ],
-    [],
+    [canArchive, canUpdate, isDemo, tenantSlug],
   );
   const table = useTable({
     features: productTableFeatures,
