@@ -7,6 +7,7 @@ import {
   Check,
   ChevronDown,
   CircleHelp,
+  CreditCard,
   LayoutDashboard,
   Menu,
   Moon,
@@ -70,6 +71,7 @@ const demoWorkspace: WorkspaceShellData = {
   stores: [{ id: "demo-store", code: "DT", name: "Downtown" }],
   activeStoreId: "demo-store",
   canViewMembers: true,
+  canViewBilling: true,
   isDemo: true,
 };
 
@@ -102,18 +104,22 @@ function SidebarContent({
   const router = useRouter();
   const [isSwitching, startSwitching] = React.useTransition();
   const base = `/app/${tenantSlug}`;
-  const navigation = workspace.canViewMembers
-    ? [
-        ...primaryNavigation,
-        { label: "Team", icon: UsersRound, href: "/settings/members" },
-      ]
-    : primaryNavigation;
+  const navigation = [
+    ...primaryNavigation,
+    ...(workspace.canViewMembers
+      ? [{ label: "Team", icon: UsersRound, href: "/settings/members" }]
+      : []),
+    ...(workspace.canViewBilling
+      ? [{ label: "Billing", icon: CreditCard, href: "/settings/billing" }]
+      : []),
+  ];
 
   function switchBusiness(targetSlug: string) {
     if (workspace.isDemo || targetSlug === tenantSlug) return;
     startSwitching(async () => {
       try {
-        await switchBusinessAction(targetSlug);
+        const target = await switchBusinessAction(targetSlug);
+        router.push(`/app/${target.tenantSlug}`);
       } catch {
         toast.error("We could not switch businesses. Try again.");
       }

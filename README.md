@@ -10,7 +10,7 @@ Qenvaro is a multi-tenant retail and service operations SaaS built as a Next.js 
 4. Run `pnpm install`, `pnpm db:migrate`, and `pnpm db:seed`.
 5. Start the app with `pnpm dev` and visit `http://localhost:3000`.
 
-The UI can be previewed without MongoDB using its deterministic development demo, but mutations, authentication, and tenant isolation tests require the replica set.
+The UI can be previewed without MongoDB using its deterministic development demo, but mutations, authentication, billing projections, and tenant isolation tests require the replica set. The tenant billing console is available at `/app/{tenantSlug}/settings/billing`; without Stripe test credentials it remains safely read-only.
 
 Database-backed checks run with `RUN_INTEGRATION_TESTS=true pnpm test:integration`. The authenticated onboarding and workspace/team browser flows run on desktop and mobile with `RUN_ONBOARDING_E2E=true RUN_WORKSPACE_E2E=true pnpm test:e2e`; they create isolated identities and remove them afterward. Mailpit is available at `http://localhost:8025` for local verification, reset, and invitation messages.
 

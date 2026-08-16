@@ -170,6 +170,7 @@ async function requireWriteAccess(
       billingStatus?: string;
       trialEndsAt?: Date;
       graceEndsAt?: Date;
+      currentPeriodEndsAt?: Date;
     }>("tenantProfiles")
     .findOne(
       { tenantId: context.tenantId },
@@ -179,6 +180,7 @@ async function requireWriteAccess(
           billingStatus: 1,
           trialEndsAt: 1,
           graceEndsAt: 1,
+          currentPeriodEndsAt: 1,
         },
       },
     );

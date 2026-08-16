@@ -18,7 +18,7 @@ Use `EMAIL_PROVIDER=smtp` with the example SMTP host/port to complete verificati
 ## External services
 
 - **Google OAuth:** create a web application and register `${NEXT_PUBLIC_APP_URL}/api/auth/callback/google`; provide client ID/secret.
-- **Stripe test mode:** create monthly/annual Prices for each public plan, set Price IDs, and forward events to `/api/auth/stripe/webhook`. The installed Better Auth Stripe plugin verifies the raw signature before applying subscription updates and invoking the safe event-record callback.
+- **Stripe test mode:** create monthly/annual Prices for each public plan, set Price IDs, and forward events to `/api/auth/stripe/webhook`. Configure the Customer Portal for plan changes and cancellation. The installed Better Auth Stripe plugin verifies the raw signature and updates its subscription row before Qenvaro transactionally projects entitlements and durable event status. Exercise Checkout, Portal, `customer.subscription.*`, and webhook retries before production enablement.
 - **MongoDB Atlas:** use a replica set, least-privilege database user, TLS, network restrictions, backups, and tested restore procedures.
 - **Object storage:** create a private S3-compatible bucket, restricted service credentials, CORS for the application origin, lifecycle rules, and a separate public delivery host if desired.
 - **Email:** verify the sending domain and set Resend credentials. Keep invitation and reset links on the canonical app origin.

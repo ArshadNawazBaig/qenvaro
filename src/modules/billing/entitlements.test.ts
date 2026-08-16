@@ -40,4 +40,27 @@ describe("requireTenantWriteEntitlement", () => {
         BillingAccessError,
       );
   });
+
+  it("retains canceled access through the paid-through date", () => {
+    expect(
+      requireTenantWriteEntitlement(
+        {
+          planKey: "growth",
+          billingStatus: "canceled",
+          currentPeriodEndsAt: new Date("2026-08-31T00:00:00.000Z"),
+        },
+        now,
+      ),
+    ).toBe("growth");
+    expect(() =>
+      requireTenantWriteEntitlement(
+        {
+          planKey: "growth",
+          billingStatus: "canceled",
+          currentPeriodEndsAt: new Date("2026-08-01T00:00:00.000Z"),
+        },
+        now,
+      ),
+    ).toThrow(BillingAccessError);
+  });
 });

@@ -8,5 +8,9 @@ import {
 } from "better-auth/client/plugins";
 
 export const authClient = createAuthClient({
-  plugins: [organizationClient(), adminClient(), twoFactorClient()],
+  plugins: [
+    organizationClient(),
+    adminClient(),
+    twoFactorClient({ twoFactorPage: "/two-factor" }),
+  ],
 });

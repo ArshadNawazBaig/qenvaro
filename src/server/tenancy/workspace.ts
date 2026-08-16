@@ -29,6 +29,7 @@ export interface WorkspaceShellData {
   stores: WorkspaceStoreOption[];
   activeStoreId: string | null;
   canViewMembers: boolean;
+  canViewBilling: boolean;
   isDemo: boolean;
 }
 
@@ -126,6 +127,7 @@ export async function getWorkspaceShellData(
     })),
     activeStoreId: context.activeStoreId,
     canViewMembers: hasPermission(context.permissions, "member:read"),
+    canViewBilling: hasPermission(context.permissions, "billing:read"),
     isDemo: false,
   };
 }

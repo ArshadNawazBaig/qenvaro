@@ -223,6 +223,98 @@ const migrations: Migration[] = [
       ]);
     },
   },
+  {
+    version: 6,
+    name: "verified billing projection indexes",
+    run: async (database) => {
+      await indexes(database, "tenantProfiles", [
+        {
+          key: { stripeSubscriptionId: 1 },
+          name: "tenant_stripe_subscription_unique",
+          unique: true,
+          partialFilterExpression: {
+            stripeSubscriptionId: { $type: "string" },
+          },
+        },
+        {
+          key: { billingStatus: 1, currentPeriodEndsAt: 1 },
+          name: "tenant_billing_status_period_end",
+        },
+      ]);
+      await indexes(database, "subscription", [
+        {
+          key: { stripeSubscriptionId: 1 },
+          name: "stripe_subscription_unique",
+          unique: true,
+          partialFilterExpression: {
+            stripeSubscriptionId: { $type: "string" },
+          },
+        },
+        {
+          key: { referenceId: 1, status: 1, updatedAt: -1 },
+          name: "tenant_subscription_status",
+        },
+      ]);
+      await indexes(database, "billingEvents", [
+        {
+          key: { provider: 1, eventId: 1 },
+          name: "billing_provider_event_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, occurredAt: -1 },
+          name: "tenant_billing_event_date",
+        },
+      ]);
+      await indexes(database, "webhookEvents", [
+        {
+          key: { processingStatus: 1, occurredAt: -1 },
+          name: "webhook_processing_status_date",
+        },
+      ]);
+    },
+  },
+  {
+    version: 7,
+    name: "platform security and health indexes",
+    run: async (database) => {
+      await indexes(database, "user", [
+        { key: { role: 1 }, name: "platform_user_role" },
+      ]);
+      await indexes(database, "tenantProfiles", [
+        {
+          key: { billingStatus: 1, planKey: 1 },
+          name: "platform_tenant_billing_plan",
+        },
+      ]);
+      await indexes(database, "webhookEvents", [
+        {
+          key: { provider: 1, verifiedAt: -1 },
+          name: "platform_verified_webhook_date",
+        },
+      ]);
+      await indexes(database, "platformSessionAssurances", [
+        {
+          key: { sessionId: 1 },
+          name: "platform_session_assurance_unique",
+          unique: true,
+        },
+        {
+          key: { expiresAt: 1 },
+          name: "platform_session_assurance_expiry",
+          expireAfterSeconds: 0,
+        },
+      ]);
+      await indexes(database, "platformAuditLogs", [
+        {
+          key: { idempotencyKey: 1 },
+          name: "platform_audit_idempotency_unique",
+          unique: true,
+        },
+        { key: { createdAt: -1 }, name: "platform_audit_date" },
+      ]);
+    },
+  },
 ];
 
 async function main() {

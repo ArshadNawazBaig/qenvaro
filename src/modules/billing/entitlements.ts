@@ -5,6 +5,7 @@ export interface BillingAccessProjection {
   billingStatus?: string;
   trialEndsAt?: Date;
   graceEndsAt?: Date;
+  currentPeriodEndsAt?: Date;
 }
 
 export function requireTenantWriteEntitlement(
@@ -23,6 +24,12 @@ export function requireTenantWriteEntitlement(
     projection.billingStatus === "past_due" &&
     projection.graceEndsAt instanceof Date &&
     projection.graceEndsAt > now
+  )
+    return planKey;
+  if (
+    projection.billingStatus === "canceled" &&
+    projection.currentPeriodEndsAt instanceof Date &&
+    projection.currentPeriodEndsAt > now
   )
     return planKey;
   throw new BillingAccessError();

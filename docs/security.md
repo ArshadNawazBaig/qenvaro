@@ -7,7 +7,7 @@
 - Tenant repositories require trusted server context and always scope queries. Object keys are generated server-side and include non-guessable identifiers.
 - Business switch targets are joined back to the signed-in user’s membership. Active-store selections are revalidated against active tenant store assignments before they affect a query.
 - Better Auth owns invitation acceptance and membership state. Pending application store grants are tenant-scoped and activated idempotently only for the accepted membership.
-- Stripe webhooks verify the raw payload signature, persist event identity, and update the organization subscription projection idempotently.
+- Better Auth verifies the raw Stripe webhook signature and updates its subscription row before invoking Qenvaro’s projection callback. The callback persists event identity/status and updates organization entitlements transactionally and idempotently; failed verified events remain visible for retry.
 
 ## Controls
 
@@ -17,6 +17,7 @@
 - Security headers deny framing and sniffing and restrict browser capabilities. A deployment-specific Content Security Policy must be finalized against its asset providers.
 - Production rejects development billing bypass and development seeds.
 - Sensitive changes use fresh-session/reauthentication where supported.
+- Subscription mutations are authorized twice: Qenvaro requires `billing:manage`, and Better Auth’s organization reference callback independently requires the owner role. Checkout/Portal redirects never grant access.
 
 ## Required evidence
 

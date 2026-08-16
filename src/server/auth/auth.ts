@@ -14,6 +14,7 @@ import { projectVerifiedStripeEvent } from "@/modules/billing/stripe-projection"
 import { getMongoClientHandle } from "@/server/db/client";
 import { sendTransactionalEmail } from "@/server/email/provider";
 import { betterAuthOrganizationRoles, betterAuthPlatformRoles } from "./access";
+import { platformSessionAssurancePlugin } from "./platform-assurance-plugin";
 
 const mongoClient = getMongoClientHandle();
 const database = mongoClient.db(env.MONGODB_DATABASE);
@@ -46,7 +47,16 @@ const corePlugins = [
     adminRoles: ["PLATFORM_SUPER_ADMIN"],
     impersonationSessionDuration: 0,
   }),
-  twoFactor({ issuer: brand.name }),
+  twoFactor({
+    issuer: brand.name,
+    trustDeviceMaxAge: 60 * 60 * 24 * 7,
+    accountLockout: {
+      enabled: true,
+      maxFailedAttempts: 8,
+      durationSeconds: 15 * 60,
+    },
+  }),
+  platformSessionAssurancePlugin(database),
   nextCookies(),
 ];
 

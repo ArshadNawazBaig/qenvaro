@@ -373,5 +373,38 @@ test.describe("authenticated workspace and member administration", () => {
     await expect(
       page.getByRole("menuitem").filter({ hasText: "Second Workshop" }),
     ).toBeVisible();
+    await page.keyboard.press("Escape");
+    await activeSidebar.getByRole("link", { name: "Billing" }).click();
+    await expect(page).toHaveURL(
+      new RegExp(`/app/${secondSlug}/settings/billing$`),
+    );
+    await expect(
+      page.getByRole("heading", { name: "Plans and billing" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        /Stripe test-mode credentials and price IDs are not configured/,
+      ),
+    ).toBeVisible();
+    await page.getByRole("button", { name: /Annual/ }).click();
+    await expect(page.getByRole("button", { name: /Annual/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(
+      page.getByRole("button", { name: "Choose Growth" }),
+    ).toBeDisabled();
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page.goto(`/app/${secondSlug}/settings/billing?checkout=success`);
+    await expect(
+      page.getByText(
+        /Plan access changes only after a verified Stripe webhook/,
+      ),
+    ).toBeVisible();
+    expect(
+      await database
+        .collection("tenantProfiles")
+        .findOne({ tenantId: secondTenantId }),
+    ).toMatchObject({ planKey: "starter", billingStatus: "trialing" });
   });
 });

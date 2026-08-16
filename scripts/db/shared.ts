@@ -6,12 +6,14 @@ for (const file of [".env.local", ".env"]) {
   if (existsSync(file)) loadEnvFile(file);
 }
 
-export function getScriptDatabase() {
+export function getScriptDatabase({
+  allowProduction = false,
+}: { allowProduction?: boolean } = {}) {
   const uri = process.env.MONGODB_URI;
   const databaseName = process.env.MONGODB_DATABASE ?? "qenvaro";
   if (!uri)
     throw new Error("MONGODB_URI is required. Configure .env.local first.");
-  if (process.env.NODE_ENV === "production")
+  if (process.env.NODE_ENV === "production" && !allowProduction)
     throw new Error(
       "Development database scripts cannot run with NODE_ENV=production.",
     );

@@ -39,6 +39,7 @@ export class ProductService {
             billingStatus?: string;
             trialEndsAt?: Date;
             graceEndsAt?: Date;
+            currentPeriodEndsAt?: Date;
           }>("tenantProfiles")
           .findOne(
             { tenantId: context.tenantId },
@@ -50,6 +51,7 @@ export class ProductService {
                 billingStatus: 1,
                 trialEndsAt: 1,
                 graceEndsAt: 1,
+                currentPeriodEndsAt: 1,
               },
             },
           );

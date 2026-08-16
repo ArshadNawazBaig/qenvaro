@@ -2,7 +2,6 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createOpaqueId } from "@/lib/utils";
 import { auth } from "@/server/auth/auth";
@@ -46,7 +45,7 @@ export async function switchBusinessAction(targetTenantSlug: string) {
     headers: requestHeaders,
     body: { organizationId: profile.tenantId },
   });
-  redirect(`/app/${profile.slug}`);
+  return { tenantSlug: profile.slug };
 }
 
 export async function switchStoreAction(tenantSlug: string, storeId: string) {

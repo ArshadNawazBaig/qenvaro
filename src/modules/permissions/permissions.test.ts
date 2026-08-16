@@ -17,4 +17,12 @@ describe("tenant permissions", () => {
       requirePermission(resolvePermissions(["VIEWER"]), "inventory:adjust"),
     ).toThrow(/do not have permission/);
   });
+
+  it("keeps subscription mutations owner-only", () => {
+    const owner = resolvePermissions(["OWNER"]);
+    const admin = resolvePermissions(["ADMIN"]);
+    expect(hasPermission(owner, "billing:manage")).toBe(true);
+    expect(hasPermission(admin, "billing:read")).toBe(true);
+    expect(hasPermission(admin, "billing:manage")).toBe(false);
+  });
 });

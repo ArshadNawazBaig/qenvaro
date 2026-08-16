@@ -2,14 +2,14 @@
 
 Qenvaro uses opaque string identifiers and UTC `Date` values. Better Auth generates canonical UUID strings (rather than BSON UUID values) so organization IDs and application `tenantId` fields have one representation. Every tenant-owned document contains `tenantId`, `createdAt`, `updatedAt`, and relevant actor/version/archive metadata. Store-owned data also contains `storeId`. Money is `{ amountMinor: integer, currency: ISO-4217 }`.
 
-`tenantProfiles` records the regional defaults and current entitlement projection. Signup onboarding creates an explicit 14-day `trialing` projection; active subscriptions and verified webhook projections replace that source later. Expired, canceled, and suspended projections retain read access but reject mutations.
+`tenantProfiles` records the regional defaults and current entitlement projection. Signup onboarding creates an explicit 14-day `trialing` projection; active subscriptions and verified webhook projections replace that source later. Expired and suspended projections retain read access but reject mutations. A canceled Stripe subscription retains write access only until its verified current period end.
 
 ## Principal collections
 
 | Area       | Collections                                                                                                                                                                                                    |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Identity   | Better Auth `user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`; `tenantProfiles`, `stores`, `memberStoreAssignments`, `invitationStoreAssignments`, `sessionStoreSelections` |
-| Billing    | `planCatalog`, `subscriptionProjections`, `usageCounters`, `billingEvents`, `webhookEvents`                                                                                                                    |
+| Billing    | Better Auth `subscription`; entitlement fields on `tenantProfiles`; `usageCounters`, `billingEvents`, `webhookEvents`                                                                                          |
 | Catalog    | `products`, `productVariants`, `categories`, `tags`, `units`, `taxRates`                                                                                                                                       |
 | Inventory  | `inventoryLevels`, `inventoryMovements`, `stockAdjustments`, `stockTransfers`                                                                                                                                  |
 | Sales/CRM  | `customers`, `sales`, `salePayments`, `returns`, `refunds`, `receipts`                                                                                                                                         |
@@ -34,6 +34,7 @@ All tenant query indexes begin with `tenantId`. The migration runner creates and
 - `tenantId + status + updatedAt` and `tenantId + categoryId + status` catalog lists;
 - `tenantId + storeId + occurredAt` inventory ledger/report queries;
 - unique provider and event ID for webhook replay protection;
+- unique Stripe subscription identity, tenant subscription-status scans, unique billing event identity, and webhook processing-status scans;
 - unique `tenantId + storeId + sequence type` counters;
 - `tenantId + createdAt` append-only audit scans.
 
