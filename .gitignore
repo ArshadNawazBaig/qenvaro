@@ -1,0 +1,29 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# tests and builds
+/.next
+/out
+/coverage
+/playwright-report
+/test-results
+
+# local runtime data
+/.data
+/.uploads
+
+# environment (the example is intentionally committed)
+.env*
+!.env.example
+
+# editor and OS
+.DS_Store
+*.pem
+*.tsbuildinfo
+next-env.d.ts
+
+# logs
+*.log
+pnpm-debug.log*

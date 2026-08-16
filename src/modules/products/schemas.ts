@@ -1,0 +1,59 @@
+import { z } from "zod";
+import { moneySchema } from "@/lib/money";
+
+export const productStatusSchema = z.enum(["draft", "active", "archived"]);
+export const productTypeSchema = z.enum(["simple", "variant", "service"]);
+
+export const createProductSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  description: z.string().trim().max(4_000).default(""),
+  sku: z
+    .string()
+    .trim()
+    .min(1)
+    .max(64)
+    .regex(/^[A-Za-z0-9._-]+$/),
+  barcode: z.string().trim().max(64).optional(),
+  categoryId: z.string().trim().min(1),
+  type: productTypeSchema,
+  price: moneySchema,
+  cost: moneySchema,
+  reorderLevel: z.int().min(0).max(1_000_000).default(0),
+  inventoryTracking: z.boolean().default(true),
+  status: productStatusSchema.default("draft"),
+});
+
+export type CreateProductInput = z.infer<typeof createProductSchema>;
+export type ProductStatus = z.infer<typeof productStatusSchema>;
+
+export interface ProductListItem {
+  id: string;
+  name: string;
+  subtitle: string;
+  sku: string;
+  slug: string;
+  priceMinor: number;
+  currency: string;
+  stock: number | null;
+  reorderLevel: number;
+  category: string;
+  status: ProductStatus;
+  views: number;
+  revenueMinor: number;
+  imageTone: "sky" | "ink" | "mint" | "sand" | "berry" | "slate";
+}
+
+export const productListQuerySchema = z.object({
+  q: z.string().trim().max(120).catch(""),
+  page: z.coerce.number().int().min(1).catch(1),
+  pageSize: z.coerce.number().int().min(5).max(50).catch(8),
+  sort: z
+    .enum(["name", "price", "stock", "revenue", "updatedAt"])
+    .catch("revenue"),
+  direction: z.enum(["asc", "desc"]).catch("desc"),
+  status: z.enum(["all", "draft", "active", "archived"]).catch("all"),
+  category: z.string().trim().max(80).catch("all"),
+  stock: z.enum(["all", "in-stock", "low", "out", "service"]).catch("all"),
+});
+
+export type ProductListQuery = z.infer<typeof productListQuerySchema>;
