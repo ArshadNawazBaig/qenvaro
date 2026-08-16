@@ -4,7 +4,7 @@ Last updated: 2026-08-16
 
 ## Current status
 
-Phase 0 is implemented and validated, including a completed image-inspired admin design refinement checkpoint. Phase 1, Phase 2, and the first security-bounded part of Phase 6 are in progress through a coherent identity/tenant/catalog/platform slice. The repository began empty; it now builds and runs with verified auth entry flows, transactional organization/first-store onboarding, membership-authorized business and store switching, tenant team administration, owner-controlled Stripe billing, mandatory per-session 2FA for the aggregate-only platform shell, an authenticated tenant dashboard, and tenant-scoped product, category, tag, unit-of-measure, option-group, variant, Cloudinary image, bounded CSV, inventory adjustment, stock transfer, product/store availability, and low-stock alert-policy lifecycles.
+Phase 0 and Phase 2 are implemented and validated. Phase 1 and the first security-bounded part of Phase 6 remain in progress through a coherent identity/tenant/catalog/platform slice. The repository began empty; it now builds and runs with verified auth entry flows, transactional organization/first-store onboarding, membership-authorized business and store switching, tenant team administration, owner-controlled Stripe billing, mandatory per-session 2FA for the aggregate-only platform shell, a live tenant dashboard, and tenant-scoped product, category, tag, unit-of-measure, option-group, variant, Cloudinary image, bounded CSV, inventory adjustment, stock transfer, product/store availability, and low-stock alert-policy lifecycles.
 
 ## Phases
 
@@ -12,7 +12,7 @@ Phase 0 is implemented and validated, including a completed image-inspired admin
 | ----- | -------------------------------------------------------------------------------------------------- | ----------- |
 | 0     | Next.js foundation, design system, MongoDB, environment, logging, tests, Docker, CI, documentation | Complete    |
 | 1     | Better Auth, organizations, onboarding, RBAC, tenant/store shell, Stripe plan projection           | In progress |
-| 2     | Products, categories, inventory ledger, CSV, tenant dashboard                                      | In progress |
+| 2     | Products, categories, inventory ledger, CSV, tenant dashboard                                      | Complete    |
 | 3     | Customers, sales, returns, receipts and atomic inventory integration                               | Pending     |
 | 4     | Employees, attendance, leave, compensation and operational payroll                                 | Pending     |
 | 5     | Suppliers, purchases, receiving, expenses and reports                                              | Pending     |
@@ -37,6 +37,7 @@ Phase 0 is implemented and validated, including a completed image-inspired admin
 - Implemented tenant/store-scoped inventory overview, immutable stock adjustments, and completed multi-line transfers with explicit reasons/notes, optimistic level versions, negative-stock protection, request idempotency, paired transfer movements, atomic projections, derived product totals, audit events, low/out-of-stock visibility, and responsive desktop/mobile histories. Product and CSV opening balances now use the same inventory writer.
 - Implemented paginated product/store availability management with authorized-store scope preservation, product-version concurrency, non-zero stock removal safeguards, explicit active-store assignments, audits, and responsive desktop/mobile controls. Added a versioned tenant low-stock policy and live in-app attention queue derived from the active authorized store, product reorder levels, and enabled low/out-of-stock severities.
 - Implemented tenant-scoped units of measure with independently normalized unique names and symbols, optimistic create/edit/archive, stable product references, active-unit assignment validation, assignment-aware archive safeguards, automatic `Each (ea)` defaults for onboarding and CSV product creation, migration backfill, audits, URL-backed pagination/search, and purpose-built responsive mobile/desktop management.
+- Implemented the live tenant dashboard with Zod-bounded 7/30-day URL periods aligned to the tenant timezone, active-store net-sales/profit/order trends, prior-period comparison, top authorized-store contribution, permission-aware financial and audit visibility, an eight-event/90-day operational activity feed, and honest empty, missing-cost, and restricted states. The page is now a thin Server Component over dedicated repositories and shared responsive card compositions.
 - Implemented authenticated first-workspace onboarding with validated regional and plan choices, Better Auth organization ownership, active-organization session state, and an atomic tenant-profile/store/assignment/audit transaction with failure compensation.
 - Added explicit signup-trial access projections and read-only mutation behavior after trial expiry, cancellation, or suspension.
 - Replaced the authenticated shell identity, current business/store, usage, and empty dashboard metrics with tenant-scoped database projections while preserving the explicit unauthenticated development demo.
@@ -63,10 +64,11 @@ Phase 0 is implemented and validated, including a completed image-inspired admin
 - Validated adjustment and multi-line transfer idempotency, optimistic conflicts, negative-stock rejection, permission/store/tenant isolation, transaction rollback, balanced movement pairs, unchanged tenant-wide totals during transfer, audit records, accessibility, and responsive desktop/mobile browser behavior.
 - Validated availability stock guards, product concurrency, scope preservation, tenant and permission denial, versioned alert-policy concurrency, live low/out-of-stock derivation, audit records, pagination/search, accessibility, and responsive desktop/mobile browser workflows.
 - Validated unit name/symbol uniqueness, tenant isolation, active product assignment, stable rename behavior, stale-write rejection, permission enforcement, assignment-aware archive, default-unit provisioning, audit records, pagination/search, accessibility, and responsive desktop/mobile browser workflows.
+- Validated dashboard calendar bounds, missing-day completion, incomplete-profit handling, tenant and store isolation, financial/audit permission denial, activity allowlisting, existing sales/audit indexes, 320 px overflow, accessible chart summaries, live empty states, period switching, and authenticated desktop/mobile workflows.
 
 ## Pending tasks in the current slices
 
-- Expand the live dashboard from accurate empty/current totals to bounded sales trends, store comparisons, and tenant-scoped activity feeds.
+- Begin Phase 3 with the tenant-scoped customer lifecycle before implementing sales: schema and indexes, bounded search/pagination, create/edit/archive services, audit history, responsive management, and isolation/permission coverage.
 
 ## Important decisions
 
@@ -84,6 +86,7 @@ Phase 0 is implemented and validated, including a completed image-inspired admin
 - Units of measure are tenant-owned stable records. Names and symbols are normalized independently and reserved tenant-wide, while products store only the stable unit ID. Renames therefore do not rewrite products, active/draft assignments block archive, archived products retain historical references, and inventory quantities remain integer counts until a future fractional-stock model is designed explicitly.
 - Pages remain usable with a deterministic development demo when local infrastructure is not running; production never enables demo authorization or billing bypass implicitly.
 - The reference-inspired shell exposes only implemented destinations. The dashboard prioritizes operational hierarchy over decorative card grids; demo charts remain clearly labeled, while authenticated workspaces render honest empty analytics until tenant activity exists.
+- Dashboard financial ranges are restricted to 7 or 30 tenant-local calendar days. The headline and trend follow the active authorized store, store comparison includes only authorized active locations and returns at most eight rows, incomplete cost snapshots suppress profit/margin instead of inventing zeroes, and the recent feed exposes at most eight allowlisted audit summaries from the prior 90 days only to `audit:read` roles. Existing migration-3 sales/date and tenant/audit indexes support these reads, so no redundant migration was added.
 - Stripe is only for Qenvaro subscriptions and subscription truth comes from verified, idempotent webhooks.
 - Signup trials are explicit, expiring access projections; they do not masquerade as paid Stripe subscriptions.
 - Business choices are derived from signed-in Better Auth memberships. Store choice is session-local application state and never expands the membership’s active store assignments.
@@ -96,4 +99,4 @@ Phase 0 is implemented and validated, including a completed image-inspired admin
 
 ## Exact next action if interrupted
 
-Expand the live dashboard with bounded sales trends, store comparisons, and a tenant-scoped activity feed backed by honest empty states.
+Start Phase 3 with tenant-scoped customer management: add the customer lifecycle schema and supporting indexes, then implement bounded list/search, create/edit/archive services, audits, responsive UI, and tenant/permission regression coverage.

@@ -31,6 +31,8 @@ Product images use an authenticated Route Handler because bounded multipart file
 
 Product CSV operations also use authenticated Route Handlers. Uploads are UTF-8, same-origin, and bounded to 2 MB, 30 columns, 500 rows, and 1,000 characters per cell; JSON mutation bodies are streamed through a 64 KB ceiling. A user-owned 30-minute preview record supports explicit mapping, row validation, and reject/skip/update policy without changing the catalog. Commit rechecks tenant permissions, entitlement, quotas, tags, category state, SKU reservations, product versions, and authorized store context inside one transaction. Filtered exports are capped at 10,000 rows and spreadsheet-formula escaped.
 
+The dashboard remains a read-heavy Server Component. A dedicated repository receives trusted tenant context and one of two Zod-bounded periods, aligns calendar buckets to the tenant timezone, and runs indexed sales/audit projections. Active-store trends never broaden beyond the selected authorized store; comparisons are capped to authorized active stores; and activity is both time/row bounded and allowlisted before safe summaries reach the view. Recharts is isolated to a narrow Client Component and receives serializable projection data with an equivalent screen-reader table.
+
 First-workspace onboarding uses Better Auth to create the organization and owner membership, sets that organization on the authenticated session, then commits the tenant profile, first store, owner store assignment, signup-trial projection, and audit entry in one MongoDB transaction. A failed application transaction compensates by removing the just-created organization, so partial workspaces are not retained.
 
 ## Module boundary
@@ -42,5 +44,5 @@ Each real domain under `src/modules` owns its schemas, policies, calculations, a
 - One cached `MongoClient` is shared per process.
 - Ledger/projection workflows execute in retry-safe transactions.
 - Event handlers keep provider event IDs and apply updates idempotently.
-- Page sizes, request bodies, CSV previews, and export limits are bounded. CSV request throttles use database-backed fixed windows so limits survive process restarts and multiple application instances. Tenant-sensitive results are not globally cached.
+- Page sizes, request bodies, CSV previews, exports, dashboard date ranges, store rankings, and activity feeds are bounded. CSV request throttles use database-backed fixed windows so limits survive process restarts and multiple application instances. Tenant-sensitive results are not globally cached.
 - Health routes reveal liveness/readiness only, never connection strings or configuration.

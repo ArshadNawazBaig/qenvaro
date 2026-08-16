@@ -142,6 +142,27 @@ test.describe("authenticated workspace and member administration", () => {
     await expect(page).toHaveURL(new RegExp(`/app/${primarySlug}$`), {
       timeout: 20_000,
     });
+    await expect(
+      page.getByRole("heading", { name: "Business overview" }),
+    ).toBeVisible();
+    await expect(page.getByText("No completed sales yet")).toBeVisible();
+    await expect(page.getByText("No store sales to compare")).toBeVisible();
+    await expect(page.getByText("Workspace setup completed")).toBeVisible();
+    await page
+      .getByRole("group", { name: "Dashboard reporting period" })
+      .getByRole("link", { name: "30 days" })
+      .click();
+    await expect(page).toHaveURL(
+      new RegExp(`/app/${primarySlug}\\?range=30d$`),
+    );
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(0);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 
     const owner = await database
       .collection<StringDocument>("user")
@@ -935,7 +956,7 @@ test.describe("authenticated workspace and member administration", () => {
       page.getByRole("main").getByText("Second Workshop", { exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByRole("main").getByText("Active store · last 7 days"),
+      page.getByRole("main").getByText("Second Main · last 7 days"),
     ).toBeVisible();
     await expect
       .poll(async () => {

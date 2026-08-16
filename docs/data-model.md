@@ -4,6 +4,8 @@ Qenvaro uses opaque string identifiers and UTC `Date` values. Better Auth genera
 
 `tenantProfiles` records the regional defaults and current entitlement projection. Signup onboarding creates an explicit 14-day `trialing` projection; active subscriptions and verified webhook projections replace that source later. Expired and suspended projections retain read access but reject mutations. A canceled Stripe subscription retains write access only until its verified current period end.
 
+The dashboard is a read projection rather than a collection. It groups completed `sales` into 7- or 30-day tenant-timezone buckets for the active authorized store, compares at most eight authorized active stores, and reads at most eight allowlisted `auditLogs` from a 90-day window. A missing `grossProfitMinor` on any included sale makes the corresponding profit and margin unavailable rather than treating unknown cost as zero.
+
 ## Principal collections
 
 | Area       | Collections                                                                                                                                                                                                                 |
@@ -67,6 +69,7 @@ All tenant query indexes begin with `tenantId`. The migration runner creates and
 - unique current-session platform 2FA assurance with TTL expiry and idempotent platform bootstrap audit identity;
 - TTL expiry for persistent application request-throttle buckets;
 - unique `tenantId + storeId + sequence type` counters;
+- `tenantId + storeId + completedAt` bounded sales/dashboard scans;
 - `tenantId + createdAt` append-only audit scans.
 
 Soft-deleted records use partial unique indexes where MongoDB supports the lifecycle query. Repository tests prove scopes and uniqueness with overlapping tenant data.
