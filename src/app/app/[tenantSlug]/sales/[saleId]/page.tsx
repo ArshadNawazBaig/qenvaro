@@ -8,6 +8,7 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DownloadReceiptButton } from "@/components/sales/download-receipt-button";
 import { PrintReceiptButton } from "@/components/sales/print-receipt-button";
 import { VoidSaleDialog } from "@/components/sales/void-sale-dialog";
 import { PageContainer } from "@/components/shared/page-container";
@@ -89,6 +90,7 @@ export default async function SaleReceiptPage({
           actions={
             <>
               <PrintReceiptButton saleId={receipt.id} />
+              <DownloadReceiptButton receiptNumber={receipt.receiptNumber} />
               {receipt.status === "completed" && canVoid && (
                 <VoidSaleDialog
                   tenantSlug={tenantSlug}
@@ -115,15 +117,17 @@ export default async function SaleReceiptPage({
         />
       </div>
       <Card data-sale-bill className="print:border-0">
-        <CardHeader className="gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <CardHeader data-receipt-header className="gap-4">
           <div>
             <div className="flex items-center gap-2">
               <span className="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-xl">
                 <ReceiptText className="size-5" />
               </span>
-              <div>
-                <CardTitle>{receipt.businessName}</CardTitle>
-                <CardDescription>
+              <div className="min-w-0">
+                <CardTitle className="break-words">
+                  {receipt.businessName}
+                </CardTitle>
+                <CardDescription className="break-words">
                   {receipt.store.name} · {receipt.store.code}
                 </CardDescription>
                 {(receipt.store.address || receipt.businessAddress) && (
@@ -139,14 +143,14 @@ export default async function SaleReceiptPage({
               </div>
             </div>
           </div>
-          <div className="text-left sm:text-right">
+          <div data-receipt-header-meta className="text-left">
             <Badge
               variant={receipt.status === "voided" ? "secondary" : "success"}
             >
               {receipt.status === "voided" ? <Ban /> : <CheckCircle2 />}
               {receipt.status === "voided" ? "Voided" : "Completed"}
             </Badge>
-            <p className="mt-2 font-mono text-sm font-semibold">
+            <p className="mt-2 font-mono text-sm font-semibold break-all">
               {receipt.receiptNumber}
             </p>
             <p className="text-muted-foreground mt-1 text-xs">{completedAt}</p>
@@ -161,7 +165,7 @@ export default async function SaleReceiptPage({
               </p>
             </div>
           )}
-          <Inset className="grid gap-3 p-4 sm:grid-cols-2">
+          <Inset data-receipt-customer-summary className="grid gap-3 p-4">
             <div>
               <p className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
                 Customer
@@ -175,11 +179,11 @@ export default async function SaleReceiptPage({
                 </p>
               )}
             </div>
-            <div className="sm:text-right">
+            <div data-receipt-customer-meta>
               <p className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
                 Receipt
               </p>
-              <p className="mt-1 font-mono text-sm font-semibold">
+              <p className="mt-1 font-mono text-sm font-semibold break-all">
                 {receipt.receiptNumber}
               </p>
             </div>
@@ -189,7 +193,8 @@ export default async function SaleReceiptPage({
             {receipt.lines.map((line) => (
               <div
                 key={line.lineId}
-                className="flex min-w-0 flex-col gap-2 p-4 sm:flex-row sm:items-start"
+                data-receipt-line
+                className="flex min-w-0 flex-col gap-2 p-4"
               >
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">{line.productName}</p>
@@ -210,14 +215,17 @@ export default async function SaleReceiptPage({
                       : ""}
                   </p>
                 </div>
-                <p className="font-semibold tabular-nums sm:text-right">
+                <p
+                  data-receipt-line-total
+                  className="font-semibold tabular-nums"
+                >
                   {money(line.lineTotalMinor, receipt.currency, receipt.locale)}
                 </p>
               </div>
             ))}
           </Inset>
 
-          <div className="grid gap-6 md:grid-cols-2 print:grid-cols-1">
+          <div data-receipt-payment-summary className="grid gap-6">
             <div>
               <h2 className="text-sm font-semibold">Payment record</h2>
               <div className="mt-3 space-y-2">
@@ -298,7 +306,7 @@ export default async function SaleReceiptPage({
           </div>
 
           {returnWorkspace && returnWorkspace.previousReturns.length > 0 && (
-            <div className="print:hidden">
+            <div data-receipt-print-hidden className="print:hidden">
               <h2 className="text-sm font-semibold">Returns</h2>
               <Inset className="mt-3 divide-y">
                 {returnWorkspace.previousReturns.map((item) => (

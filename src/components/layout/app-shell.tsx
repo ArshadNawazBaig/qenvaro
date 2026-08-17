@@ -150,8 +150,6 @@ function SidebarContent({
   closeMobile?: () => void;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [isSwitching, startSwitching] = React.useTransition();
   const [openGroups, setOpenGroups] = React.useState<
     Record<NavigationGroup["id"], boolean>
   >({
@@ -355,18 +353,6 @@ function SidebarContent({
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
-  function switchBusiness(targetSlug: string) {
-    if (workspace.isDemo || targetSlug === tenantSlug) return;
-    startSwitching(async () => {
-      try {
-        const target = await switchBusinessAction(targetSlug);
-        router.push(`/app/${target.tenantSlug}`);
-      } catch {
-        toast.error("We could not switch businesses. Try again.");
-      }
-    });
-  }
-
   return (
     <>
       <div
@@ -391,67 +377,11 @@ function SidebarContent({
         </Link>
       </div>
 
-      <div className={cn("px-3 pt-3 pb-2", collapsed && "px-2")}>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              className={cn(
-                "bg-workspace/75 hover:bg-accent flex w-full items-center gap-3 rounded-xl border border-transparent p-2 text-left transition-colors",
-                collapsed &&
-                  "justify-center border-transparent bg-transparent shadow-none",
-              )}
-              aria-label="Switch business"
-              disabled={isSwitching}
-            >
-              <span className="bg-primary text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-md">
-                <Building2 className="size-4" />
-              </span>
-              {!collapsed && (
-                <>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold tracking-[-0.01em]">
-                      {workspace.businessName}
-                    </span>
-                    <span className="text-sidebar-foreground/70 mt-0.5 block truncate text-[11px]">
-                      {workspace.planName} workspace
-                    </span>
-                  </span>
-                  <ChevronDown className="text-sidebar-foreground/50 size-4" />
-                </>
-              )}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" align="start" className="w-64">
-            <DropdownMenuLabel>Switch business</DropdownMenuLabel>
-            {workspace.businesses.map((business) => {
-              const active = business.slug === tenantSlug;
-              return (
-                <DropdownMenuItem
-                  key={business.tenantId}
-                  onSelect={() => switchBusiness(business.slug)}
-                  disabled={isSwitching}
-                >
-                  <span className="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-lg">
-                    <Building2 className="size-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">
-                      {business.name}
-                    </span>
-                    <span className="text-muted-foreground block text-xs">
-                      {business.planName} plan
-                    </span>
-                  </span>
-                  {active && <Check className="text-primary size-4" />}
-                </DropdownMenuItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
       <nav
-        className={cn("flex-1 overflow-y-auto px-3 py-2", collapsed && "px-2")}
+        className={cn(
+          "flex-1 overflow-y-auto px-3 pt-3 pb-2",
+          collapsed && "px-2",
+        )}
         aria-label="Primary navigation"
       >
         <div className="space-y-2.5">
@@ -539,8 +469,21 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
+  const [isSwitchingBusiness, startSwitchingBusiness] = React.useTransition();
   const recentNotifications = workspace.recentNotifications ?? [];
   const notificationUnread = workspace.notificationUnread ?? 0;
+
+  function switchBusiness(targetSlug: string) {
+    if (workspace.isDemo || targetSlug === tenantSlug) return;
+    startSwitchingBusiness(async () => {
+      try {
+        const target = await switchBusinessAction(targetSlug);
+        router.push(`/app/${target.tenantSlug}`);
+      } catch {
+        toast.error("We could not switch businesses. Try again.");
+      }
+    });
+  }
 
   return (
     <div className="bg-background min-h-screen overflow-x-clip">
@@ -721,7 +664,10 @@ export function AppShell({
               </DropdownMenu>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="ml-1 flex items-center gap-2 rounded-full p-0.5 sm:rounded-lg sm:pr-2">
+                  <button
+                    className="ml-1 flex items-center gap-2 rounded-full p-0.5 sm:rounded-lg sm:pr-2"
+                    aria-label="Open account menu"
+                  >
                     <Avatar className="ring-card size-9 ring-2">
                       <AvatarFallback>
                         {initials(workspace.userName)}
@@ -748,6 +694,28 @@ export function AppShell({
                     </span>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  {workspace.businesses.length > 1 && (
+                    <>
+                      <DropdownMenuLabel>Switch business</DropdownMenuLabel>
+                      {workspace.businesses.map((business) => {
+                        const active = business.slug === tenantSlug;
+                        return (
+                          <DropdownMenuItem
+                            key={business.tenantId}
+                            onSelect={() => switchBusiness(business.slug)}
+                            disabled={isSwitchingBusiness}
+                          >
+                            <Building2 />
+                            <span className="min-w-0 flex-1 truncate">
+                              {business.name}
+                            </span>
+                            {active && <Check className="text-primary" />}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
                   {workspace.canViewSettings && (
                     <DropdownMenuItem asChild>
                       <Link href={`/app/${tenantSlug}/settings/security`}>

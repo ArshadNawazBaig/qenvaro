@@ -44,20 +44,22 @@ export default async function NewSalePage({
   }
 
   return (
-    <PageContainer>
-      <PageStatus
-        tone={isDemo ? "demo" : "live"}
-        label={isDemo ? "Demo data" : "Live tenant data"}
-        detail={
-          workspace.store
-            ? `${workspace.store.name} · ${workspace.store.code}`
-            : "No active store selected"
-        }
-      />
+    <PageContainer className="space-y-4 sm:space-y-5 lg:py-6 xl:py-7">
       <PageHeader
         eyebrow="Sales"
         title="New sale"
-        description="Build a checkout, record how the customer paid, and complete stock and receipt records together."
+        description="Scan products, take payment, and issue a receipt from one checkout."
+        actions={
+          <PageStatus
+            tone={isDemo ? "demo" : "live"}
+            label={isDemo ? "Demo data" : "Live tenant data"}
+            detail={
+              workspace.store
+                ? `${workspace.store.name} · ${workspace.store.code}`
+                : "No active store selected"
+            }
+          />
+        }
       />
       {permissionDenied ? (
         <Card>

@@ -42,6 +42,8 @@
     "class-variance-authority": "latest",
     "cloudinary": "^2.10.0",
     "clsx": "latest",
+    "html2canvas-pro": "^2.3.8",
+    "jspdf": "^4.2.1",
     "lucide-react": "latest",
     "mongodb": "latest",
     "next": "latest",

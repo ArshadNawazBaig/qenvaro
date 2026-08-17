@@ -179,6 +179,92 @@ input,
 select {
   outline: none;
 }
+
+[data-receipt-download-stage] {
+  position: fixed;
+  z-index: -1;
+  top: 0;
+  left: -10000px;
+  width: 72mm;
+  background: white;
+}
+
+[data-receipt-download-clone] {
+  width: 72mm !important;
+  max-width: 72mm !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: white !important;
+  color: black !important;
+  box-shadow: none !important;
+}
+
+[data-receipt-download-clone] * {
+  border-color: #d4d4d4 !important;
+  color: black !important;
+  box-shadow: none !important;
+}
+
+[data-receipt-download-clone] [data-slot="inset"] {
+  background: white !important;
+}
+
+[data-receipt-download-clone] [data-receipt-print-hidden] {
+  display: none !important;
+}
+
+[data-receipt-download-clone] [data-receipt-payment-summary] {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+[data-receipt-download-clone] [data-receipt-header],
+[data-receipt-download-clone] [data-receipt-customer-summary] {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+[data-receipt-download-clone] [data-receipt-header-meta],
+[data-receipt-download-clone] [data-receipt-customer-meta],
+[data-receipt-download-clone] [data-receipt-line-total] {
+  text-align: left !important;
+}
+
+[data-receipt-download-clone] [data-receipt-line] {
+  flex-direction: column !important;
+  align-items: stretch !important;
+}
+
+[data-sale-bill] {
+  container: sale-receipt / inline-size;
+}
+
+[data-receipt-header],
+[data-receipt-customer-summary],
+[data-receipt-payment-summary] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@container sale-receipt (min-width: 34rem) {
+  [data-receipt-header] {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  [data-receipt-customer-summary],
+  [data-receipt-payment-summary] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  [data-receipt-header-meta],
+  [data-receipt-customer-meta],
+  [data-receipt-line-total] {
+    text-align: right;
+  }
+
+  [data-receipt-line] {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
@@ -275,5 +361,29 @@ textarea:focus-visible,
 
   [data-sale-bill] [data-slot="inset"] {
     background: white !important;
+  }
+
+  [data-sale-bill] [data-receipt-print-hidden] {
+    display: none !important;
+  }
+
+  [data-sale-bill] [data-receipt-payment-summary] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  [data-sale-bill] [data-receipt-header],
+  [data-sale-bill] [data-receipt-customer-summary] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  [data-sale-bill] [data-receipt-header-meta],
+  [data-sale-bill] [data-receipt-customer-meta],
+  [data-sale-bill] [data-receipt-line-total] {
+    text-align: left !important;
+  }
+
+  [data-sale-bill] [data-receipt-line] {
+    flex-direction: column !important;
+    align-items: stretch !important;
   }
 }

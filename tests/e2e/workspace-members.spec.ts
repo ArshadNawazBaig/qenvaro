@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator } from "@playwright/test";
 import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { loadEnvFile } from "node:process";
 import { MongoClient, type Db } from "mongodb";
 
@@ -416,6 +417,17 @@ test.describe("authenticated workspace and member administration", () => {
     await expect(
       page.getByRole("button", { name: "Print bill" }),
     ).toBeVisible();
+    const receiptDownloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download receipt" }).click();
+    const receiptDownload = await receiptDownloadPromise;
+    expect(receiptDownload.suggestedFilename()).toMatch(
+      /^receipt-MAIN-\d{6}\.pdf$/,
+    );
+    const receiptPath = await receiptDownload.path();
+    expect(receiptPath).toBeTruthy();
+    expect(
+      (await readFile(receiptPath!)).subarray(0, 4).toString("ascii"),
+    ).toBe("%PDF");
     await expect(page.getByRole("status")).toHaveText("Print dialog opened.");
     await expect
       .poll(() =>
@@ -1382,12 +1394,7 @@ test.describe("authenticated workspace and member administration", () => {
       )
       .toBe(1);
 
-    if (testInfo.project.name === "mobile")
-      await page.getByRole("button", { name: "Open navigation" }).click();
-    let activeSidebar = page.locator("aside:visible");
-    await activeSidebar
-      .getByRole("button", { name: "Switch business" })
-      .click();
+    await page.getByRole("button", { name: "Open account menu" }).click();
     await page
       .getByRole("menuitem")
       .filter({ hasText: "Second Workshop" })
@@ -1410,12 +1417,7 @@ test.describe("authenticated workspace and member administration", () => {
         return activeSession?.activeOrganizationId;
       })
       .toBe(secondTenantId);
-    if (testInfo.project.name === "mobile")
-      await page.getByRole("button", { name: "Open navigation" }).click();
-    activeSidebar = page.locator("aside:visible");
-    await activeSidebar
-      .getByRole("button", { name: "Switch business" })
-      .click();
+    await page.getByRole("button", { name: "Open account menu" }).click();
     await expect(
       page.getByRole("menuitem").filter({ hasText: "Primary Workshop" }),
     ).toBeVisible();
@@ -1423,6 +1425,9 @@ test.describe("authenticated workspace and member administration", () => {
       page.getByRole("menuitem").filter({ hasText: "Second Workshop" }),
     ).toBeVisible();
     await page.keyboard.press("Escape");
+    if (testInfo.project.name === "mobile")
+      await page.getByRole("button", { name: "Open navigation" }).click();
+    const activeSidebar = page.locator("aside:visible");
     await activeSidebar.getByRole("link", { name: "Billing" }).click();
     await expect(page).toHaveURL(
       new RegExp(`/app/${secondSlug}/settings/billing$`),

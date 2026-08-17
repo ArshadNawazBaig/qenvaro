@@ -107,10 +107,10 @@ function ProductTile({
 }) {
   const unavailable = item.inventoryTracking && (item.quantity ?? 0) <= 0;
   return (
-    <Card className="flex min-w-0 flex-col">
-      <CardContent className="flex flex-1 flex-col p-4">
+    <Card variant="interactive" className="flex min-w-0 flex-col self-start">
+      <CardContent className="flex flex-1 flex-col p-3.5">
         <div className="flex items-start justify-between gap-3">
-          <span className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-lg border">
+          <span className="bg-muted/70 flex size-9 shrink-0 items-center justify-center rounded-lg border">
             <PackageOpen className="text-muted-foreground size-4" />
           </span>
           <Badge variant={unavailable ? "destructive" : "secondary"}>
@@ -119,7 +119,7 @@ function ProductTile({
               : "Service"}
           </Badge>
         </div>
-        <div className="mt-4 min-w-0">
+        <div className="mt-3 min-w-0">
           <p className="truncate font-semibold">{item.productName}</p>
           {item.variantName !== "Default" && (
             <p className="text-muted-foreground mt-0.5 truncate text-xs">
@@ -130,7 +130,7 @@ function ProductTile({
             {item.sku} · {item.category}
           </p>
         </div>
-        <div className="mt-auto flex items-end justify-between gap-3 pt-4">
+        <div className="mt-auto flex items-end justify-between gap-3 pt-3">
           <p className="text-sm font-semibold tabular-nums">
             {formatMoney(item.priceMinor, currency, locale)}
           </p>
@@ -319,31 +319,27 @@ export function PosWorkspace({
   );
 
   return (
-    <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(360px,0.85fr)]">
+    <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.8fr)] lg:gap-5">
       <Card className="min-w-0">
-        <CardHeader>
+        <CardHeader className="px-4 py-4 sm:px-5 sm:py-4">
           <CardTitle>Catalog</CardTitle>
           <CardDescription>
-            Search the active catalog for{" "}
-            {workspace.store?.name ?? "this store"}.
+            Products available at {workspace.store?.name ?? "this store"}.
           </CardDescription>
         </CardHeader>
-        <div className="space-y-4 border-b px-4 pb-4 sm:px-6">
-          <div className="bg-muted/35 rounded-xl border p-3 sm:p-4">
-            <div className="flex items-start gap-3">
-              <span className="bg-card text-primary flex size-9 shrink-0 items-center justify-center rounded-lg border">
+        <div className="space-y-3 border-b p-3 sm:p-4">
+          <div className="bg-primary/[0.025] rounded-xl border p-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="bg-card text-primary flex size-8 shrink-0 items-center justify-center rounded-lg border">
                 <Barcode className="size-4" />
               </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">Scan product</p>
-                <p className="text-muted-foreground mt-0.5 text-xs leading-5">
-                  Scan a barcode or enter an exact SKU. Keyboard scanners that
-                  send Enter add the item automatically.
-                </p>
-              </div>
+              <p className="min-w-0 flex-1 text-sm font-semibold">Quick scan</p>
+              <span className="text-muted-foreground hidden text-[11px] sm:inline">
+                Enter to add
+              </span>
             </div>
             <form
-              className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row"
+              className="mt-2.5 flex min-w-0 flex-col gap-2 sm:flex-row"
               onSubmit={scanItem}
             >
               <Input
@@ -362,7 +358,7 @@ export function PosWorkspace({
                 variant="outline"
                 disabled={disabled || scanning || !scanCode.trim()}
               >
-                <Barcode /> {scanning ? "Scanning…" : "Add scanned item"}
+                <Barcode /> {scanning ? "Scanning…" : "Add item"}
               </Button>
             </form>
             {disabled && (
@@ -371,25 +367,28 @@ export function PosWorkspace({
               </p>
             )}
           </div>
-          <form
-            className="relative"
-            onSubmit={(event) => {
-              event.preventDefault();
-              navigateCatalog({ q: search.trim() });
-            }}
-          >
-            <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              className="pl-9"
-              placeholder="Search product or SKU"
-              aria-label="Search sale catalog"
-            />
-          </form>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold">Browse catalog</p>
+            <form
+              className="relative"
+              onSubmit={(event) => {
+                event.preventDefault();
+                navigateCatalog({ q: search.trim() });
+              }}
+            >
+              <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="pl-9"
+                placeholder="Search product or SKU"
+                aria-label="Search sale catalog"
+              />
+            </form>
+          </div>
         </div>
         {workspace.catalog.items.length === 0 ? (
-          <CardContent className="text-muted-foreground flex min-h-72 flex-col items-center justify-center text-center">
+          <CardContent className="text-muted-foreground flex min-h-52 flex-col items-center justify-center text-center">
             <PackageOpen className="size-8" />
             <p className="mt-4 font-medium">No sellable items found</p>
             <p className="mt-1 text-sm">
@@ -397,7 +396,7 @@ export function PosWorkspace({
             </p>
           </CardContent>
         ) : (
-          <CardContent className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4 2xl:grid-cols-3">
+          <CardContent className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-3 p-3 sm:p-4">
             {workspace.catalog.items.map((item) => (
               <ProductTile
                 key={item.variantId}
@@ -412,7 +411,7 @@ export function PosWorkspace({
             ))}
           </CardContent>
         )}
-        <CardFooter className="flex-col items-stretch sm:flex-row sm:items-center">
+        <CardFooter className="flex-col items-stretch px-4 py-3 sm:flex-row sm:items-center sm:px-5">
           <p className="text-muted-foreground text-xs">
             Showing {workspace.catalog.items.length} of{" "}
             {workspace.catalog.total} SKUs
@@ -453,8 +452,8 @@ export function PosWorkspace({
         <input type="hidden" name="linesJson" value={linesJson} />
         <input type="hidden" name="paymentsJson" value={paymentsJson} />
         <input type="hidden" name="idempotencyKey" value={requestKey} />
-        <Card className="min-w-0 xl:sticky xl:top-[92px]">
-          <CardHeader>
+        <Card className="min-w-0 lg:sticky lg:top-[84px]">
+          <CardHeader className="px-4 py-4 sm:px-5 sm:py-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <CardTitle className="flex items-center gap-2">
@@ -478,9 +477,11 @@ export function PosWorkspace({
             </div>
           </CardHeader>
           {cart.length === 0 ? (
-            <CardContent className="text-muted-foreground flex min-h-48 flex-col items-center justify-center text-center">
-              <ShoppingCart className="size-7" />
-              <p className="mt-3 text-sm font-medium">Your cart is empty</p>
+            <CardContent className="text-muted-foreground flex min-h-32 flex-col items-center justify-center px-4 py-5 text-center">
+              <span className="bg-muted/60 flex size-10 items-center justify-center rounded-full">
+                <ShoppingCart className="size-5" />
+              </span>
+              <p className="mt-2.5 text-sm font-medium">Your cart is empty</p>
               <p className="mt-1 text-xs">
                 Add an item from the catalog to begin.
               </p>
@@ -495,7 +496,7 @@ export function PosWorkspace({
                 return (
                   <div
                     key={line.item.variantId}
-                    className="min-w-0 p-4 sm:px-6"
+                    className="min-w-0 p-4 sm:px-5"
                   >
                     <div className="flex min-w-0 items-start gap-3">
                       <div className="min-w-0 flex-1">
@@ -611,7 +612,7 @@ export function PosWorkspace({
             </div>
           )}
 
-          <div className="space-y-4 border-t p-4 sm:p-6">
+          <div className="space-y-3.5 border-t p-4 sm:p-5">
             <label className="block space-y-1.5 text-sm font-medium">
               Customer <span className="text-muted-foreground">(optional)</span>
               <SelectField
@@ -788,7 +789,7 @@ export function PosWorkspace({
               </label>
             </div>
 
-            <div className="space-y-2 border-t pt-4 text-sm">
+            <div className="space-y-2 border-t pt-3.5 text-sm">
               <div className="flex justify-between gap-4">
                 <span className="text-muted-foreground">Subtotal</span>
                 <span className="tabular-nums">
