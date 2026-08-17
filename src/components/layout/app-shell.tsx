@@ -357,7 +357,7 @@ function SidebarContent({
     <>
       <div
         className={cn(
-          "flex h-[72px] items-center gap-3 px-4",
+          "border-border/45 flex h-[72px] items-center gap-3 border-b px-4",
           collapsed && "justify-center px-2",
         )}
       >
