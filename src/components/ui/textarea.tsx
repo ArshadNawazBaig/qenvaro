@@ -9,7 +9,7 @@ export const Textarea = React.forwardRef<
     ref={ref}
     data-slot="textarea"
     className={cn(
-      "border-input bg-card placeholder:text-muted-foreground hover:border-primary/20 focus-visible:border-primary/45 focus-visible:ring-primary/10 min-h-24 w-full resize-y rounded-xl border px-3.5 py-3 text-sm shadow-[var(--shadow-button)] transition-[border-color,box-shadow] focus-visible:ring-4 disabled:cursor-not-allowed disabled:opacity-50",
+      "border-input bg-card placeholder:text-muted-foreground hover:border-primary/20 focus-visible:border-primary/45 focus-visible:ring-primary/8 min-h-24 w-full resize-y rounded-md border px-3 py-2.5 text-sm shadow-none transition-[border-color,box-shadow] focus-visible:ring-3 disabled:cursor-not-allowed disabled:opacity-50",
       className,
     )}
     {...props}

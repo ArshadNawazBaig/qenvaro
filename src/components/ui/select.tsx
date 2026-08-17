@@ -6,7 +6,7 @@ import * as React from "react";
 import { inputClassName } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-const selectClassName = cn(inputClassName, "text-foreground py-0");
+const selectClassName = inputClassName;
 
 export function Select(
   props: React.ComponentProps<typeof SelectPrimitive.Root>,
@@ -36,14 +36,14 @@ export function SelectTrigger({
       data-slot="select-trigger"
       className={cn(
         selectClassName,
-        "data-[placeholder]:text-muted-foreground justify-between gap-2 text-left [&>span]:truncate",
+        "data-[placeholder]:text-muted-foreground items-center justify-between gap-2 text-left [&>span]:truncate",
         className,
       )}
       {...props}
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDown className="text-muted-foreground size-4 shrink-0" />
+        <ChevronDown className="text-muted-foreground size-3.5 shrink-0" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
@@ -65,7 +65,7 @@ export function SelectContent({
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          "bg-card text-card-foreground border-input z-50 max-h-[var(--radix-select-content-available-height)] min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-xl border p-1.5 shadow-[var(--shadow-float)]",
+          "bg-card text-card-foreground border-input z-50 max-h-[var(--radix-select-content-available-height)] min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-[var(--shadow-float)]",
           position === "popper" &&
             "w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)]",
           className,
@@ -108,7 +108,7 @@ export function SelectItem({
       data-slot="select-item"
       data-value={props.value}
       className={cn(
-        "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground relative flex w-full cursor-default items-center rounded-lg py-2 pr-8 pl-2.5 text-sm outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground relative flex w-full cursor-default items-center rounded-sm py-1.5 pr-8 pl-2 text-sm outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className,
       )}
       {...props}
@@ -181,6 +181,9 @@ export function SelectField({
   triggerClassName,
   contentClassName,
   ariaLabel,
+  value,
+  defaultValue,
+  onValueChange,
   ...props
 }: Omit<React.ComponentProps<typeof SelectPrimitive.Root>, "children"> & {
   options: readonly { label: string; value: string; disabled?: boolean }[];
@@ -189,10 +192,25 @@ export function SelectField({
   contentClassName?: string;
   ariaLabel: string;
 }) {
+  const controlled = value !== undefined;
+  const [internalValue, setInternalValue] = React.useState(defaultValue);
+  const selectedValue = controlled ? value : internalValue;
+  const selectedLabel = options.find(
+    (option) => option.value === selectedValue,
+  )?.label;
+
   return (
-    <Select {...props}>
+    <Select
+      {...props}
+      value={value}
+      defaultValue={defaultValue}
+      onValueChange={(nextValue) => {
+        if (!controlled) setInternalValue(nextValue);
+        onValueChange?.(nextValue);
+      }}
+    >
       <SelectTrigger className={triggerClassName} aria-label={ariaLabel}>
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={placeholder}>{selectedLabel}</SelectValue>
       </SelectTrigger>
       <SelectContent className={contentClassName}>
         {options.map((option) => (
