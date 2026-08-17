@@ -62,6 +62,7 @@ interface ProductCsvRateLimitDocument {
 interface TenantBillingProfile {
   planKey: string;
   currency: string;
+  operationSettings?: { defaultTaxRateBps?: number };
   billingStatus?: string;
   trialEndsAt?: Date;
   graceEndsAt?: Date;
@@ -308,6 +309,7 @@ async function loadProfile(
         projection: {
           planKey: 1,
           currency: 1,
+          operationSettings: 1,
           billingStatus: 1,
           trialEndsAt: 1,
           graceEndsAt: 1,
@@ -1128,6 +1130,7 @@ export class ProductCsvService {
               type: "simple",
               optionGroups: [],
               inventoryTracking: true,
+              taxRateBps: profile.operationSettings?.defaultTaxRateBps ?? 0,
               sku: row.sku,
               normalizedSku: row.normalizedSku,
               slug:

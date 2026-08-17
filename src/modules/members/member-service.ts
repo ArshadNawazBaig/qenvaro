@@ -410,6 +410,12 @@ export async function removeTenantMember(
             { tenantId: context.tenantId, membershipId: memberId },
             { session },
           ),
+        database
+          .collection("memberCustomRoleAssignments")
+          .deleteMany(
+            { tenantId: context.tenantId, membershipId: memberId },
+            { session },
+          ),
       ]);
       await writeAudit(
         database,

@@ -9,6 +9,7 @@ import {
   StoreAccessBadges,
 } from "@/components/members/member-management";
 import { PageHeader } from "@/components/shared/page-header";
+import { SettingsNav } from "@/components/settings/settings-nav";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -61,6 +62,7 @@ export default async function MembersPage({
           ) : undefined
         }
       />
+      <SettingsNav tenantSlug={tenantSlug} current="/settings/members" />
       <section className="grid gap-3 sm:grid-cols-3" aria-label="Team summary">
         <Card>
           <CardContent className="flex items-center gap-4">

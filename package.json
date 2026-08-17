@@ -21,6 +21,7 @@
     "test:e2e": "playwright test",
     "db:migrate": "tsx scripts/db/migrate.ts",
     "db:seed": "tsx scripts/db/seed.ts",
+    "db:reconcile-usage": "tsx scripts/db/reconcile-usage.ts",
     "db:reset": "tsx scripts/db/reset.ts",
     "platform:bootstrap-super-admin": "tsx scripts/platform/bootstrap-super-admin.ts"
   },

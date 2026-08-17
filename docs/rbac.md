@@ -4,6 +4,8 @@ Global platform roles and tenant roles are separate. `PLATFORM_SUPER_ADMIN` is s
 
 Tenant roles are Business Owner, Admin, Manager, Cashier, Inventory Manager, HR Manager, Accountant, Employee, and Viewer. Roles expand into resource/action permissions; domain code checks permissions, not role-name branches. Store assignments further narrow applicable actions.
 
+Business and Enterprise tenants may define custom operational roles. These roles supplement a member’s fixed base role and are restricted to a code-owned allowlist. They cannot grant tenant ownership/deletion, billing, membership administration, settings administration, or platform authority, and the assigning actor cannot grant a permission they do not already hold. Assignments are ignored if the tenant later loses the plan feature.
+
 Key restrictions include:
 
 - only owners manage billing, transfer ownership, or request tenant deletion;
@@ -38,4 +40,4 @@ flowchart TD
   Decision -->|no| Denial[Non-revealing denial]
 ```
 
-Break-glass support is a separate, disabled-by-default capability. It requires a reason, short expiry, visible banner, revocation, and append-only audit trail. Platform metadata access alone never implies access to tenant products, customers, sales, or compensation.
+Break-glass support is a separate, disabled-by-default capability. It requires a reason, a 15–120 minute expiry, visible grant state, revocation, and append-only audit trail. Platform metadata access or an active grant alone never creates an unrestricted tenant product, customer, sales, employee, or compensation browser.

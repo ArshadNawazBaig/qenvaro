@@ -2,7 +2,7 @@
 
 Qenvaro uses opaque string identifiers and UTC `Date` values. Better Auth generates canonical UUID strings (rather than BSON UUID values) so organization IDs and application `tenantId` fields have one representation. Every tenant-owned document contains `tenantId`, `createdAt`, `updatedAt`, and relevant actor/version/archive metadata. Store-owned data also contains `storeId`. Money is `{ amountMinor: integer, currency: ISO-4217 }`.
 
-`tenantProfiles` records the regional defaults and current entitlement projection. Signup onboarding creates an explicit 14-day `trialing` projection; active subscriptions and verified webhook projections replace that source later. Expired and suspended projections retain read access but reject mutations. A canceled Stripe subscription retains write access only until its verified current period end.
+`tenantProfiles` records regional/operational defaults, optimistic settings versions, and the current entitlement projection. Signup onboarding creates an explicit 14-day `trialing` projection; active subscriptions and verified webhook projections replace that source later. Expired billing projections become read-only. Platform suspension is stricter: authenticated members are redirected away from normal tenant routes and retain only billing recovery and account-security access. A canceled Stripe subscription retains write access only until its verified current period end.
 
 The dashboard is a read projection rather than a collection. It groups completed `sales` into 7- or 30-day tenant-timezone buckets for the active authorized store, compares at most eight authorized active stores, and reads at most eight allowlisted `auditLogs` from a 90-day window. A missing `grossProfitMinor` on any included sale makes the corresponding profit and margin unavailable rather than treating unknown cost as zero.
 
@@ -10,19 +10,29 @@ The sales report is also a read projection. It groups completed sales by `comple
 
 ## Principal collections
 
-| Area       | Collections                                                                                                                                                                                                                 |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Identity   | Better Auth `user`, `session`, `account`, `verification`, `twoFactor`, `organization`, `member`, `invitation`; `tenantProfiles`, `stores`, `memberStoreAssignments`, `invitationStoreAssignments`, `sessionStoreSelections` |
-| Billing    | Better Auth `subscription`; entitlement fields on `tenantProfiles`; `usageCounters`, `billingEvents`, `webhookEvents`                                                                                                       |
-| Platform   | `platformSessionAssurances`, `platformAuditLogs`; aggregate reads over identity, tenant entitlement, subscription, verified-webhook, and migration metadata                                                                 |
-| Catalog    | `products`, `productVariants`, `productImages`, `categories`, `tags`, `units`, `taxRates`                                                                                                                                   |
-| Inventory  | `inventoryLevels`, `inventoryMovements`, `stockAdjustments`, `stockTransfers`                                                                                                                                               |
-| Sales/CRM  | `customers`, `sales`, `salePayments`, `returns`, `refunds`, `receipts`                                                                                                                                                      |
-| Purchasing | `suppliers`, `purchaseOrders`, `goodsReceipts`                                                                                                                                                                              |
-| People     | `employees`, `attendanceRecords`, `leaveRequests`, `salaryProfiles`, `payrollRuns`, `payrollItems`, `payslips`                                                                                                              |
-| Operations | `expenses`, `notifications`, `auditLogs`, `sequenceCounters`, `productImportPreviews`, `importExportJobs`, `applicationRateLimits`, `mediaCleanupTasks`                                                                     |
+| Area       | Collections                                                                                                                                                                                                                                                                         |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identity   | Better Auth `user`, `session`, `account`, `verification`, `twoFactor`, `organization`, `member`, `invitation`; `tenantProfiles`, `stores`, `memberStoreAssignments`, `invitationStoreAssignments`, `sessionStoreSelections`, `customRoleDefinitions`, `memberCustomRoleAssignments` |
+| Billing    | Better Auth `subscription`; entitlement fields on `tenantProfiles`; `usageCounters`, `billingEvents`, `webhookEvents`                                                                                                                                                               |
+| Platform   | `platformSessionAssurances`, `platformAuditLogs`, `supportAccessGrants`, `platformFeatureFlags`, `tenantFeatureFlagOverrides`, `platformAnnouncements`; metadata reads over identity, tenant entitlement/usage, subscriptions, verified webhooks, and migrations                    |
+| Catalog    | `products`, `productVariants`, `productImages`, `categories`, `tags`, `units`, `taxRates`                                                                                                                                                                                           |
+| Inventory  | `inventoryLevels`, `inventoryMovements`, `stockAdjustments`, `stockTransfers`                                                                                                                                                                                                       |
+| Sales/CRM  | `customers`, `sales`, `salePayments`, `returns`, `refunds`, `receipts`                                                                                                                                                                                                              |
+| Purchasing | `suppliers`, `purchaseOrders`, `goodsReceipts`                                                                                                                                                                                                                                      |
+| People     | `employees`, `attendanceRecords`, `leaveRequests`, `salaryProfiles`, `payrollRuns`, `payrollItems`, `payslips`                                                                                                                                                                      |
+| Operations | `expenses`, `notifications`, `notificationReads`, `tenantDataRequests`, `auditLogs`, `sequenceCounters`, `productImportPreviews`, `importExportJobs`, `applicationRateLimits`, `mediaCleanupTasks`                                                                                  |
 
 Bounded historical snapshots (sale lines, purchase lines, payroll summary lines) are embedded and immutable. Independently queried or frequently updated data stays in separate collections.
+
+`customRoleDefinitions` contains at most 25 active Business/Enterprise roles per tenant, a normalized unique name, an explicit operational-permission allowlist, lifecycle status, and optimistic version. `memberCustomRoleAssignments` is a separate tenant/member/role join. Context resolution ignores assignments after a plan downgrade and filters stored values through the code-owned permission allowlist before merging them with the fixed base role.
+
+Employee records, store assignments, attendance, leave requests, effective salary profiles, payroll runs/items, and finalized payslips remain separate tenant collections. General employee projections never include compensation. Finalized payslips are immutable; reversal produces explicit workflow evidence instead of rewriting the final run.
+
+Purchase orders embed supplier and item snapshots and move through draft, submitted, approved, partially received, received, or canceled states. Each `goodsReceipt` is immutable evidence; receipt posting calls the inventory service so the purchase record, stock movement ledger, level projection, and audit commit atomically. Expenses carry approval status and only approved records enter operational totals. Product and expense receipt media use Cloudinary metadata, generated provider keys, and bounded authenticated upload routes.
+
+Notifications are tenant/audience or recipient scoped. Per-user read state lives in `notificationReads`, avoiding unbounded read arrays on the notification. Active time-bounded `platformAnnouncements` are merged at read time. `tenantDataRequests` represents controlled export/deletion workflows; browser actions never erase a tenant immediately.
+
+Platform support grants retain tenant ID, required reason, grantor, status, grant/expiry/revocation times, and revocation reason. Expired and revoked records remain evidence. Feature-flag definitions and tenant overrides are separate; release flags never bypass plan entitlements or permissions.
 
 Product catalog records carry an integer `version`. Detail reads scope the product, variants, stores, and inventory levels by the server-derived tenant context; inventory totals include only stores authorized for the current membership. Catalog edits compare the submitted expected version inside the transaction, update the product and its default variant together, and increment both versions. Archive is an idempotent product lifecycle transition: it marks the product and linked variants, appends an audit event, and never changes or removes `inventoryLevels` or `inventoryMovements`.
 
@@ -83,7 +93,12 @@ All tenant query indexes begin with `tenantId`. The migration runner creates and
 - `tenantId + saleId + recordedAt` payment history, unique tenant/sale receipt evidence, and unique tenant/store receipt display numbers;
 - unique `tenantId + idempotencyKey` return requests, unique tenant/store return numbers, sale/date return history, unique return refund evidence, and unique entity-typed return receipts;
 - `tenantId + storeId + completedAt` return reporting plus `tenantId + storeId + status + recordedAt` sale-payment and refund reporting;
-- `tenantId + createdAt` append-only audit scans.
+- `tenantId + createdAt` append-only audit scans;
+- unique active custom-role names and tenant/member/custom-role assignments;
+- tenant data-request, notification/read, support-grant, feature-flag/override, announcement, platform-audit-entity, and user-suspension indexes from migrations 24–26;
+- tenant-scoped managed expense-category indexes from migration 27.
+- tenant-scoped tax-rate names and one active default from migration 28.
+- authentication email, provider-account, organization membership, session, and verification lookups from migration 29.
 
 Soft-deleted records use partial unique indexes where MongoDB supports the lifecycle query. Repository tests prove scopes and uniqueness with overlapping tenant data.
 

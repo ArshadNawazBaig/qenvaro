@@ -12,6 +12,7 @@ import {
   BillingPlanPicker,
 } from "@/components/billing/billing-console";
 import { PageHeader } from "@/components/shared/page-header";
+import { SettingsNav } from "@/components/settings/settings-nav";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -57,9 +58,9 @@ export default async function BillingPage({
 }) {
   const { tenantSlug } = await params;
   const { checkout } = await searchParams;
-  const context = await requireTenantContext(tenantSlug).catch(() =>
-    notFound(),
-  );
+  const context = await requireTenantContext(tenantSlug, {
+    allowSuspended: true,
+  }).catch(() => notFound());
   if (!hasPermission(context.permissions, "billing:read")) notFound();
   const canManage = hasPermission(context.permissions, "billing:manage");
   const billing = await getBillingOverview(context);
@@ -80,6 +81,7 @@ export default async function BillingPage({
           ) : undefined
         }
       />
+      <SettingsNav tenantSlug={tenantSlug} current="/settings/billing" />
 
       {checkout === "success" && (
         <div

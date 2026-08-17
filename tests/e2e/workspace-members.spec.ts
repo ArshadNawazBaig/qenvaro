@@ -55,6 +55,7 @@ test.describe("authenticated workspace and member administration", () => {
       "sessionStoreSelections",
       "stores",
       "tenantProfiles",
+      "taxRates",
       "units",
       "products",
       "productVariants",
@@ -237,8 +238,16 @@ test.describe("authenticated workspace and member administration", () => {
     await expect(
       page.getByRole("link", { name: productName, exact: true }),
     ).toBeVisible();
-    await page.getByRole("link", { name: productName, exact: true }).click();
-    await expect(page).toHaveURL(new RegExp(`/products/prd_[A-Za-z0-9_-]+$`));
+    const productLink = page.getByRole("link", {
+      name: productName,
+      exact: true,
+    });
+    await Promise.all([
+      page.waitForURL(new RegExp(`/products/prd_[A-Za-z0-9_-]+$`), {
+        timeout: 20_000,
+      }),
+      productLink.click(),
+    ]);
     await expect(
       page.getByRole("heading", { name: productName, exact: true }),
     ).toBeVisible();

@@ -98,6 +98,7 @@ export class TenantOnboardingService {
     const database = client.db(env.MONGODB_DATABASE);
     const storeId = createOpaqueId("store");
     const unitId = createOpaqueId("uom");
+    const taxRateId = createOpaqueId("tax");
     const assignmentId = createOpaqueId("msa");
     const auditId = createOpaqueId("aud");
     let result: { tenantSlug: string; storeId: string } | undefined;
@@ -170,6 +171,15 @@ export class TenantOnboardingService {
                 version: 1,
               },
             },
+            operationSettings: {
+              defaultTaxRateBps: 0,
+              pricesIncludeTax: false,
+              receiptPrefix: "SALE",
+              returnPrefix: "RET",
+              purchasePrefix: "PO",
+              expensePrefix: "EXP",
+              version: 1,
+            },
             onboardingVersion: 1,
             onboardingCompletedAt: now,
             createdAt: now,
@@ -208,6 +218,24 @@ export class TenantOnboardingService {
             description: "Default unit for individually counted products.",
             status: "active",
             isDefault: true,
+            version: 1,
+            createdAt: now,
+            updatedAt: now,
+            createdBy: identity.userId,
+            updatedBy: identity.userId,
+          },
+          { session },
+        );
+        await database.collection<StringIdDocument>("taxRates").insertOne(
+          {
+            _id: taxRateId,
+            tenantId: identity.tenantId,
+            name: "Standard",
+            normalizedName: "standard",
+            rateBps: 0,
+            pricesIncludeTax: false,
+            isDefault: true,
+            status: "active",
             version: 1,
             createdAt: now,
             updatedAt: now,

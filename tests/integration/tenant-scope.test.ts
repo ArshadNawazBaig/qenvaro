@@ -39,7 +39,7 @@ describe.skipIf(!enabled)("tenant repository isolation", () => {
       });
       await expect(
         database.collection("schemaMigrations").countDocuments(),
-      ).resolves.toBe(21);
+      ).resolves.toBe(29);
     } finally {
       await client.close();
     }

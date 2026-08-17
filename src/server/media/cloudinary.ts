@@ -94,6 +94,45 @@ export async function uploadProductImage(input: {
   return toProductImageUpload(response);
 }
 
+export async function uploadExpenseReceipt(input: {
+  bytes: Buffer;
+  tenantId: string;
+  expenseId: string;
+  receiptId: string;
+}): Promise<CloudinaryProductImageUpload> {
+  configureCloudinary();
+  const response = await new Promise<UploadApiResponse>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: "image",
+        folder: `qenvaro/expenses/${input.tenantId}/${input.expenseId}`,
+        public_id: input.receiptId,
+        unique_filename: false,
+        use_filename: false,
+        overwrite: false,
+        allowed_formats: ["jpg", "jpeg", "png", "webp", "avif"],
+        transformation: [
+          {
+            width: 2400,
+            height: 2400,
+            crop: "limit",
+            quality: "auto:good",
+            flags: "strip_profile",
+          },
+        ],
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else if (!result)
+          reject(new Error("Cloudinary returned no upload result."));
+        else resolve(result);
+      },
+    );
+    stream.end(input.bytes);
+  });
+  return toProductImageUpload(response);
+}
+
 export async function deleteProductImage(publicId: string): Promise<void> {
   configureCloudinary();
   const result = (await cloudinary.uploader.destroy(publicId, {

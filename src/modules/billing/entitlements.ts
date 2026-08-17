@@ -1,4 +1,9 @@
-import { planKeySchema, type PlanKey } from "@/config/plans";
+import {
+  hasPlanFeature,
+  planKeySchema,
+  type PlanFeature,
+  type PlanKey,
+} from "@/config/plans";
 
 export interface BillingAccessProjection {
   planKey: string;
@@ -39,5 +44,16 @@ export class BillingAccessError extends Error {
   constructor() {
     super("Billing access is read-only. Update the subscription to continue.");
     this.name = "BillingAccessError";
+  }
+}
+
+export function requireFeature(plan: PlanKey, feature: PlanFeature): void {
+  if (!hasPlanFeature(plan, feature)) throw new FeatureAccessError(feature);
+}
+
+export class FeatureAccessError extends Error {
+  constructor(public readonly feature: PlanFeature) {
+    super(`The ${feature} feature is not included in this plan.`);
+    this.name = "FeatureAccessError";
   }
 }

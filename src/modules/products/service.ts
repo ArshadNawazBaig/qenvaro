@@ -71,6 +71,7 @@ interface ProductCategoryDocument {
 interface TenantBillingProfile {
   planKey: string;
   currency: string;
+  operationSettings?: { defaultTaxRateBps?: number };
   billingStatus?: string;
   trialEndsAt?: Date;
   graceEndsAt?: Date;
@@ -143,6 +144,7 @@ async function requireWriteProfile(
         projection: {
           planKey: 1,
           currency: 1,
+          operationSettings: 1,
           billingStatus: 1,
           trialEndsAt: 1,
           graceEndsAt: 1,
@@ -322,7 +324,7 @@ export class ProductService {
             type: "simple",
             optionGroups: [],
             inventoryTracking: true,
-            taxRateBps: 0,
+            taxRateBps: profile.operationSettings?.defaultTaxRateBps ?? 0,
             sku: input.sku,
             normalizedSku: input.sku.toUpperCase(),
             slug: input.name

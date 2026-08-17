@@ -1122,6 +1122,457 @@ const migrations: Migration[] = [
       ]);
     },
   },
+  {
+    version: 22,
+    name: "employees attendance leave and operational payroll",
+    run: async (database) => {
+      await indexes(database, "employees", [
+        {
+          key: { tenantId: 1, employeeCode: 1 },
+          name: "tenant_employee_code_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, linkedUserId: 1 },
+          name: "tenant_employee_linked_user_unique",
+          unique: true,
+          partialFilterExpression: { linkedUserId: { $type: "string" } },
+        },
+        {
+          key: {
+            tenantId: 1,
+            storeIds: 1,
+            status: 1,
+            normalizedName: 1,
+            _id: 1,
+          },
+          name: "tenant_store_employee_directory",
+        },
+        {
+          key: { tenantId: 1, status: 1, hireDate: -1, _id: 1 },
+          name: "tenant_employee_lifecycle",
+        },
+      ]);
+      await indexes(database, "attendanceRecords", [
+        {
+          key: { tenantId: 1, employeeId: 1, workDate: 1 },
+          name: "tenant_employee_attendance_day_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, storeId: 1, workDate: -1, _id: 1 },
+          name: "tenant_store_attendance",
+        },
+      ]);
+      await indexes(database, "leaveRequests", [
+        {
+          key: { tenantId: 1, employeeId: 1, createdAt: -1, _id: 1 },
+          name: "tenant_employee_leave",
+        },
+        {
+          key: { tenantId: 1, status: 1, fromDate: 1, _id: 1 },
+          name: "tenant_pending_leave",
+        },
+      ]);
+      await indexes(database, "salaryProfiles", [
+        {
+          key: { tenantId: 1, employeeId: 1, effectiveDate: 1 },
+          name: "tenant_employee_salary_effective_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, employeeId: 1, effectiveDate: -1, createdAt: -1 },
+          name: "tenant_employee_current_salary",
+        },
+      ]);
+      await indexes(database, "payrollRuns", [
+        {
+          key: { tenantId: 1, runNumber: 1 },
+          name: "tenant_payroll_number_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, idempotencyKey: 1 },
+          name: "tenant_payroll_idempotency_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, storeId: 1, createdAt: -1, _id: 1 },
+          name: "tenant_store_payroll_runs",
+        },
+      ]);
+      await indexes(database, "payrollItems", [
+        {
+          key: { tenantId: 1, payrollRunId: 1, employeeId: 1 },
+          name: "tenant_run_employee_payroll_item_unique",
+          unique: true,
+        },
+      ]);
+      await indexes(database, "payslips", [
+        {
+          key: { tenantId: 1, payrollRunId: 1, employeeId: 1 },
+          name: "tenant_run_employee_payslip_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, employeeId: 1, finalizedAt: -1, _id: 1 },
+          name: "tenant_employee_payslips",
+        },
+      ]);
+    },
+  },
+  {
+    version: 23,
+    name: "suppliers purchases receipts and expenses",
+    run: async (database) => {
+      await indexes(database, "suppliers", [
+        {
+          key: { tenantId: 1, supplierCode: 1 },
+          name: "tenant_supplier_code_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, normalizedName: 1 },
+          name: "tenant_supplier_name_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, status: 1, normalizedName: 1, _id: 1 },
+          name: "tenant_supplier_directory",
+        },
+      ]);
+      await indexes(database, "purchaseOrders", [
+        {
+          key: { tenantId: 1, idempotencyKey: 1 },
+          name: "tenant_purchase_idempotency_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, storeId: 1, purchaseOrderNumber: 1 },
+          name: "tenant_store_purchase_number_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, storeId: 1, status: 1, createdAt: -1, _id: 1 },
+          name: "tenant_store_purchase_status",
+        },
+        {
+          key: { tenantId: 1, supplierId: 1, status: 1, createdAt: -1 },
+          name: "tenant_supplier_open_purchases",
+        },
+      ]);
+      await indexes(database, "goodsReceipts", [
+        {
+          key: { tenantId: 1, idempotencyKey: 1 },
+          name: "tenant_goods_receipt_idempotency_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, storeId: 1, goodsReceiptNumber: 1 },
+          name: "tenant_store_goods_receipt_number_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, storeId: 1, receivedAt: -1, _id: 1 },
+          name: "tenant_store_goods_receipts",
+        },
+        {
+          key: { tenantId: 1, purchaseOrderId: 1, receivedAt: -1 },
+          name: "tenant_purchase_goods_receipts",
+        },
+      ]);
+      await indexes(database, "expenses", [
+        {
+          key: { tenantId: 1, idempotencyKey: 1 },
+          name: "tenant_expense_idempotency_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, storeId: 1, expenseNumber: 1 },
+          name: "tenant_store_expense_number_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, storeId: 1, status: 1, expenseDate: -1, _id: 1 },
+          name: "tenant_store_expense_status_date",
+        },
+        {
+          key: {
+            tenantId: 1,
+            status: 1,
+            expenseDate: -1,
+            normalizedCategory: 1,
+          },
+          name: "tenant_expense_reports",
+        },
+      ]);
+    },
+  },
+  {
+    version: 24,
+    name: "tenant settings custom roles notifications and data controls",
+    run: async (database) => {
+      await database
+        .collection("tenantProfiles")
+        .updateMany({ version: { $exists: false } }, { $set: { version: 1 } });
+      await database.collection("tenantProfiles").updateMany(
+        { operationSettings: { $exists: false } },
+        {
+          $set: {
+            operationSettings: {
+              defaultTaxRateBps: 0,
+              pricesIncludeTax: false,
+              receiptPrefix: "SALE",
+              returnPrefix: "RET",
+              purchasePrefix: "PO",
+              expensePrefix: "EXP",
+              version: 1,
+            },
+          },
+        },
+      );
+      await indexes(database, "customRoleDefinitions", [
+        {
+          key: { tenantId: 1, normalizedName: 1 },
+          name: "tenant_custom_role_name_active_unique",
+          unique: true,
+          partialFilterExpression: { status: "active" },
+        },
+        {
+          key: { tenantId: 1, status: 1, name: 1, _id: 1 },
+          name: "tenant_custom_role_directory",
+        },
+      ]);
+      await indexes(database, "memberCustomRoleAssignments", [
+        {
+          key: { tenantId: 1, membershipId: 1, roleId: 1 },
+          name: "tenant_member_custom_role_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, roleId: 1, membershipId: 1 },
+          name: "tenant_custom_role_members",
+        },
+      ]);
+      await indexes(database, "tenantDataRequests", [
+        {
+          key: { tenantId: 1, status: 1, requestedAt: -1, _id: 1 },
+          name: "tenant_data_request_status",
+        },
+      ]);
+      await indexes(database, "notifications", [
+        {
+          key: { tenantId: 1, recipientUserId: 1, createdAt: -1, _id: 1 },
+          name: "tenant_user_notifications",
+        },
+        {
+          key: { tenantId: 1, audience: 1, createdAt: -1, _id: 1 },
+          name: "tenant_audience_notifications",
+        },
+      ]);
+      await indexes(database, "notificationReads", [
+        {
+          key: { tenantId: 1, userId: 1, notificationId: 1 },
+          name: "tenant_user_notification_read_unique",
+          unique: true,
+        },
+      ]);
+      await indexes(database, "platformAnnouncements", [
+        {
+          key: { status: 1, startsAt: -1, endsAt: 1, _id: 1 },
+          name: "platform_announcement_visibility",
+        },
+      ]);
+    },
+  },
+  {
+    version: 25,
+    name: "platform tenant controls flags support and audit",
+    run: async (database) => {
+      await indexes(database, "supportAccessGrants", [
+        {
+          key: { tenantId: 1, status: 1, expiresAt: -1, _id: 1 },
+          name: "tenant_support_access_status",
+        },
+        {
+          key: { status: 1, expiresAt: 1 },
+          name: "platform_support_access_expiry",
+        },
+      ]);
+      await indexes(database, "platformFeatureFlags", [
+        {
+          key: { key: 1 },
+          name: "platform_feature_flag_key_unique",
+          unique: true,
+        },
+        {
+          key: { status: 1, key: 1 },
+          name: "platform_feature_flag_directory",
+        },
+      ]);
+      await indexes(database, "tenantFeatureFlagOverrides", [
+        {
+          key: { flagId: 1, tenantId: 1 },
+          name: "platform_flag_tenant_override_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, flagId: 1 },
+          name: "tenant_feature_flag_overrides",
+        },
+      ]);
+      await indexes(database, "platformAuditLogs", [
+        {
+          key: { entityType: 1, entityId: 1, createdAt: -1 },
+          name: "platform_audit_entity_history",
+        },
+      ]);
+      await indexes(database, "tenantProfiles", [
+        {
+          key: { billingStatus: 1, updatedAt: -1, tenantId: 1 },
+          name: "platform_tenant_status_updated",
+        },
+      ]);
+    },
+  },
+  {
+    version: 26,
+    name: "platform identity suspension visibility",
+    run: async (database) => {
+      await indexes(database, "user", [
+        {
+          key: { banned: 1, banExpires: 1, createdAt: -1 },
+          name: "platform_user_suspension",
+        },
+      ]);
+    },
+  },
+  {
+    version: 27,
+    name: "managed expense category indexes",
+    run: async (database) => {
+      await indexes(database, "expenseCategories", [
+        {
+          key: { tenantId: 1, normalizedName: 1 },
+          name: "tenant_expense_category_name_unique",
+          unique: true,
+        },
+        {
+          key: { tenantId: 1, status: 1, normalizedName: 1 },
+          name: "tenant_expense_category_directory",
+        },
+      ]);
+    },
+  },
+  {
+    version: 28,
+    name: "tenant tax rate model and indexes",
+    run: async (database) => {
+      const profiles = await database
+        .collection<{
+          tenantId: string;
+          operationSettings?: {
+            defaultTaxRateBps?: number;
+            pricesIncludeTax?: boolean;
+          };
+        }>("tenantProfiles")
+        .find(
+          { tenantId: { $type: "string" } },
+          { projection: { tenantId: 1, operationSettings: 1 } },
+        )
+        .toArray();
+      if (profiles.length > 0) {
+        await database.collection("taxRates").bulkWrite(
+          profiles.map((profile) => {
+            const digest = createHash("sha256")
+              .update(`${profile.tenantId}:tax:standard`)
+              .digest("hex");
+            const now = new Date();
+            return {
+              updateOne: {
+                filter: {
+                  tenantId: profile.tenantId,
+                  isDefault: true,
+                  status: "active",
+                },
+                update: {
+                  $setOnInsert: {
+                    _id: `tax_${digest.slice(0, 24)}`,
+                    tenantId: profile.tenantId,
+                    name: "Standard",
+                    normalizedName: "standard",
+                    rateBps: profile.operationSettings?.defaultTaxRateBps ?? 0,
+                    pricesIncludeTax:
+                      profile.operationSettings?.pricesIncludeTax === true,
+                    isDefault: true,
+                    status: "active",
+                    version: 1,
+                    createdAt: now,
+                    updatedAt: now,
+                    createdBy: "migration_28",
+                    updatedBy: "migration_28",
+                  },
+                },
+                upsert: true,
+              },
+            };
+          }),
+        );
+      }
+      await indexes(database, "taxRates", [
+        {
+          key: { tenantId: 1, normalizedName: 1 },
+          name: "tenant_tax_rate_name_active_unique",
+          unique: true,
+          partialFilterExpression: { status: "active" },
+        },
+        {
+          key: { tenantId: 1, isDefault: 1 },
+          name: "tenant_default_tax_rate_unique",
+          unique: true,
+          partialFilterExpression: { status: "active", isDefault: true },
+        },
+        {
+          key: { tenantId: 1, status: 1, normalizedName: 1 },
+          name: "tenant_tax_rate_directory",
+        },
+      ]);
+    },
+  },
+  {
+    version: 29,
+    name: "authentication identity integrity indexes",
+    run: async (database) => {
+      await indexes(database, "user", [
+        { key: { email: 1 }, name: "auth_user_email_unique", unique: true },
+      ]);
+      await indexes(database, "account", [
+        {
+          key: { providerId: 1, accountId: 1 },
+          name: "auth_provider_account_unique",
+          unique: true,
+        },
+        { key: { userId: 1 }, name: "auth_accounts_by_user" },
+      ]);
+      await indexes(database, "member", [
+        {
+          key: { organizationId: 1, userId: 1 },
+          name: "organization_user_membership_unique",
+          unique: true,
+        },
+      ]);
+      await indexes(database, "session", [
+        { key: { token: 1 }, name: "auth_session_token_unique", unique: true },
+        { key: { userId: 1, expiresAt: 1 }, name: "auth_user_sessions" },
+      ]);
+      await indexes(database, "verification", [
+        {
+          key: { identifier: 1, expiresAt: 1 },
+          name: "auth_verification_identifier_expiry",
+        },
+      ]);
+    },
+  },
 ];
 
 async function main() {

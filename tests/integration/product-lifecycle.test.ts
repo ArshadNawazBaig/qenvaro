@@ -51,6 +51,7 @@ describe.skipIf(!enabled)("product lifecycle transaction", () => {
       planKey: "growth",
       billingStatus: "trialing",
       trialEndsAt: new Date(now.getTime() + 86_400_000),
+      operationSettings: { defaultTaxRateBps: 1_250 },
       createdAt: now,
       updatedAt: now,
     });
@@ -118,6 +119,14 @@ describe.skipIf(!enabled)("product lifecycle transaction", () => {
     });
     expect(detail?.variants).toHaveLength(1);
     expect(crossTenant).toBeNull();
+    await expect(
+      database
+        .collection<StringIdDocument>("products")
+        .findOne(
+          { _id: productId, tenantId },
+          { projection: { taxRateBps: 1 } },
+        ),
+    ).resolves.toMatchObject({ taxRateBps: 1_250 });
   });
 
   it("updates product and default variant atomically and audits the change", async () => {

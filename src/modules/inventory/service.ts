@@ -368,7 +368,8 @@ async function appendMovement(
       | "stock_transfer"
       | "product"
       | "sale"
-      | "sale_return";
+      | "sale_return"
+      | "purchase_order";
     sourceId: string;
     note: string;
     idempotencyKey: string;
@@ -1143,6 +1144,110 @@ export class InventoryService {
         sourceType: "sale",
         sourceId: input.saleId,
         note: `Sale ${input.receiptNumber}`,
+        idempotencyKey: `${input.idempotencyKey}:movement:${index}`,
+        now: input.now,
+      });
+      results.push({ variantId: line.variantId, resultingQuantity });
+    }
+    return results;
+  }
+
+  async recordPurchaseReceiptInTransaction(
+    database: Db,
+    session: ClientSession,
+    context: TenantContext,
+    input: {
+      purchaseOrderId: string;
+      purchaseOrderNumber: string;
+      storeId: string;
+      lines: Array<{
+        productId: string;
+        variantId: string;
+        quantity: number;
+      }>;
+      idempotencyKey: string;
+      now: Date;
+    },
+  ): Promise<Array<{ variantId: string; resultingQuantity: number }>> {
+    requirePermission(context.permissions, "purchase:receive");
+    if (input.lines.length === 0) return [];
+    await loadWriteProfile(database, context.tenantId, session);
+    await requireActiveStores(database, session, context, [input.storeId]);
+    const variantIds = input.lines.map((line) => line.variantId);
+    const { variantById, productById } = await loadVariantProducts(
+      database,
+      session,
+      context,
+      variantIds,
+    );
+    const results: Array<{
+      variantId: string;
+      resultingQuantity: number;
+    }> = [];
+    for (const [index, line] of input.lines.entries()) {
+      const variant = variantById.get(line.variantId);
+      const product = variant && productById.get(variant.productId);
+      if (
+        !variant ||
+        !product ||
+        product._id !== line.productId ||
+        product.status === "archived" ||
+        variant.status === "archived" ||
+        !productAvailableAtStore(product, input.storeId)
+      )
+        throw new InventoryProductUnavailableError(
+          "A purchase item is no longer available at the receiving store.",
+        );
+      const current = await loadLevel(
+        database,
+        session,
+        context,
+        input.storeId,
+        line.variantId,
+      );
+      const previousQuantity = current?.quantity ?? 0;
+      const resultingQuantity = previousQuantity + line.quantity;
+      if (!Number.isSafeInteger(resultingQuantity))
+        throw new InventoryProductUnavailableError(
+          "The received stock quantity is outside the supported range.",
+        );
+      await writeLevel(database, session, context, {
+        storeId: input.storeId,
+        variantId: line.variantId,
+        current,
+        expectedVersion: current?.version ?? (current ? 1 : 0),
+        newQuantity: resultingQuantity,
+        now: input.now,
+      });
+      const productUpdate = await database
+        .collection<ProductDocument>("products")
+        .updateOne(
+          {
+            _id: product._id,
+            tenantId: context.tenantId,
+            stock: { $ne: null },
+            inventoryTracking: { $ne: false },
+            status: { $ne: "archived" },
+            deletedAt: { $exists: false },
+          },
+          {
+            $inc: { stock: line.quantity },
+            $set: { updatedAt: input.now, updatedBy: context.userId },
+          },
+          { session },
+        );
+      if (productUpdate.matchedCount !== 1)
+        throw new InventoryProductUnavailableError();
+      await appendMovement(database, session, context, {
+        storeId: input.storeId,
+        productId: product._id,
+        variantId: line.variantId,
+        type: "purchase_receipt",
+        quantityDelta: line.quantity,
+        resultingQuantity,
+        sourceType: "purchase_order",
+        sourceId: input.purchaseOrderId,
+        note: `Purchase receipt ${input.purchaseOrderNumber}`,
         idempotencyKey: `${input.idempotencyKey}:movement:${index}`,
         now: input.now,
       });

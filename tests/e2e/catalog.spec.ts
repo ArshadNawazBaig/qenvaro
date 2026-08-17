@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+test.setTimeout(120_000);
+
 test("public landing and product demo are usable", async ({ page }) => {
   await page.goto("/");
   await expect(
@@ -229,7 +231,9 @@ test("demo sales reporting is responsive and returns-aware", async ({
   await expect(page.getByText("Product contribution")).toBeVisible();
   await page.getByRole("button", { name: "7 days" }).click();
   await expect(page).toHaveURL(/range=7d/);
-  await page.getByLabel("Report store").selectOption("demo-west");
+  const reportStore = page.getByLabel("Report store");
+  await expect(reportStore).toBeEnabled();
+  await reportStore.selectOption("demo-west");
   await expect(page).toHaveURL(/store=demo-west/);
   await expect(
     page.locator("p:visible", { hasText: /^West Harbor$/ }),
@@ -243,4 +247,174 @@ test("demo sales reporting is responsive and returns-aware", async ({
     ),
   ).toBe(0);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
+
+test("demo workforce and payroll are responsive and access-honest", async ({
+  page,
+}) => {
+  await page.goto("/app/demo/employees");
+  await expect(
+    page.getByRole("heading", { name: "Employees", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("General employee records exclude compensation values"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "New employee" }),
+  ).toBeDisabled();
+  await page
+    .getByRole("link", { name: "Attendance", exact: true })
+    .last()
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Attendance", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Record attendance" }),
+  ).toBeDisabled();
+  await page.getByRole("link", { name: "Leave", exact: true }).last().click();
+  await expect(
+    page.getByRole("heading", { name: "Leave", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Request leave" }),
+  ).toBeDisabled();
+  await page.getByRole("link", { name: "Payroll", exact: true }).last().click();
+  await expect(
+    page.getByRole("heading", { name: "Payroll", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("Operational payroll only.")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Prepare payroll" }),
+  ).toBeDisabled();
+  await page.setViewportSize({ width: 320, height: 700 });
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(0);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
+
+test("demo purchasing and expenses are responsive and state-aware", async ({
+  page,
+}) => {
+  await page.goto("/app/demo/suppliers");
+  await expect(
+    page.getByRole("heading", { name: "Suppliers", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "New supplier" }),
+  ).toBeDisabled();
+  await page
+    .getByRole("link", { name: "Purchases", exact: true })
+    .last()
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Purchase orders", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("PO-000314", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "New purchase order" }),
+  ).toBeDisabled();
+  await page
+    .getByRole("link", { name: "Expenses", exact: true })
+    .last()
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Expenses", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("EXP-000481", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "New expense" }),
+  ).toBeDisabled();
+  await page
+    .getByRole("link", { name: "Operations report", exact: true })
+    .last()
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Purchasing & expenses", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Operations report summary")).toBeVisible();
+  await expect(
+    page.getByText(/not a statutory accounting statement/i),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 700 });
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(0);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
+
+test("demo settings, notifications, and governance are responsive", async ({
+  page,
+}) => {
+  await page.goto("/app/demo/settings/business");
+  await expect(
+    page.getByRole("heading", {
+      name: "Business profile",
+      exact: true,
+      level: 1,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Save business profile" }),
+  ).toBeDisabled();
+  await page.getByRole("link", { name: "Stores", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Stores", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "New store" })).toBeDisabled();
+  await page
+    .getByRole("link", { name: "Security & data", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Security, integrations and data",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "Account security mutations are disabled in the public demo.",
+    ),
+  ).toBeVisible();
+  await page.goto("/app/demo/notifications");
+  await expect(
+    page.getByRole("heading", { name: "Notifications", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("Low stock requires attention")).toBeVisible();
+  await page.goto("/app/demo/audit-log");
+  await expect(
+    page.getByRole("heading", { name: "Audit log", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Advanced audit requires Business"),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 700 });
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(0);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
+
+test("public legal placeholders are explicit and accessible", async ({
+  page,
+}) => {
+  for (const path of ["/privacy", "/terms"]) {
+    await page.goto(path);
+    await expect(page.getByText("Legal review required")).toBeVisible();
+    await expect(page.getByText(/implementation placeholder/i)).toBeVisible();
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  }
 });

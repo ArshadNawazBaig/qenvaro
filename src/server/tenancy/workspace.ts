@@ -35,6 +35,13 @@ export interface WorkspaceShellData {
   canCreateSales: boolean;
   canViewSales: boolean;
   canViewReports: boolean;
+  canViewEmployees: boolean;
+  canViewAttendance: boolean;
+  canViewPayroll: boolean;
+  canViewPurchasing: boolean;
+  canViewExpenses: boolean;
+  canViewSettings: boolean;
+  canViewAudit: boolean;
   isDemo: boolean;
 }
 
@@ -138,6 +145,22 @@ export async function getWorkspaceShellData(
     canCreateSales: hasPermission(context.permissions, "sale:create"),
     canViewSales: hasPermission(context.permissions, "sale:read"),
     canViewReports: hasPermission(context.permissions, "report:read"),
+    canViewEmployees:
+      hasPermission(context.permissions, "employee:read") ||
+      hasPermission(context.permissions, "employee:readOwn"),
+    canViewAttendance:
+      hasPermission(context.permissions, "attendance:read") ||
+      hasPermission(context.permissions, "attendance:readOwn"),
+    canViewPayroll:
+      hasPermission(context.permissions, "payroll:read") ||
+      hasPermission(context.permissions, "payroll:readOwn"),
+    canViewPurchasing:
+      plan.features.has("purchasing") &&
+      (hasPermission(context.permissions, "supplier:read") ||
+        hasPermission(context.permissions, "purchase:read")),
+    canViewExpenses: hasPermission(context.permissions, "expense:read"),
+    canViewSettings: hasPermission(context.permissions, "settings:read"),
+    canViewAudit: hasPermission(context.permissions, "audit:read"),
     isDemo: false,
   };
 }

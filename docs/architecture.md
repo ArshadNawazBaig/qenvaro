@@ -39,6 +39,12 @@ Sales history is a bounded tenant/store-scoped Server Component read. A return s
 
 Sales reporting is a read-only Server Component over a dedicated repository and shared tenant-calendar period utility. Every aggregation starts with trusted tenant, active assigned-store, status, and bounded date filters. Sales and returns are aggregated independently by their event timestamps and merged into serializable daily, method, store, product, and paginated transaction projections. Recharts remains isolated to a narrow Client Component with a complete screen-reader table; URL period/store controls are the only interactive reporting client boundary.
 
+Workforce and purchasing use the same service boundary. Employee directories omit compensation, while salary/payroll services require separate permissions and write only safe counts/state to audits. Purchase receiving delegates stock changes to the inventory service inside the same transaction; approved expense reporting reads only immutable approval evidence.
+
+Tenant settings keep business identity, regional values, tax/numbering/inventory policy, stores, custom roles, security posture, and controlled data requests in scoped services with optimistic versions. Custom role permissions are code-allowlisted and merged during trusted context resolution only when the current plan includes the feature.
+
+The platform control plane has its own exact global role and session-assurance context. Its repositories return identity, tenant metadata/usage, subscription, verified-webhook, flag, announcement, audit, and health projections. Mutations cover identity or tenant suspension, support grants, flags, and announcements with required reasons and append-only platform audit. There is intentionally no platform tenant-record browser.
+
 First-workspace onboarding uses Better Auth to create the organization and owner membership, sets that organization on the authenticated session, then commits the tenant profile, first store, owner store assignment, signup-trial projection, and audit entry in one MongoDB transaction. A failed application transaction compensates by removing the just-created organization, so partial workspaces are not retained.
 
 ## Module boundary

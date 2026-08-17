@@ -1,21 +1,36 @@
 # Qenvaro
 
-Qenvaro is a multi-tenant retail and service operations SaaS built as a Next.js modular monolith. The current delivery covers secure tenancy foundations plus polished catalog, inventory, customer, dashboard, point-of-sale, sales-history, return/refund, and sales-reporting slices; progress is tracked honestly in [PLANS.md](./PLANS.md).
+Qenvaro is a production-oriented, multi-tenant retail and service operations SaaS built as a Next.js modular monolith. It includes secure identity and billing, catalog and inventory, customers and sales, workforce and operational payroll, purchasing and expenses, tenant governance, and a protected platform control plane.
 
 ## Quick start
 
 1. Install Node.js 22+ and pnpm 11.
-2. Copy `.env.example` to `.env.local` and set a random `BETTER_AUTH_SECRET`.
-3. Start MongoDB and Mailpit with `docker compose up -d`.
+2. Copy `.env.example` to `.env.local` and set a random 32+ character `BETTER_AUTH_SECRET`.
+3. Run `docker compose up -d` to start the MongoDB replica set and Mailpit.
 4. Run `pnpm install`, `pnpm db:migrate`, and `pnpm db:seed`.
-5. Start the app with `pnpm dev` and visit `http://localhost:3000`.
+5. Start with `pnpm dev` and open `http://localhost:3000`.
 
-The UI can be previewed without MongoDB using its deterministic development demo, including read-only product details, images, categories, tags, units of measure, option groups, variants, customers, point of sale, sales history, inventory history, availability, low-stock alerts, and 7/30-day dashboard reporting. Authenticated dashboards project live active-store sales trends, authorized-store comparisons, and allowlisted recent audit activity with explicit empty and permission states. Live tenants can create, inspect, edit, and archive products at `/app/{tenantSlug}/products`, manage customer profiles at `/app/{tenantSlug}/customers`, complete sales at `/app/{tenantSlug}/sales/new`, and find completed receipts at `/app/{tenantSlug}/sales`. Controlled partial or final returns start from an original receipt, allocate its immutable discount and tax cumulatively, record an explicit refund method and return receipt, restore tracked stock, and update revenue in one transaction. Catalog imports and exports remain bounded by plan, and Cloudinary-hosted galleries are managed from each product detail screen. Inventory includes low-stock visibility, immutable adjustments, inter-store transfers, guarded availability, optimistic stock checks, atomic projections and ledger events, and audited idempotent retry. Mutations, authentication, billing projections, platform security, and tenant isolation tests require the replica set. Catalog and customer edits use optimistic concurrency. Historical product and variant snapshots remain available to completed-sale returns after archive. Product image uploads remain safely disabled until all three server-only `CLOUDINARY_*` credentials are configured. The tenant billing console is available at `/app/{tenantSlug}/settings/billing`; without Stripe test credentials it remains safely read-only.
+The explicit `/app/demo` workspace provides responsive, read-only product, inventory, sales, workforce, purchasing, report, notification, and settings surfaces without authorizing mutations. Authenticated workspaces always use database-backed membership, permission, store, plan, and tenant scope.
 
-Database-backed checks run with `RUN_INTEGRATION_TESTS=true pnpm test:integration`. The authenticated onboarding, workspace/team/billing/product/category/unit/customer/sale/return/CSV lifecycle, and platform-2FA browser flows run on desktop and mobile with `RUN_ONBOARDING_E2E=true RUN_WORKSPACE_E2E=true RUN_PLATFORM_E2E=true pnpm test:e2e`; they create isolated identities and remove them afterward. Tag, variant, and product-image lifecycle behavior is covered by the integration suite, while their responsive read-only surfaces are covered by the catalog browser test. Mailpit is available at `http://localhost:8025` for local verification, reset, and invitation messages.
+## Useful commands
 
-To bootstrap a platform super administrator, first create and verify the account, put its normalized email in the server-only `SUPER_ADMIN_EMAILS` setting, and run `pnpm platform:bootstrap-super-admin`. The command accepts no email argument, promotes only verified configured accounts, revokes their existing sessions, and records an idempotent platform audit. After signing in again, visit `/platform`; the security gateway requires authenticator enrollment and current-session verification before any aggregate platform metadata is loaded.
+```bash
+pnpm dev
+pnpm lint
+pnpm typecheck
+pnpm test
+RUN_INTEGRATION_TESTS=true pnpm test:integration
+pnpm test:e2e
+pnpm build
+pnpm db:migrate
+pnpm db:seed
+pnpm db:reconcile-usage
+```
 
-The dedicated sales-performance workspace at `/app/{tenantSlug}/reports/sales` provides 7/30/90-day tenant-calendar periods, assigned-store selection, returns-aware gross/net/refund/profit summaries, payment and refund mix, store and product contribution, and a bounded combined transaction drill-down. It is available in the deterministic development demo and requires `report:read` for live tenants.
+`db:seed` and `db:reset` refuse production. The seed always creates deterministic verified identities for the platform administrator and Northstar owner, administrator, manager, cashier, inventory manager, HR manager, accountant, and employee roles. Set a local `DEVELOPMENT_SEED_PASSWORD` (12+ characters) before seeding to add credential accounts for those users; the owner login is `owner@northstar.example.test`, and the same owner belongs to both seeded businesses. The platform identity is `platform@qenvaro.example.test` and still requires TOTP before platform access. Without that environment value, identity and membership fixtures are created without reusable credentials. `db:reconcile-usage` is a safe administrative reconciliation for store, product, and member/invitation quota counters.
 
-See [deployment](./docs/deployment.md), [architecture](./docs/architecture.md), and [security](./docs/security.md) for production configuration.
+Product and expense-receipt uploads use Cloudinary when all three `CLOUDINARY_*` server credentials are configured. Stripe is exclusively for Qenvaro organization subscriptions; verified webhooks—not redirect URLs—control entitlements. Without provider credentials, the relevant controls remain safely disabled.
+
+To bootstrap a platform super administrator, create and verify the account normally, add its normalized email to server-only `SUPER_ADMIN_EMAILS`, run `pnpm platform:bootstrap-super-admin`, sign in again, and visit `/platform`. The command accepts no email argument, revokes old sessions, and emits an idempotent audit. Platform access then requires TOTP enrollment and current-session verification.
+
+See [PLANS.md](./PLANS.md), [architecture](./docs/architecture.md), [data model](./docs/data-model.md), [authorization](./docs/rbac.md), [security](./docs/security.md), and [deployment](./docs/deployment.md).

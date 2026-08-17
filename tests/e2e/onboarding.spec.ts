@@ -47,6 +47,8 @@ test.describe("authenticated first-workspace onboarding", () => {
       "memberStoreAssignments",
       "stores",
       "tenantProfiles",
+      "taxRates",
+      "units",
       "products",
       "productVariants",
       "inventoryMovements",
@@ -139,7 +141,14 @@ test.describe("authenticated first-workspace onboarding", () => {
     await expect(page).toHaveURL(new RegExp(`/app/${slug}$`), {
       timeout: 20_000,
     });
-    await expect(page.getByText(/Rivera Atelier · Last 7 days/)).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Business overview" }),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByRole("group", { name: "Dashboard reporting period" })
+        .getByRole("link", { name: "7 days" }),
+    ).toHaveAttribute("aria-current", "page");
     if (testInfo.project.name === "mobile")
       await page.getByRole("button", { name: "Open navigation" }).click();
     await expect(
@@ -148,7 +157,9 @@ test.describe("authenticated first-workspace onboarding", () => {
       }),
     ).toBeVisible();
     await expect(
-      page.getByText("Live tenant data", { exact: true }),
+      page
+        .getByRole("region", { name: "Dashboard performance" })
+        .getByText("Live data", { exact: true }),
     ).toBeVisible();
 
     const user = await database

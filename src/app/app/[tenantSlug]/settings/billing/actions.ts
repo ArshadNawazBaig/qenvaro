@@ -54,7 +54,9 @@ function verifiedRedirectUrl(value: string | null): string {
 }
 
 async function requireBillingManager(tenantSlug: string) {
-  const context = await requireTenantContext(tenantSlug);
+  const context = await requireTenantContext(tenantSlug, {
+    allowSuspended: true,
+  });
   requirePermission(context.permissions, "billing:manage");
   return context;
 }

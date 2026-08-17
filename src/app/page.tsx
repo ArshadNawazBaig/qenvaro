@@ -36,6 +36,9 @@ export default function HomePage() {
           <a href="#security" className="hover:text-foreground">
             Security
           </a>
+          <a href="#faq" className="hover:text-foreground">
+            FAQ
+          </a>
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <Button variant="ghost" asChild>
@@ -180,11 +183,66 @@ export default function HomePage() {
           Clarity that compounds.
         </h2>
         <p className="text-muted-foreground mt-3 max-w-2xl">
-          Qenvaro is being built in complete, secure vertical slices. Explore
-          the working catalog experience while the broader operations roadmap
-          advances.
+          Run catalog, inventory, sales, purchasing, people, payroll, and
+          operational reporting in one tenant-isolated workspace—with verified
+          billing and auditable controls at every sensitive boundary.
         </p>
       </section>
+      <section id="faq" className="border-t">
+        <div className="mx-auto max-w-4xl px-5 py-20 lg:px-8">
+          <div className="text-center">
+            <p className="text-primary text-sm font-semibold">FAQ</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight">
+              Practical answers before you start.
+            </h2>
+          </div>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+            {[
+              [
+                "Can one account manage several businesses?",
+                "Yes. Membership-authorized business switching and store-scoped access are built in.",
+              ],
+              [
+                "Does Qenvaro process customer card payments?",
+                "No. Stripe is used only for the Qenvaro SaaS subscription. Store payments are recorded methods.",
+              ],
+              [
+                "Is payroll jurisdiction compliant?",
+                "Payroll is operational and does not claim jurisdiction-specific tax or statutory compliance.",
+              ],
+              [
+                "How is tenant data protected?",
+                "Server authorization, tenant/store query scope, transactional ledgers, secure uploads, and audit trails provide defense in depth.",
+              ],
+            ].map(([question, answer]) => (
+              <Card key={question} className="p-5">
+                <h3 className="font-semibold">{question}</h3>
+                <p className="text-muted-foreground mt-2 text-sm leading-6">
+                  {answer}
+                </p>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+      <footer className="border-t">
+        <div className="text-muted-foreground mx-auto flex max-w-7xl flex-col gap-3 px-5 py-8 text-sm sm:flex-row sm:items-center lg:px-8">
+          <p>
+            © {new Date().getUTCFullYear()} {brand.name}
+          </p>
+          <nav className="flex gap-5 sm:ml-auto" aria-label="Legal navigation">
+            <Link href="/privacy" className="hover:text-foreground">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-foreground">
+              Terms
+            </Link>
+            <Link href="/pricing" className="hover:text-foreground">
+              Pricing
+            </Link>
+          </nav>
+        </div>
+      </footer>
     </main>
   );
 }

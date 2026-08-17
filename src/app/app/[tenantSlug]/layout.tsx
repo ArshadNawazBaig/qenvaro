@@ -15,7 +15,9 @@ export default async function TenantLayout({
   let workspace;
   if (env.MONGODB_URI) {
     try {
-      const context = await requireTenantContext(tenantSlug);
+      const context = await requireTenantContext(tenantSlug, {
+        allowSuspended: true,
+      });
       workspace = await getWorkspaceShellData(context);
     } catch {
       if (env.NODE_ENV === "production") notFound();

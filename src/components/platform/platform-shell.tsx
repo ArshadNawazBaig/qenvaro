@@ -2,12 +2,19 @@
 
 import {
   Activity,
+  Building2,
+  CreditCard,
+  Flag,
+  History,
   LayoutDashboard,
   LogOut,
   Menu,
   Moon,
   ShieldCheck,
   Sun,
+  UsersRound,
+  Webhook,
+  Megaphone,
   X,
 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -33,6 +40,23 @@ interface PlatformShellProps {
 
 const navigation = [
   { label: "Overview", icon: LayoutDashboard, href: "/platform" },
+  { label: "Tenants", icon: Building2, href: "/platform/tenants" },
+  { label: "Users", icon: UsersRound, href: "/platform/users" },
+  { label: "Plans", icon: CreditCard, href: "/platform/plans" },
+  {
+    label: "Subscriptions",
+    icon: CreditCard,
+    href: "/platform/subscriptions",
+  },
+  { label: "Webhooks", icon: Webhook, href: "/platform/webhooks" },
+  { label: "Feature flags", icon: Flag, href: "/platform/feature-flags" },
+  {
+    label: "Announcements",
+    icon: Megaphone,
+    href: "/platform/announcements",
+  },
+  { label: "System health", icon: Activity, href: "/platform/system" },
+  { label: "Audit log", icon: History, href: "/platform/audit-log" },
   { label: "Security", icon: ShieldCheck, href: "/platform/security" },
 ] as const;
 
@@ -65,7 +89,10 @@ function PlatformNavigation({ close }: { close?: () => void }) {
           <ShieldCheck className="size-3" /> Restricted area
         </Badge>
       </div>
-      <nav className="flex-1 space-y-1 px-3" aria-label="Platform navigation">
+      <nav
+        className="flex-1 space-y-1 overflow-y-auto px-3"
+        aria-label="Platform navigation"
+      >
         <p className="text-muted-foreground px-2 pb-2 text-[11px] font-semibold tracking-wider uppercase">
           Control plane
         </p>

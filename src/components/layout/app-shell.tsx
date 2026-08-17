@@ -4,19 +4,24 @@ import {
   Bell,
   Boxes,
   Building2,
+  CalendarCheck2,
+  CalendarDays,
   Check,
   ChevronDown,
   CircleHelp,
   ChartNoAxesCombined,
+  ClipboardList,
   ContactRound,
   CreditCard,
   FolderTree,
+  History,
   LayoutDashboard,
   Menu,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
   ReceiptText,
+  Receipt,
   Ruler,
   Search,
   Settings,
@@ -24,9 +29,11 @@ import {
   Store,
   Sun,
   Tags,
+  TrendingUp,
   UserRound,
   UsersRound,
   Warehouse,
+  WalletCards,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -68,7 +75,14 @@ interface NavigationItem {
 }
 
 interface NavigationGroup {
-  id: "overview" | "catalog" | "inventory" | "sales" | "manage";
+  id:
+    | "overview"
+    | "catalog"
+    | "inventory"
+    | "sales"
+    | "people"
+    | "operations"
+    | "manage";
   label: string;
   items: NavigationItem[];
 }
@@ -98,6 +112,13 @@ const demoWorkspace: WorkspaceShellData = {
   canCreateSales: true,
   canViewSales: true,
   canViewReports: true,
+  canViewEmployees: true,
+  canViewAttendance: true,
+  canViewPayroll: true,
+  canViewPurchasing: true,
+  canViewExpenses: true,
+  canViewSettings: true,
+  canViewAudit: true,
   isDemo: true,
 };
 
@@ -131,6 +152,8 @@ function SidebarContent({
     catalog: true,
     inventory: true,
     sales: true,
+    people: true,
+    operations: true,
     manage: true,
   });
   const base = `/app/${tenantSlug}`;
@@ -138,7 +161,10 @@ function SidebarContent({
     {
       id: "overview",
       label: "Overview",
-      items: [{ label: "Dashboard", icon: LayoutDashboard, href: "" }],
+      items: [
+        { label: "Dashboard", icon: LayoutDashboard, href: "" },
+        { label: "Notifications", icon: Bell, href: "/notifications" },
+      ],
     },
     {
       id: "catalog",
@@ -210,6 +236,56 @@ function SidebarContent({
       ],
     },
     {
+      id: "people",
+      label: "People",
+      items: [
+        ...(workspace.canViewEmployees
+          ? [{ label: "Employees", icon: UserRound, href: "/employees" }]
+          : []),
+        ...(workspace.canViewAttendance
+          ? [
+              {
+                label: "Attendance",
+                icon: CalendarCheck2,
+                href: "/attendance",
+              },
+              { label: "Leave", icon: CalendarDays, href: "/leave" },
+            ]
+          : []),
+        ...(workspace.canViewPayroll
+          ? [{ label: "Payroll", icon: WalletCards, href: "/payroll" }]
+          : []),
+      ],
+    },
+    {
+      id: "operations",
+      label: "Operations",
+      items: [
+        ...(workspace.canViewPurchasing
+          ? [
+              { label: "Suppliers", icon: Building2, href: "/suppliers" },
+              {
+                label: "Purchases",
+                icon: ClipboardList,
+                href: "/purchases",
+              },
+            ]
+          : []),
+        ...(workspace.canViewExpenses
+          ? [{ label: "Expenses", icon: Receipt, href: "/expenses" }]
+          : []),
+        ...(workspace.canViewReports
+          ? [
+              {
+                label: "Operations report",
+                icon: TrendingUp,
+                href: "/reports/operations",
+              },
+            ]
+          : []),
+      ],
+    },
+    {
       id: "manage",
       label: "Manage",
       items: [
@@ -230,6 +306,18 @@ function SidebarContent({
                 href: "/settings/billing",
               },
             ]
+          : []),
+        ...(workspace.canViewSettings
+          ? [
+              {
+                label: "Business settings",
+                icon: Settings,
+                href: "/settings/business",
+              },
+            ]
+          : []),
+        ...(workspace.canViewAudit
+          ? [{ label: "Audit log", icon: History, href: "/audit-log" }]
           : []),
       ],
     },

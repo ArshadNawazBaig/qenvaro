@@ -29,3 +29,10 @@ export class TenantNotFoundError extends Error {
     this.name = "TenantNotFoundError";
   }
 }
+
+export class TenantSuspendedError extends Error {
+  constructor() {
+    super("This business is suspended. Billing recovery remains available.");
+    this.name = "TenantSuspendedError";
+  }
+}
