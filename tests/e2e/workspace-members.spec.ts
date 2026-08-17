@@ -1346,15 +1346,12 @@ test.describe("authenticated workspace and member administration", () => {
       page.getByText("Taylor Teammate", { exact: true }),
     ).toHaveCount(0);
 
-    if (testInfo.project.name === "mobile")
-      await page.getByRole("button", { name: "Open navigation" }).click();
-    let activeSidebar = page.locator("aside:visible");
-    await activeSidebar
+    await page
       .getByRole("button", { name: /Switch store\. Current store:/ })
       .click();
     await page.getByRole("menuitem").filter({ hasText: "Warehouse" }).click();
     await expect(
-      activeSidebar.getByRole("button", {
+      page.getByRole("button", {
         name: "Switch store. Current store: Warehouse",
       }),
     ).toBeVisible();
@@ -1367,6 +1364,9 @@ test.describe("authenticated workspace and member administration", () => {
       )
       .toBe(1);
 
+    if (testInfo.project.name === "mobile")
+      await page.getByRole("button", { name: "Open navigation" }).click();
+    let activeSidebar = page.locator("aside:visible");
     await activeSidebar
       .getByRole("button", { name: "Switch business" })
       .click();

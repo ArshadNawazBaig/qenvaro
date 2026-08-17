@@ -157,10 +157,8 @@ test.describe("authenticated first-workspace onboarding", () => {
         .getByRole("group", { name: "Dashboard reporting period" })
         .getByRole("link", { name: "7 days" }),
     ).toHaveAttribute("aria-current", "page");
-    if (testInfo.project.name === "mobile")
-      await page.getByRole("button", { name: "Open navigation" }).click();
     await expect(
-      page.locator("aside:visible").getByRole("button", {
+      page.getByRole("button", {
         name: "Switch store. Current store: Clifton Store",
       }),
     ).toBeVisible();

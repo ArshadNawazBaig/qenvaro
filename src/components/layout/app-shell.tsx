@@ -26,7 +26,6 @@ import {
   Search,
   Settings,
   ShoppingCart,
-  Store,
   Sun,
   Tags,
   TrendingUp,
@@ -42,12 +41,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
-import {
-  switchBusinessAction,
-  switchStoreAction,
-} from "@/app/app/[tenantSlug]/workspace-actions";
+import { switchBusinessAction } from "@/app/app/[tenantSlug]/workspace-actions";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { HeaderStoreSwitcher } from "@/components/layout/header-store-switcher";
+import { SidebarPlanCard } from "@/components/layout/sidebar-plan-card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -360,18 +358,6 @@ function SidebarContent({
     });
   }
 
-  function switchStore(storeId: string) {
-    if (workspace.isDemo || storeId === workspace.activeStoreId) return;
-    startSwitching(async () => {
-      try {
-        await switchStoreAction(tenantSlug, storeId);
-        router.refresh();
-      } catch {
-        toast.error("We could not switch stores. Try again.");
-      }
-    });
-  }
-
   return (
     <>
       <div
@@ -519,84 +505,16 @@ function SidebarContent({
       </nav>
 
       <div className={cn("space-y-2 p-3 pt-2", collapsed && "px-2")}>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              className={cn(
-                "hover:bg-accent flex min-h-11 w-full items-center gap-3 rounded-xl px-2.5 text-sm transition-colors",
-                collapsed && "justify-center px-2",
-              )}
-              title={collapsed ? `Store: ${workspace.storeName}` : undefined}
-              aria-label={`Switch store. Current store: ${workspace.storeName}`}
-              disabled={isSwitching || workspace.stores.length === 0}
-            >
-              <span className="bg-sidebar-foreground/8 text-sidebar-foreground/60 flex size-8 shrink-0 items-center justify-center rounded-md">
-                <Store className="size-4" />
-              </span>
-              {!collapsed && (
-                <>
-                  <span className="min-w-0 flex-1 text-left">
-                    <span className="text-sidebar-foreground/62 block text-[10px] font-semibold tracking-wider uppercase">
-                      Current store
-                    </span>
-                    <span className="block truncate text-xs font-medium">
-                      {workspace.storeName}
-                    </span>
-                  </span>
-                  <ChevronDown className="text-sidebar-foreground/45 size-3.5" />
-                </>
-              )}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" align="end" className="w-64">
-            <DropdownMenuLabel>Active store</DropdownMenuLabel>
-            {workspace.stores.map((store) => (
-              <DropdownMenuItem
-                key={store.id}
-                onSelect={() => switchStore(store.id)}
-                disabled={isSwitching}
-              >
-                <Store />
-                <span className="min-w-0 flex-1 truncate">{store.name}</span>
-                <span className="text-muted-foreground text-xs">
-                  {store.code}
-                </span>
-                {store.id === workspace.activeStoreId && (
-                  <Check className="text-primary size-4" />
-                )}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
         {!collapsed && (
-          <div className="bg-workspace/80 rounded-xl p-3">
-            <div className="mb-2 flex items-center justify-between text-xs">
-              <span className="font-medium">Product usage</span>
-              <span className="text-sidebar-foreground/65 tabular-nums">
-                {workspace.productLimit
-                  ? `${Math.min(100, Math.round((workspace.productCount / workspace.productLimit) * 100))}%`
-                  : "Flexible"}
-              </span>
-            </div>
-            <div className="bg-sidebar-foreground/10 h-1.5 overflow-hidden rounded-full">
-              <div
-                className="bg-primary h-full rounded-full transition-[width]"
-                style={{
-                  width: workspace.productLimit
-                    ? `${Math.min(100, (workspace.productCount / workspace.productLimit) * 100)}%`
-                    : "0%",
-                }}
-              />
-            </div>
-            <p className="text-sidebar-foreground/65 mt-2 text-[11px] tabular-nums">
-              {workspace.productCount.toLocaleString()}
-              {workspace.productLimit
-                ? ` of ${workspace.productLimit.toLocaleString()}`
-                : ""}{" "}
-              products
-            </p>
-          </div>
+          <SidebarPlanCard
+            href={
+              workspace.canViewBilling ? `${base}/settings/billing` : undefined
+            }
+            planName={workspace.planName}
+            productCount={workspace.productCount}
+            productLimit={workspace.productLimit}
+            onNavigate={closeMobile}
+          />
         )}
       </div>
     </>
@@ -697,11 +615,14 @@ export function AppShell({
                 ⌘K
               </kbd>
             </div>
-            <div className="ml-auto hidden items-center gap-2 xl:flex">
-              <span className="text-muted-foreground bg-card flex h-9 items-center gap-2 rounded-full px-3 text-xs font-medium shadow-[var(--shadow-button)]">
-                <Store className="size-3.5" />
-                <span className="max-w-40 truncate">{workspace.storeName}</span>
-              </span>
+            <div className="ml-auto flex items-center">
+              <HeaderStoreSwitcher
+                activeStoreId={workspace.activeStoreId}
+                isDemo={workspace.isDemo}
+                storeName={workspace.storeName}
+                stores={workspace.stores}
+                tenantSlug={tenantSlug}
+              />
             </div>
             <div className="flex items-center gap-0.5 sm:gap-1">
               <Button
