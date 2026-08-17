@@ -29,6 +29,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { TagColor, TagListItem } from "@/modules/tags/schemas";
 
@@ -74,17 +75,12 @@ function TagFields({ tag }: { tag?: TagListItem }) {
       </label>
       <label className="space-y-1.5 text-sm font-medium">
         Color
-        <select
+        <SelectField
+          ariaLabel="Tag color"
           name="color"
           defaultValue={tag?.color ?? "blue"}
-          className="border-input bg-card h-10 w-full rounded-lg border px-3 text-sm"
-        >
-          {colors.map((color) => (
-            <option key={color.value} value={color.value}>
-              {color.label}
-            </option>
-          ))}
-        </select>
+          options={colors}
+        />
       </label>
       <label className="space-y-1.5 text-sm font-medium">
         Description

@@ -41,7 +41,7 @@ export function ProductToolbar({
   );
 
   return (
-    <div className="flex flex-col gap-3 border-b p-3 sm:p-4 lg:flex-row lg:items-center">
+    <div className="flex flex-col gap-3 border-b p-3 min-[1380px]:flex-row min-[1380px]:items-center sm:p-4">
       <form
         className="relative min-w-0 flex-1"
         onSubmit={(event) => {
@@ -53,16 +53,16 @@ export function ProductToolbar({
         <Input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          className="pl-9 lg:min-w-72"
+          className="pl-9 min-[1380px]:min-w-72"
           placeholder="Search products, SKU, or slug"
           aria-label="Search products"
         />
       </form>
-      <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:max-w-full sm:overflow-x-auto sm:pb-1 lg:w-auto lg:pb-0">
+      <div className="grid w-full min-w-0 grid-cols-2 gap-2 min-[1380px]:w-auto min-[1380px]:pb-0 sm:flex sm:max-w-full sm:overflow-x-auto sm:pb-1">
         <FilterSelect
           label="Category"
           value={query.category}
-          onChange={(event) => update("category", event.target.value)}
+          onValueChange={(value) => update("category", value)}
           options={[
             { label: "All categories", value: "all" },
             ...categories.map((category) => ({
@@ -74,7 +74,7 @@ export function ProductToolbar({
         <FilterSelect
           label="Stock"
           value={query.stock}
-          onChange={(event) => update("stock", event.target.value)}
+          onValueChange={(value) => update("stock", value)}
           options={[
             { label: "All stock", value: "all" },
             { label: "In stock", value: "in-stock" },
@@ -86,7 +86,7 @@ export function ProductToolbar({
         <FilterSelect
           label="Tag"
           value={query.tag}
-          onChange={(event) => update("tag", event.target.value)}
+          onValueChange={(value) => update("tag", value)}
           options={[
             { label: "All tags", value: "all" },
             ...tags.map((tag) => ({ label: tag.name, value: tag.id })),
@@ -95,7 +95,7 @@ export function ProductToolbar({
         <FilterSelect
           label="Status"
           value={query.status}
-          onChange={(event) => update("status", event.target.value)}
+          onValueChange={(value) => update("status", value)}
           options={[
             { label: "All status", value: "all" },
             { label: "Active", value: "active" },
@@ -106,7 +106,7 @@ export function ProductToolbar({
         <FilterSelect
           label="Sort"
           value={query.sort}
-          onChange={(event) => update("sort", event.target.value)}
+          onValueChange={(value) => update("sort", value)}
           options={[
             { label: "Sort: Revenue", value: "revenue" },
             { label: "Sort: Name", value: "name" },

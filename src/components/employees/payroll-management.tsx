@@ -18,7 +18,6 @@ import {
 import { MetricCard } from "@/components/dashboard/metric-card";
 import {
   WorkforceActionMessage,
-  nativeSelectClass,
   workforceInitialState,
 } from "@/components/employees/action-message";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +39,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatMoney } from "@/lib/money";
 import type {
@@ -99,19 +99,17 @@ export function SalaryProfileDialog({
         <form action={action} className="mt-5 grid gap-4 sm:grid-cols-2">
           <label className="space-y-1.5 text-sm font-medium sm:col-span-2">
             Employee
-            <select
+            <SelectField
+              ariaLabel="Employee"
               name="employeeId"
               required
-              className={nativeSelectClass}
               value={employeeId}
-              onChange={(event) => setEmployeeId(event.target.value)}
-            >
-              {reference.employees.map((employee) => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.employeeCode} · {employee.name}
-                </option>
-              ))}
-            </select>
+              onValueChange={setEmployeeId}
+              options={reference.employees.map((employee) => ({
+                value: employee.id,
+                label: `${employee.employeeCode} · ${employee.name}`,
+              }))}
+            />
           </label>
           <input
             type="hidden"
@@ -120,20 +118,30 @@ export function SalaryProfileDialog({
           />
           <label className="space-y-1.5 text-sm font-medium">
             Compensation type
-            <select name="compensationType" className={nativeSelectClass}>
-              <option value="monthly">Monthly</option>
-              <option value="weekly">Weekly</option>
-              <option value="daily">Daily</option>
-              <option value="hourly">Hourly</option>
-            </select>
+            <SelectField
+              ariaLabel="Compensation type"
+              name="compensationType"
+              defaultValue="monthly"
+              options={[
+                { value: "monthly", label: "Monthly" },
+                { value: "weekly", label: "Weekly" },
+                { value: "daily", label: "Daily" },
+                { value: "hourly", label: "Hourly" },
+              ]}
+            />
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             Pay schedule
-            <select name="paySchedule" className={nativeSelectClass}>
-              <option value="monthly">Monthly</option>
-              <option value="biweekly">Biweekly</option>
-              <option value="weekly">Weekly</option>
-            </select>
+            <SelectField
+              ariaLabel="Pay schedule"
+              name="paySchedule"
+              defaultValue="monthly"
+              options={[
+                { value: "monthly", label: "Monthly" },
+                { value: "biweekly", label: "Biweekly" },
+                { value: "weekly", label: "Weekly" },
+              ]}
+            />
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             Base amount ({reference.currency})
@@ -237,16 +245,20 @@ export function PreparePayrollDialog({
           <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
           <label className="space-y-1.5 text-sm font-medium">
             Store scope
-            <select name="storeId" className={nativeSelectClass}>
-              {allowAllStores && (
-                <option value="all">All authorized stores</option>
-              )}
-              {reference.stores.map((store) => (
-                <option key={store.id} value={store.id}>
-                  {store.name}
-                </option>
-              ))}
-            </select>
+            <SelectField
+              ariaLabel="Store scope"
+              name="storeId"
+              defaultValue={allowAllStores ? "all" : reference.stores[0]?.id}
+              options={[
+                ...(allowAllStores
+                  ? [{ value: "all", label: "All authorized stores" }]
+                  : []),
+                ...reference.stores.map((store) => ({
+                  value: store.id,
+                  label: store.name,
+                })),
+              ]}
+            />
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="space-y-1.5 text-sm font-medium">

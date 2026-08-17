@@ -8,7 +8,7 @@ import {
 } from "@/app/onboarding/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { selectClassName } from "@/components/ui/select";
+import { SelectField } from "@/components/ui/select";
 import { plans } from "@/config/plans";
 import { cn } from "@/lib/utils";
 
@@ -113,30 +113,32 @@ export function OnboardingForm() {
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             Currency
-            <select
+            <SelectField
+              ariaLabel="Currency"
               name="currency"
               defaultValue="USD"
-              className={selectClassName}
-            >
-              <option value="USD">USD — US Dollar</option>
-              <option value="PKR">PKR — Pakistani Rupee</option>
-              <option value="GBP">GBP — British Pound</option>
-              <option value="EUR">EUR — Euro</option>
-              <option value="AED">AED — UAE Dirham</option>
-            </select>
+              options={[
+                { value: "USD", label: "USD — US Dollar" },
+                { value: "PKR", label: "PKR — Pakistani Rupee" },
+                { value: "GBP", label: "GBP — British Pound" },
+                { value: "EUR", label: "EUR — Euro" },
+                { value: "AED", label: "AED — UAE Dirham" },
+              ]}
+            />
             <FieldError errors={state.fieldErrors?.currency} />
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             Language and format
-            <select
+            <SelectField
+              ariaLabel="Language and format"
               name="locale"
               defaultValue="en-US"
-              className={selectClassName}
-            >
-              <option value="en-US">English (United States)</option>
-              <option value="en-GB">English (United Kingdom)</option>
-              <option value="ur-PK">Urdu (Pakistan)</option>
-            </select>
+              options={[
+                { value: "en-US", label: "English (United States)" },
+                { value: "en-GB", label: "English (United Kingdom)" },
+                { value: "ur-PK", label: "Urdu (Pakistan)" },
+              ]}
+            />
             <FieldError errors={state.fieldErrors?.locale} />
           </label>
           <label className="space-y-1.5 text-sm font-medium sm:col-span-2">

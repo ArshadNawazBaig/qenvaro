@@ -11,7 +11,6 @@ import {
 import {
   PurchasingActionMessage,
   purchasingInitialState,
-  purchasingSelectClass,
 } from "@/components/purchasing/action-message";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatMoney } from "@/lib/money";
 import type {
@@ -99,13 +99,15 @@ export function NewExpenseDialog({
           <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
           <label className="space-y-1.5 text-sm font-medium">
             Store
-            <select name="storeId" className={purchasingSelectClass}>
-              {reference.stores.map((store) => (
-                <option key={store.id} value={store.id}>
-                  {store.name}
-                </option>
-              ))}
-            </select>
+            <SelectField
+              ariaLabel="Store"
+              name="storeId"
+              defaultValue={reference.stores[0]?.id}
+              options={reference.stores.map((store) => ({
+                value: store.id,
+                label: store.name,
+              }))}
+            />
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             Category

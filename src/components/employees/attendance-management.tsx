@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { recordAttendanceAction } from "@/app/app/[tenantSlug]/employees/actions";
 import {
   WorkforceActionMessage,
-  nativeSelectClass,
   workforceInitialState,
 } from "@/components/employees/action-message";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { AttendanceListItem } from "@/modules/employees/schemas";
 import type { EmployeeReferenceData } from "@/server/repositories/employees";
@@ -76,23 +76,29 @@ export function RecordAttendanceDialog({
         <form action={action} className="mt-5 grid gap-4 sm:grid-cols-2">
           <label className="space-y-1.5 text-sm font-medium sm:col-span-2">
             Employee
-            <select name="employeeId" required className={nativeSelectClass}>
-              {reference.employees.map((employee) => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.employeeCode} · {employee.name}
-                </option>
-              ))}
-            </select>
+            <SelectField
+              ariaLabel="Employee"
+              name="employeeId"
+              required
+              defaultValue={reference.employees[0]?.id}
+              options={reference.employees.map((employee) => ({
+                value: employee.id,
+                label: `${employee.employeeCode} · ${employee.name}`,
+              }))}
+            />
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             Store
-            <select name="storeId" required className={nativeSelectClass}>
-              {reference.stores.map((store) => (
-                <option key={store.id} value={store.id}>
-                  {store.name}
-                </option>
-              ))}
-            </select>
+            <SelectField
+              ariaLabel="Store"
+              name="storeId"
+              required
+              defaultValue={reference.stores[0]?.id}
+              options={reference.stores.map((store) => ({
+                value: store.id,
+                label: store.name,
+              }))}
+            />
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             Work date
@@ -123,16 +129,17 @@ export function RecordAttendanceDialog({
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             Status
-            <select
+            <SelectField
+              ariaLabel="Attendance status"
               name="status"
-              className={nativeSelectClass}
               defaultValue="present"
-            >
-              <option value="present">Present</option>
-              <option value="late">Late</option>
-              <option value="half_day">Half day</option>
-              <option value="absent">Absent</option>
-            </select>
+              options={[
+                { value: "present", label: "Present" },
+                { value: "late", label: "Late" },
+                { value: "half_day", label: "Half day" },
+                { value: "absent", label: "Absent" },
+              ]}
+            />
           </label>
           <label className="space-y-1.5 text-sm font-medium sm:col-span-2">
             Internal note{" "}

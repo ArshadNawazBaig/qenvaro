@@ -50,7 +50,7 @@ export function CustomerToolbar({ query }: { query: CustomerListQuery }) {
         <FilterSelect
           label="Filter customer status"
           value={query.status}
-          onChange={(event) => update("status", event.target.value)}
+          onValueChange={(value) => update("status", value)}
           options={[
             { value: "all", label: "All statuses" },
             { value: "active", label: "Active" },
@@ -60,7 +60,7 @@ export function CustomerToolbar({ query }: { query: CustomerListQuery }) {
         <FilterSelect
           label="Sort customers"
           value={query.sort}
-          onChange={(event) => update("sort", event.target.value)}
+          onValueChange={(value) => update("sort", value)}
           options={[
             { value: "name", label: "Sort: Name" },
             { value: "updatedAt", label: "Sort: Updated" },
@@ -70,7 +70,7 @@ export function CustomerToolbar({ query }: { query: CustomerListQuery }) {
         <FilterSelect
           label="Customer sort direction"
           value={query.direction}
-          onChange={(event) => update("direction", event.target.value)}
+          onValueChange={(value) => update("direction", value)}
           options={[
             { value: "asc", label: "Ascending" },
             { value: "desc", label: "Descending" },

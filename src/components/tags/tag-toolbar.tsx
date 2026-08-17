@@ -43,7 +43,7 @@ export function TagToolbar({ query }: { query: TagListQuery }) {
       <FilterSelect
         label="Filter tag status"
         value={query.status}
-        onChange={(event) => update("status", event.target.value)}
+        onValueChange={(value) => update("status", value)}
         options={[
           { value: "all", label: "All statuses" },
           { value: "active", label: "Active" },
@@ -53,7 +53,7 @@ export function TagToolbar({ query }: { query: TagListQuery }) {
       <FilterSelect
         label="Sort tags"
         value={query.sort}
-        onChange={(event) => update("sort", event.target.value)}
+        onValueChange={(value) => update("sort", value)}
         options={[
           { value: "name", label: "Sort: Name" },
           { value: "products", label: "Sort: Products" },

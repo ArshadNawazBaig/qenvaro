@@ -25,7 +25,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { selectClassName } from "@/components/ui/select";
+import { SelectField } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { calculateSaleReturn } from "@/modules/sales/return-policy";
 import {
@@ -44,6 +44,7 @@ function money(amountMinor: number, currency: string, locale: string) {
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amountMinor / 100);
 }
@@ -351,39 +352,27 @@ export function ReturnWorkspace({
             )}
             <label className="block space-y-1.5 text-sm font-medium">
               Return reason
-              <select
-                className={selectClassName}
+              <SelectField
+                ariaLabel="Return reason"
                 value={reason}
-                onChange={(event) =>
-                  setReason(event.target.value as SaleReturnReason)
-                }
-                aria-label="Return reason"
-              >
-                {Object.entries(saleReturnReasonLabels).map(
-                  ([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ),
+                onValueChange={(value) => setReason(value as SaleReturnReason)}
+                options={Object.entries(saleReturnReasonLabels).map(
+                  ([value, label]) => ({ value, label }),
                 )}
-              </select>
+              />
             </label>
             <label className="block space-y-1.5 text-sm font-medium">
               Recorded refund method
-              <select
-                className={selectClassName}
+              <SelectField
+                ariaLabel="Refund method"
                 value={refundMethod}
-                onChange={(event) =>
-                  setRefundMethod(event.target.value as SalePaymentMethod)
+                onValueChange={(value) =>
+                  setRefundMethod(value as SalePaymentMethod)
                 }
-                aria-label="Refund method"
-              >
-                {Object.entries(salePaymentLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+                options={Object.entries(salePaymentLabels).map(
+                  ([value, label]) => ({ value, label }),
+                )}
+              />
             </label>
             <label className="block space-y-1.5 text-sm font-medium">
               Return note{" "}

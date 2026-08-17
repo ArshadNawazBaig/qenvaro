@@ -21,7 +21,6 @@ import {
 } from "@/app/app/[tenantSlug]/employees/actions";
 import {
   WorkforceActionMessage,
-  nativeSelectClass,
   workforceInitialState,
 } from "@/components/employees/action-message";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -36,6 +35,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select";
 import type { EmployeeListItem } from "@/modules/employees/schemas";
 
 interface StoreOption {
@@ -110,16 +110,17 @@ function EmployeeFields({
       </label>
       <label className="space-y-1.5 text-sm font-medium">
         Employment type
-        <select
+        <SelectField
+          ariaLabel="Employment type"
           name="employmentType"
-          className={nativeSelectClass}
           defaultValue={employee?.employmentType ?? "full_time"}
-        >
-          <option value="full_time">Full time</option>
-          <option value="part_time">Part time</option>
-          <option value="contract">Contract</option>
-          <option value="casual">Casual</option>
-        </select>
+          options={[
+            { value: "full_time", label: "Full time" },
+            { value: "part_time", label: "Part time" },
+            { value: "contract", label: "Contract" },
+            { value: "casual", label: "Casual" },
+          ]}
+        />
       </label>
       <label className="space-y-1.5 text-sm font-medium">
         Hire date
@@ -374,16 +375,17 @@ function EmployeeActions({
             />
             <label className="space-y-1.5 text-sm font-medium">
               Status
-              <select
+              <SelectField
+                ariaLabel="Employee status"
                 name="status"
-                className={nativeSelectClass}
                 defaultValue={employee.status}
-              >
-                <option value="active">Active</option>
-                <option value="on_leave">On leave</option>
-                <option value="terminated">Terminated</option>
-                <option value="archived">Archived</option>
-              </select>
+                options={[
+                  { value: "active", label: "Active" },
+                  { value: "on_leave", label: "On leave" },
+                  { value: "terminated", label: "Terminated" },
+                  { value: "archived", label: "Archived" },
+                ]}
+              />
             </label>
             <WorkforceActionMessage state={statusState} />
             <div className="flex justify-end gap-2">

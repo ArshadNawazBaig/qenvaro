@@ -37,6 +37,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 function Message({ state }: { state: typeof platformInitialState }) {
@@ -174,17 +175,18 @@ export function UserLifecycleDialog({
           {!banned && (
             <label className="block space-y-1.5 text-sm font-medium">
               Suspension period
-              <select
+              <SelectField
+                ariaLabel="Suspension period"
                 name="durationDays"
                 defaultValue="30"
-                className="border-input bg-card h-10 w-full rounded-lg border px-3"
-              >
-                <option value="1">1 day</option>
-                <option value="7">7 days</option>
-                <option value="30">30 days</option>
-                <option value="90">90 days</option>
-                <option value="365">365 days</option>
-              </select>
+                options={[
+                  { value: "1", label: "1 day" },
+                  { value: "7", label: "7 days" },
+                  { value: "30", label: "30 days" },
+                  { value: "90", label: "90 days" },
+                  { value: "365", label: "365 days" },
+                ]}
+              />
             </label>
           )}
           <label className="block space-y-1.5 text-sm font-medium">
@@ -246,16 +248,17 @@ export function GrantSupportDialog({ tenantId }: { tenantId: string }) {
         <form action={action} className="mt-5 space-y-4">
           <label className="block space-y-1.5 text-sm font-medium">
             Duration
-            <select
+            <SelectField
+              ariaLabel="Support grant duration"
               name="durationMinutes"
               defaultValue="30"
-              className="border-input bg-card h-10 w-full rounded-lg border px-3"
-            >
-              <option value="15">15 minutes</option>
-              <option value="30">30 minutes</option>
-              <option value="60">60 minutes</option>
-              <option value="120">120 minutes</option>
-            </select>
+              options={[
+                { value: "15", label: "15 minutes" },
+                { value: "30", label: "30 minutes" },
+                { value: "60", label: "60 minutes" },
+                { value: "120", label: "120 minutes" },
+              ]}
+            />
           </label>
           <label className="block space-y-1.5 text-sm font-medium">
             Required support reason
@@ -416,15 +419,15 @@ export function TenantFlagOverrideForm({ flagId }: { flagId: string }) {
         placeholder="Tenant ID"
         aria-label="Tenant ID"
       />
-      <select
+      <SelectField
+        ariaLabel="Override state"
         name="enabled"
         defaultValue="true"
-        className="border-input bg-card h-10 rounded-lg border px-3 text-sm"
-        aria-label="Override state"
-      >
-        <option value="true">Enabled</option>
-        <option value="false">Disabled</option>
-      </select>
+        options={[
+          { value: "true", label: "Enabled" },
+          { value: "false", label: "Disabled" },
+        ]}
+      />
       <Button type="submit" size="sm" variant="outline" disabled={pending}>
         {pending ? "Saving…" : "Set override"}
       </Button>
@@ -476,16 +479,17 @@ export function NewAnnouncementDialog() {
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block space-y-1.5 text-sm font-medium">
               Severity
-              <select
+              <SelectField
+                ariaLabel="Announcement severity"
                 name="severity"
                 defaultValue="info"
-                className="border-input bg-card h-10 w-full rounded-lg border px-3"
-              >
-                <option value="info">Information</option>
-                <option value="success">Success</option>
-                <option value="warning">Warning</option>
-                <option value="critical">Critical</option>
-              </select>
+                options={[
+                  { value: "info", label: "Information" },
+                  { value: "success", label: "Success" },
+                  { value: "warning", label: "Warning" },
+                  { value: "critical", label: "Critical" },
+                ]}
+              />
             </label>
             <label className="block space-y-1.5 text-sm font-medium">
               Visible days

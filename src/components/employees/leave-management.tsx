@@ -10,7 +10,6 @@ import {
 } from "@/app/app/[tenantSlug]/employees/actions";
 import {
   WorkforceActionMessage,
-  nativeSelectClass,
   workforceInitialState,
 } from "@/components/employees/action-message";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { LeaveListItem } from "@/modules/employees/schemas";
 import type { EmployeeReferenceData } from "@/server/repositories/employees";
@@ -68,22 +68,29 @@ export function NewLeaveDialog({
         <form action={action} className="mt-5 space-y-4">
           <label className="space-y-1.5 text-sm font-medium">
             Employee
-            <select name="employeeId" className={nativeSelectClass}>
-              {reference.employees.map((employee) => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.employeeCode} · {employee.name}
-                </option>
-              ))}
-            </select>
+            <SelectField
+              ariaLabel="Employee"
+              name="employeeId"
+              defaultValue={reference.employees[0]?.id}
+              options={reference.employees.map((employee) => ({
+                value: employee.id,
+                label: `${employee.employeeCode} · ${employee.name}`,
+              }))}
+            />
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             Leave type
-            <select name="type" className={nativeSelectClass}>
-              <option value="annual">Annual</option>
-              <option value="sick">Sick</option>
-              <option value="unpaid">Unpaid</option>
-              <option value="other">Other</option>
-            </select>
+            <SelectField
+              ariaLabel="Leave type"
+              name="type"
+              defaultValue="annual"
+              options={[
+                { value: "annual", label: "Annual" },
+                { value: "sick", label: "Sick" },
+                { value: "unpaid", label: "Unpaid" },
+                { value: "other", label: "Other" },
+              ]}
+            />
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="space-y-1.5 text-sm font-medium">

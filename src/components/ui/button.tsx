@@ -9,7 +9,7 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-[var(--shadow-button)] hover:brightness-[1.04] hover:shadow-[0_8px_18px_oklch(0.55_0.245_272/0.2)]",
+          "bg-primary text-primary-foreground shadow-[var(--shadow-button)] hover:brightness-[1.03]",
         destructive:
           "bg-destructive text-destructive-foreground hover:brightness-95",
         outline:

@@ -19,7 +19,6 @@ import {
 import {
   PurchasingActionMessage,
   purchasingInitialState,
-  purchasingSelectClass,
 } from "@/components/purchasing/action-message";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,6 +31,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatMoney } from "@/lib/money";
 import type {
@@ -127,23 +127,27 @@ export function NewPurchaseDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="space-y-1.5 text-sm font-medium">
               Supplier
-              <select name="supplierId" className={purchasingSelectClass}>
-                {reference.suppliers.map((supplier) => (
-                  <option key={supplier.id} value={supplier.id}>
-                    {supplier.supplierCode} · {supplier.name}
-                  </option>
-                ))}
-              </select>
+              <SelectField
+                ariaLabel="Supplier"
+                name="supplierId"
+                defaultValue={reference.suppliers[0]?.id}
+                options={reference.suppliers.map((supplier) => ({
+                  value: supplier.id,
+                  label: `${supplier.supplierCode} · ${supplier.name}`,
+                }))}
+              />
             </label>
             <label className="space-y-1.5 text-sm font-medium">
               Receiving store
-              <select name="storeId" className={purchasingSelectClass}>
-                {reference.stores.map((store) => (
-                  <option key={store.id} value={store.id}>
-                    {store.name}
-                  </option>
-                ))}
-              </select>
+              <SelectField
+                ariaLabel="Receiving store"
+                name="storeId"
+                defaultValue={reference.stores[0]?.id}
+                options={reference.stores.map((store) => ({
+                  value: store.id,
+                  label: store.name,
+                }))}
+              />
             </label>
             <label className="space-y-1.5 text-sm font-medium">
               Expected delivery
@@ -159,27 +163,25 @@ export function NewPurchaseDialog({
               >
                 <label className="space-y-1 text-xs font-medium">
                   SKU
-                  <select
+                  <SelectField
+                    ariaLabel="SKU"
                     value={line.variantId}
-                    className={purchasingSelectClass}
-                    onChange={(event) => {
+                    onValueChange={(value) => {
                       const variant = reference.variants.find(
-                        (item) => item.id === event.target.value,
+                        (item) => item.id === value,
                       );
                       patchLine(line.key, {
-                        variantId: event.target.value,
+                        variantId: value,
                         unitCost: variant
                           ? (variant.costMinor / 100).toFixed(2)
                           : line.unitCost,
                       });
                     }}
-                  >
-                    {reference.variants.map((variant) => (
-                      <option key={variant.id} value={variant.id}>
-                        {variant.sku} · {variant.productName}
-                      </option>
-                    ))}
-                  </select>
+                    options={reference.variants.map((variant) => ({
+                      value: variant.id,
+                      label: `${variant.sku} · ${variant.productName}`,
+                    }))}
+                  />
                 </label>
                 <label className="space-y-1 text-xs font-medium">
                   Quantity

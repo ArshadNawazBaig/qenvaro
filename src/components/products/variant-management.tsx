@@ -39,6 +39,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select";
 import { formatMoney } from "@/lib/money";
 import type { ProductDetail } from "@/modules/products/schemas";
 import type {
@@ -352,21 +353,16 @@ function NewVariantDialog({
             {groups.map((group) => (
               <label key={group.id} className="space-y-1.5 text-sm font-medium">
                 {group.name}
-                <select
+                <SelectField
+                  ariaLabel={group.name}
                   name="optionValue"
                   required
-                  defaultValue=""
-                  className="border-input bg-card h-10 w-full rounded-lg border px-3 text-sm"
-                >
-                  <option value="" disabled>
-                    Select {group.name.toLowerCase()}
-                  </option>
-                  {group.values.map((value) => (
-                    <option key={value.id} value={`${group.id}:${value.id}`}>
-                      {value.label}
-                    </option>
-                  ))}
-                </select>
+                  placeholder={`Select ${group.name.toLowerCase()}`}
+                  options={group.values.map((value) => ({
+                    value: `${group.id}:${value.id}`,
+                    label: value.label,
+                  }))}
+                />
               </label>
             ))}
           </div>

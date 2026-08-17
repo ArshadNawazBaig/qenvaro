@@ -47,6 +47,12 @@ test("public landing and product demo are usable", async ({ page }) => {
   await expect(page).toHaveURL(/\/products$/, { timeout: 20_000 });
   await expect(page.getByRole("heading", { name: "Products" })).toBeVisible();
   await expect(page.getByRole("table")).toBeVisible();
+  const categoryFilter = page.getByRole("combobox", { name: "Category" });
+  await categoryFilter.click();
+  await expect(
+    page.getByRole("option", { name: "All categories" }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Import" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Export" })).toBeDisabled();
   const productsUrl = page.url();
@@ -233,7 +239,8 @@ test("demo sales reporting is responsive and returns-aware", async ({
   await expect(page).toHaveURL(/range=7d/);
   const reportStore = page.getByLabel("Report store");
   await expect(reportStore).toBeEnabled();
-  await reportStore.selectOption("demo-west");
+  await reportStore.click();
+  await page.getByRole("option", { name: "West Harbor · WH" }).click();
   await expect(page).toHaveURL(/store=demo-west/);
   await expect(
     page.locator("p:visible", { hasText: /^West Harbor$/ }),

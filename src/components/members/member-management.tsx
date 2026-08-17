@@ -23,6 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select";
 import type {
   MemberStoreOption,
   TenantInvitationListItem,
@@ -40,18 +41,15 @@ const initialMemberActionState: MemberActionState = {
 
 function RoleSelect({ defaultValue }: { defaultValue: string }) {
   return (
-    <select
+    <SelectField
+      ariaLabel="Role"
       name="role"
       defaultValue={defaultValue}
-      className="border-input bg-card focus-visible:border-ring focus-visible:ring-ring/30 h-10 w-full rounded-md border px-3 text-sm shadow-xs outline-none focus-visible:ring-2"
-      aria-label="Role"
-    >
-      {assignableMemberRoles.map((role) => (
-        <option key={role} value={role}>
-          {memberRoleLabel(role)}
-        </option>
-      ))}
-    </select>
+      options={assignableMemberRoles.map((role) => ({
+        value: role,
+        label: memberRoleLabel(role),
+      }))}
+    />
   );
 }
 

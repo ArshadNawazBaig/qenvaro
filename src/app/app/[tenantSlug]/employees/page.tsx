@@ -13,7 +13,7 @@ import { PermissionDenied } from "@/components/shared/states";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { SelectField } from "@/components/ui/select";
 import { env } from "@/config/env";
 import {
   demoEmployees,
@@ -156,21 +156,30 @@ export default async function EmployeesPage({
                 defaultValue={query.q}
                 placeholder="Search employees, codes, roles…"
               />
-              <Select name="status" defaultValue={query.status}>
-                <option value="all">All statuses</option>
-                <option value="active">Active</option>
-                <option value="on_leave">On leave</option>
-                <option value="terminated">Terminated</option>
-                <option value="archived">Archived</option>
-              </Select>
-              <Select name="store" defaultValue={query.store}>
-                <option value="all">All stores</option>
-                {stores.map((store) => (
-                  <option key={store.id} value={store.id}>
-                    {store.name}
-                  </option>
-                ))}
-              </Select>
+              <SelectField
+                ariaLabel="Employee status"
+                name="status"
+                defaultValue={query.status}
+                options={[
+                  { value: "all", label: "All statuses" },
+                  { value: "active", label: "Active" },
+                  { value: "on_leave", label: "On leave" },
+                  { value: "terminated", label: "Terminated" },
+                  { value: "archived", label: "Archived" },
+                ]}
+              />
+              <SelectField
+                ariaLabel="Employee store"
+                name="store"
+                defaultValue={query.store}
+                options={[
+                  { value: "all", label: "All stores" },
+                  ...stores.map((store) => ({
+                    value: store.id,
+                    label: store.name,
+                  })),
+                ]}
+              />
               <Button type="submit">Apply filters</Button>
             </form>
           </CardContent>

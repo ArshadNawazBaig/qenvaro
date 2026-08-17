@@ -22,5 +22,8 @@ describe("money helpers", () => {
     expect(formatMoney({ amountMinor: 12345, currency: "USD" }, "en-US")).toBe(
       "$123.45",
     );
+    expect(formatMoney({ amountMinor: 120000, currency: "PKR" }, "en-US")).toBe(
+      "PKR 1,200.00",
+    );
   });
 });

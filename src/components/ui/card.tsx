@@ -3,18 +3,18 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const cardVariants = cva(
-  "bg-card text-card-foreground min-w-0 overflow-hidden rounded-2xl border border-border/70 shadow-[var(--shadow-card)]",
+  "bg-card text-card-foreground min-w-0 overflow-hidden rounded-2xl border border-border/65 shadow-[var(--shadow-card)]",
   {
     variants: {
       variant: {
         default: "",
-        elevated: "shadow-[var(--shadow-float)]",
+        elevated: "shadow-[var(--shadow-card)]",
         muted: "bg-muted/70 shadow-none",
         outline: "bg-transparent shadow-none",
         interactive:
-          "transition-[transform,box-shadow,border-color] hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[var(--shadow-float)]",
+          "transition-[box-shadow,border-color] hover:border-primary/15 hover:shadow-[var(--shadow-card)]",
         primary:
-          "border-primary bg-primary text-primary-foreground shadow-[0_18px_40px_oklch(0.55_0.245_272/0.24)]",
+          "border-primary/80 bg-primary text-primary-foreground shadow-[0_8px_22px_oklch(0.5_0.245_272/0.12)]",
       },
     },
     defaultVariants: { variant: "default" },
@@ -43,7 +43,7 @@ export function CardHeader({
     <div
       data-slot="card-header"
       className={cn(
-        "border-border/65 grid auto-rows-min grid-cols-1 items-start gap-1.5 border-b px-5 py-5 has-[>[data-slot=card-action]]:grid-cols-[minmax(0,1fr)_auto] sm:px-6 sm:py-5",
+        "border-border/50 grid auto-rows-min grid-cols-1 items-start gap-1.5 border-b px-5 py-5 has-[>[data-slot=card-action]]:grid-cols-[minmax(0,1fr)_auto] sm:px-6 sm:py-5",
         className,
       )}
       {...props}

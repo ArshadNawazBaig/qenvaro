@@ -18,6 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select";
 import { TagBadge } from "@/components/tags/tag-badge";
 import type { TagOption } from "@/modules/tags/schemas";
 import type { UnitOption } from "@/modules/units/schemas";
@@ -105,23 +106,18 @@ export function NewProductDialog({
             </label>
             <label className="space-y-1.5 text-sm font-medium sm:col-span-2">
               Unit of measure
-              <select
+              <SelectField
+                ariaLabel="Unit of measure"
                 name="unitId"
                 required
-                defaultValue={units[0]?.id ?? ""}
-                className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border px-3 text-sm outline-none focus-visible:ring-2"
-              >
-                {units.length === 0 && (
-                  <option value="" disabled>
-                    Create an active unit first
-                  </option>
-                )}
-                {units.map((unit) => (
-                  <option key={unit.id} value={unit.id}>
-                    {unit.name} ({unit.symbol})
-                  </option>
-                ))}
-              </select>
+                defaultValue={units[0]?.id}
+                disabled={units.length === 0}
+                placeholder="Create an active unit first"
+                options={units.map((unit) => ({
+                  value: unit.id,
+                  label: `${unit.name} (${unit.symbol})`,
+                }))}
+              />
               <span className="text-muted-foreground block text-xs font-normal">
                 Used to label quantities throughout inventory workflows.
               </span>

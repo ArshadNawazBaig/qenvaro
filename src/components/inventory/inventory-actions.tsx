@@ -26,7 +26,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { selectClassName } from "@/components/ui/select";
+import { SelectField } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { InventoryVariantOption } from "@/modules/inventory/schemas";
 
@@ -153,35 +153,31 @@ export function StockAdjustmentDialog({
           <input type="hidden" name="idempotencyKey" value={requestKey} />
           <label className="block space-y-1.5 text-sm font-medium">
             Store
-            <select
+            <SelectField
+              ariaLabel="Store"
               name="storeId"
-              className={selectClassName}
               value={storeId}
-              onChange={(event) => setStoreId(event.target.value)}
+              onValueChange={setStoreId}
               required
-            >
-              {stores.map((store) => (
-                <option key={store.id} value={store.id}>
-                  {store.name} ({store.code})
-                </option>
-              ))}
-            </select>
+              options={stores.map((store) => ({
+                value: store.id,
+                label: `${store.name} (${store.code})`,
+              }))}
+            />
           </label>
           <label className="block space-y-1.5 text-sm font-medium">
             Product / SKU
-            <select
+            <SelectField
+              ariaLabel="Product / SKU"
               name="variantId"
-              className={selectClassName}
               value={selected?.variantId ?? ""}
-              onChange={(event) => setVariantId(event.target.value)}
+              onValueChange={setVariantId}
               required
-            >
-              {availableVariants.map((option) => (
-                <option key={option.variantId} value={option.variantId}>
-                  {optionLabel(option)}
-                </option>
-              ))}
-            </select>
+              options={availableVariants.map((option) => ({
+                value: option.variantId,
+                label: optionLabel(option),
+              }))}
+            />
           </label>
           <div className="bg-muted/60 flex items-center justify-between rounded-lg px-3 py-2 text-sm">
             <span className="text-muted-foreground">Current on hand</span>
@@ -190,15 +186,16 @@ export function StockAdjustmentDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block space-y-1.5 text-sm font-medium">
               Change
-              <select
+              <SelectField
+                ariaLabel="Change"
                 name="mode"
-                className={selectClassName}
                 defaultValue="increase"
-              >
-                <option value="increase">Increase by</option>
-                <option value="decrease">Decrease by</option>
-                <option value="set">Set exact count</option>
-              </select>
+                options={[
+                  { value: "increase", label: "Increase by" },
+                  { value: "decrease", label: "Decrease by" },
+                  { value: "set", label: "Set exact count" },
+                ]}
+              />
             </label>
             <label className="block space-y-1.5 text-sm font-medium">
               Quantity
@@ -215,17 +212,18 @@ export function StockAdjustmentDialog({
           </div>
           <label className="block space-y-1.5 text-sm font-medium">
             Reason
-            <select
+            <SelectField
+              ariaLabel="Reason"
               name="reason"
-              className={selectClassName}
               defaultValue="cycle_count"
-            >
-              <option value="cycle_count">Cycle count</option>
-              <option value="other_receipt">Other receipt</option>
-              <option value="damaged">Damaged stock</option>
-              <option value="expired">Expired stock</option>
-              <option value="correction">Data correction</option>
-            </select>
+              options={[
+                { value: "cycle_count", label: "Cycle count" },
+                { value: "other_receipt", label: "Other receipt" },
+                { value: "damaged", label: "Damaged stock" },
+                { value: "expired", label: "Expired stock" },
+                { value: "correction", label: "Data correction" },
+              ]}
+            />
           </label>
           <label className="block space-y-1.5 text-sm font-medium">
             Note
@@ -371,12 +369,11 @@ export function StockTransferDialog({
           <div className="grid items-end gap-3 sm:grid-cols-[1fr_auto_1fr]">
             <label className="block space-y-1.5 text-sm font-medium">
               From store
-              <select
+              <SelectField
+                ariaLabel="From store"
                 name="fromStoreId"
-                className={selectClassName}
                 value={fromStoreId}
-                onChange={(event) => {
-                  const next = event.target.value;
+                onValueChange={(next) => {
                   setFromStoreId(next);
                   if (next === toStoreId)
                     setToStoreId(
@@ -384,32 +381,28 @@ export function StockTransferDialog({
                     );
                 }}
                 required
-              >
-                {stores.map((store) => (
-                  <option key={store.id} value={store.id}>
-                    {store.name} ({store.code})
-                  </option>
-                ))}
-              </select>
+                options={stores.map((store) => ({
+                  value: store.id,
+                  label: `${store.name} (${store.code})`,
+                }))}
+              />
             </label>
             <ArrowRight className="text-muted-foreground mb-3 hidden size-4 sm:block" />
             <label className="block space-y-1.5 text-sm font-medium">
               To store
-              <select
+              <SelectField
+                ariaLabel="To store"
                 name="toStoreId"
-                className={selectClassName}
                 value={toStoreId}
-                onChange={(event) => setToStoreId(event.target.value)}
+                onValueChange={setToStoreId}
                 required
-              >
-                {stores
+                options={stores
                   .filter((store) => store.id !== fromStoreId)
-                  .map((store) => (
-                    <option key={store.id} value={store.id}>
-                      {store.name} ({store.code})
-                    </option>
-                  ))}
-              </select>
+                  .map((store) => ({
+                    value: store.id,
+                    label: `${store.name} (${store.code})`,
+                  }))}
+              />
             </label>
           </div>
           <div className="space-y-3">
@@ -447,29 +440,23 @@ export function StockTransferDialog({
                 >
                   <label className="block space-y-1.5 text-sm font-medium">
                     SKU {index + 1}
-                    <select
-                      className={selectClassName}
+                    <SelectField
+                      ariaLabel={`SKU ${index + 1}`}
                       value={line.variantId}
-                      onChange={(event) =>
-                        updateLine(line.key, { variantId: event.target.value })
+                      onValueChange={(value) =>
+                        updateLine(line.key, { variantId: value })
                       }
                       required
-                    >
-                      <option value="">Select a product</option>
-                      {eligible
+                      placeholder="Select a product"
+                      options={eligible
                         .filter(
                           (candidate) => !usedIds.has(candidate.variantId),
                         )
-                        .map((candidate) => (
-                          <option
-                            key={candidate.variantId}
-                            value={candidate.variantId}
-                          >
-                            {optionLabel(candidate)} ·{" "}
-                            {levelFor(candidate, fromStoreId).quantity} on hand
-                          </option>
-                        ))}
-                    </select>
+                        .map((candidate) => ({
+                          value: candidate.variantId,
+                          label: `${optionLabel(candidate)} · ${levelFor(candidate, fromStoreId).quantity} on hand`,
+                        }))}
+                    />
                   </label>
                   <label className="block space-y-1.5 text-sm font-medium">
                     Quantity

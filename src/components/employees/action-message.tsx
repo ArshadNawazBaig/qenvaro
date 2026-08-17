@@ -1,7 +1,6 @@
 "use client";
 
 import type { WorkforceActionState } from "@/app/app/[tenantSlug]/employees/actions";
-import { selectClassName } from "@/components/ui/select";
 
 export const workforceInitialState: WorkforceActionState = {
   status: "idle",
@@ -27,5 +26,3 @@ export function WorkforceActionMessage({
     </p>
   );
 }
-
-export const nativeSelectClass = selectClassName;

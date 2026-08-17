@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 import { existsSync } from "node:fs";
 import { loadEnvFile } from "node:process";
 import { MongoClient, type Db } from "mongodb";
@@ -8,6 +8,14 @@ if (existsSync(".env.local")) loadEnvFile(".env.local");
 
 const enabled = process.env.RUN_ONBOARDING_E2E === "true";
 type StringIdDocument = { _id: string } & Record<string, unknown>;
+
+async function selectShadcnOption(trigger: Locator, value: string) {
+  await trigger.click();
+  await trigger
+    .page()
+    .locator(`[role="option"][data-value=${JSON.stringify(value)}]`)
+    .click();
+}
 
 test.describe("authenticated first-workspace onboarding", () => {
   test.skip(
@@ -121,8 +129,8 @@ test.describe("authenticated first-workspace onboarding", () => {
 
     await page.getByLabel("Business name").fill("Rivera Atelier");
     await page.getByLabel("Workspace URL").fill(slug);
-    await page.getByLabel("Currency").selectOption("PKR");
-    await page.getByLabel("Language and format").selectOption("ur-PK");
+    await selectShadcnOption(page.getByLabel("Currency"), "PKR");
+    await selectShadcnOption(page.getByLabel("Language and format"), "ur-PK");
     await page.getByLabel("Timezone").fill("Asia/Karachi");
     await page.getByLabel("Store name").fill("Clifton Store");
     await page.getByLabel("Store code").fill("CLIFTON");

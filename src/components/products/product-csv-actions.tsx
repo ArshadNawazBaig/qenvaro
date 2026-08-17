@@ -28,6 +28,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select";
 import {
   MAX_PRODUCT_CSV_BYTES,
   rowsToCsv,
@@ -170,28 +171,28 @@ function ColumnMapping({
                 </span>
               )}
             </span>
-            <select
-              value={mapping[definition.field]}
-              onChange={(event) =>
+            <SelectField
+              ariaLabel={`${definition.label} CSV column`}
+              value={mapping[definition.field] || "not-mapped"}
+              onValueChange={(value) =>
                 onChange({
                   ...mapping,
-                  [definition.field]: event.target.value,
+                  [definition.field]: value === "not-mapped" ? "" : value,
                 })
               }
               required={definition.required}
               disabled={disabled}
-              aria-label={`${definition.label} CSV column`}
-              className="bg-card h-10 w-full rounded-lg border px-3 text-sm shadow-[var(--shadow-button)] disabled:opacity-50"
-            >
-              <option value="">
-                {definition.required ? "Choose a column" : "Not mapped"}
-              </option>
-              {preview.headers.map((header) => (
-                <option key={header} value={header}>
-                  {header}
-                </option>
-              ))}
-            </select>
+              options={[
+                {
+                  value: "not-mapped",
+                  label: definition.required ? "Choose a column" : "Not mapped",
+                },
+                ...preview.headers.map((header) => ({
+                  value: header,
+                  label: header,
+                })),
+              ]}
+            />
             <span className="text-muted-foreground block text-xs">
               {definition.help}
             </span>
@@ -615,24 +616,25 @@ function ProductCsvImportDialog({
               <CardContent>
                 <label className="block max-w-md space-y-1.5 text-sm font-medium">
                   Duplicate handling
-                  <select
-                    aria-label="Existing SKU behavior"
+                  <SelectField
+                    ariaLabel="Existing SKU behavior"
                     value={duplicateSkuBehavior}
                     disabled={pending !== null}
-                    onChange={(event) => {
+                    onValueChange={(value) => {
                       setDuplicateSkuBehavior(
-                        event.target.value as ProductCsvDuplicateBehavior,
+                        value as ProductCsvDuplicateBehavior,
                       );
                       setValidation(null);
                     }}
-                    className="bg-card h-10 w-full rounded-lg border px-3 text-sm shadow-[var(--shadow-button)] disabled:opacity-50"
-                  >
-                    <option value="update">
-                      Update allowed catalog fields
-                    </option>
-                    <option value="skip">Skip existing SKUs</option>
-                    <option value="reject">Reject existing SKUs</option>
-                  </select>
+                    options={[
+                      {
+                        value: "update",
+                        label: "Update allowed catalog fields",
+                      },
+                      { value: "skip", label: "Skip existing SKUs" },
+                      { value: "reject", label: "Reject existing SKUs" },
+                    ]}
+                  />
                   <span className="text-muted-foreground block text-xs font-normal">
                     Updates never change inventory for an existing product.
                   </span>

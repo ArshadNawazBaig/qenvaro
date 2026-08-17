@@ -46,7 +46,7 @@ export function CategoryToolbar({ query }: { query: CategoryListQuery }) {
         <FilterSelect
           label="Category status"
           value={query.status}
-          onChange={(event) => update("status", event.target.value)}
+          onValueChange={(value) => update("status", value)}
           options={[
             { value: "all", label: "All statuses" },
             { value: "active", label: "Active" },
@@ -56,7 +56,7 @@ export function CategoryToolbar({ query }: { query: CategoryListQuery }) {
         <FilterSelect
           label="Sort categories"
           value={query.sort}
-          onChange={(event) => update("sort", event.target.value)}
+          onValueChange={(value) => update("sort", value)}
           options={[
             { value: "name", label: "Sort: Name" },
             { value: "products", label: "Sort: Products" },

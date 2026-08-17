@@ -11,7 +11,7 @@ import { PermissionDenied } from "@/components/shared/states";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { SelectField } from "@/components/ui/select";
 import { env } from "@/config/env";
 import {
   demoExpenses,
@@ -97,20 +97,29 @@ export default async function ExpensesPage({
                 defaultValue={query.q}
                 placeholder="Search vendor, category, number…"
               />
-              <Select name="status" defaultValue={query.status}>
-                <option value="all">All statuses</option>
-                <option value="submitted">Submitted</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-              </Select>
-              <Select name="store" defaultValue={query.store}>
-                <option value="all">All stores</option>
-                {reference.stores.map((store) => (
-                  <option key={store.id} value={store.id}>
-                    {store.name}
-                  </option>
-                ))}
-              </Select>
+              <SelectField
+                ariaLabel="Expense status"
+                name="status"
+                defaultValue={query.status}
+                options={[
+                  { value: "all", label: "All statuses" },
+                  { value: "submitted", label: "Submitted" },
+                  { value: "approved", label: "Approved" },
+                  { value: "rejected", label: "Rejected" },
+                ]}
+              />
+              <SelectField
+                ariaLabel="Expense store"
+                name="store"
+                defaultValue={query.store}
+                options={[
+                  { value: "all", label: "All stores" },
+                  ...reference.stores.map((store) => ({
+                    value: store.id,
+                    label: store.name,
+                  })),
+                ]}
+              />
               <Button type="submit">Apply</Button>
             </form>
           </CardContent>

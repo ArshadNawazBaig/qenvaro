@@ -60,6 +60,7 @@ export default async function SalesPage({
     new Intl.NumberFormat(result.locale, {
       style: "currency",
       currency: result.currency,
+      minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amountMinor / 100);
 

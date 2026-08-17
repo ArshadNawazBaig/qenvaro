@@ -7,6 +7,7 @@ export function reportMoney(amountMinor: number, report: MoneyContext): string {
   return new Intl.NumberFormat(report.locale, {
     style: "currency",
     currency: report.currency,
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amountMinor / 100);
 }

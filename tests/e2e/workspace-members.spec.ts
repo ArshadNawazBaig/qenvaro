@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 import { existsSync } from "node:fs";
 import { loadEnvFile } from "node:process";
 import { MongoClient, type Db } from "mongodb";
@@ -8,6 +8,14 @@ if (existsSync(".env.local")) loadEnvFile(".env.local");
 
 const enabled = process.env.RUN_WORKSPACE_E2E === "true";
 type StringDocument = { _id: string } & Record<string, unknown>;
+
+async function selectShadcnOption(trigger: Locator, value: string) {
+  await trigger.click();
+  await trigger
+    .page()
+    .locator(`[role="option"][data-value=${JSON.stringify(value)}]`)
+    .click();
+}
 
 test.describe("authenticated workspace and member administration", () => {
   test.setTimeout(180_000);
@@ -296,9 +304,10 @@ test.describe("authenticated workspace and member administration", () => {
 
     await page.goto(productDetailUrl);
     await page.waitForLoadState("networkidle");
-    await page
-      .getByLabel("Unit of measure")
-      .selectOption(String(createdUnit?._id));
+    await selectShadcnOption(
+      page.getByLabel("Unit of measure"),
+      String(createdUnit?._id),
+    );
     await page.getByRole("button", { name: "Save changes" }).click();
     await expect
       .poll(async () => {
@@ -379,13 +388,13 @@ test.describe("authenticated workspace and member administration", () => {
     await page
       .getByRole("button", { name: `Add ${updatedProductName}` })
       .click();
-    const saleCustomerId = await page
-      .getByLabel("Sale customer")
-      .locator("option")
-      .filter({ hasText: customerName })
-      .getAttribute("value");
+    await page.getByLabel("Sale customer").click();
+    const saleCustomerOption = page
+      .getByRole("option")
+      .filter({ hasText: customerName });
+    const saleCustomerId = await saleCustomerOption.getAttribute("data-value");
     expect(saleCustomerId).toBeTruthy();
-    await page.getByLabel("Sale customer").selectOption(saleCustomerId!);
+    await saleCustomerOption.click();
     await page.getByRole("button", { name: "Fill remaining total" }).click();
     await page.getByLabel(/Sale note/).fill(checkoutNote);
     await page.getByRole("button", { name: "Complete sale" }).click();
@@ -494,8 +503,8 @@ test.describe("authenticated workspace and member administration", () => {
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     if (returnViewport) await page.setViewportSize(returnViewport);
     await page.getByLabel(`Return ${updatedProductName}`).check();
-    await page.getByLabel("Return reason").selectOption("wrong_item");
-    await page.getByLabel("Refund method").selectOption("bank_transfer");
+    await selectShadcnOption(page.getByLabel("Return reason"), "wrong_item");
+    await selectShadcnOption(page.getByLabel("Refund method"), "bank_transfer");
     await page.getByLabel(/Return note/).fill(returnNote);
     await page
       .getByRole("button", { name: "Complete return & refund" })
@@ -825,8 +834,8 @@ test.describe("authenticated workspace and member administration", () => {
     });
     await csvDialog.getByRole("button", { name: "Preview CSV" }).click();
     await expect(csvDialog.getByText("1 product rows detected")).toBeVisible();
-    await expect(csvDialog.getByLabel("Existing SKU behavior")).toHaveValue(
-      "update",
+    await expect(csvDialog.getByLabel("Existing SKU behavior")).toContainText(
+      "Update allowed catalog fields",
     );
     await csvDialog.getByRole("button", { name: "Validate rows" }).click();
     await expect(
@@ -992,15 +1001,14 @@ test.describe("authenticated workspace and member administration", () => {
     ).toBe(0);
     await page.getByRole("button", { name: "New adjustment" }).click();
     let inventoryDialog = page.getByRole("dialog");
-    const adjustmentVariantId = await inventoryDialog
-      .getByLabel("Product / SKU")
-      .locator("option")
-      .filter({ hasText: csvSku })
-      .getAttribute("value");
+    await inventoryDialog.getByLabel("Product / SKU").click();
+    const adjustmentVariantOption = page
+      .getByRole("option")
+      .filter({ hasText: csvSku });
+    const adjustmentVariantId =
+      await adjustmentVariantOption.getAttribute("data-value");
     expect(adjustmentVariantId).toBeTruthy();
-    await inventoryDialog
-      .getByLabel("Product / SKU")
-      .selectOption(adjustmentVariantId!);
+    await adjustmentVariantOption.click();
     await inventoryDialog.getByLabel("Quantity").fill("2");
     await inventoryDialog
       .getByLabel("Note")
@@ -1031,13 +1039,17 @@ test.describe("authenticated workspace and member administration", () => {
     await page.reload();
     await page.getByRole("button", { name: "New transfer" }).click();
     inventoryDialog = page.getByRole("dialog");
-    await expect(inventoryDialog.getByLabel("From store")).toHaveValue(
-      String(primaryStore?._id),
+    await expect(inventoryDialog.getByLabel("From store")).toContainText(
+      "Main Floor (MAIN)",
     );
-    await inventoryDialog.getByLabel("To store").selectOption(warehouseStoreId);
-    await inventoryDialog
-      .getByLabel("SKU 1")
-      .selectOption(adjustmentVariantId!);
+    await selectShadcnOption(
+      inventoryDialog.getByLabel("To store"),
+      warehouseStoreId,
+    );
+    await selectShadcnOption(
+      inventoryDialog.getByLabel("SKU 1"),
+      adjustmentVariantId!,
+    );
     await inventoryDialog.getByLabel("Quantity").fill("3");
     await inventoryDialog
       .getByLabel("Transfer note")
@@ -1090,13 +1102,20 @@ test.describe("authenticated workspace and member administration", () => {
     await page.goto(`/app/${primarySlug}/inventory`);
     await page.getByRole("button", { name: "New adjustment" }).click();
     inventoryDialog = page.getByRole("dialog");
-    await inventoryDialog.getByLabel("Store").selectOption(warehouseStoreId);
-    await inventoryDialog
-      .getByLabel("Product / SKU")
-      .selectOption(adjustmentVariantId!);
-    await inventoryDialog.getByLabel("Change").selectOption("set");
+    await selectShadcnOption(
+      inventoryDialog.getByLabel("Store"),
+      warehouseStoreId,
+    );
+    await selectShadcnOption(
+      inventoryDialog.getByLabel("Product / SKU"),
+      adjustmentVariantId!,
+    );
+    await selectShadcnOption(inventoryDialog.getByLabel("Change"), "set");
     await inventoryDialog.getByLabel("Quantity").fill("0");
-    await inventoryDialog.getByLabel("Reason").selectOption("correction");
+    await selectShadcnOption(
+      inventoryDialog.getByLabel("Reason"),
+      "correction",
+    );
     await inventoryDialog
       .getByLabel("Note")
       .fill("Cleared warehouse before availability update");
@@ -1168,12 +1187,16 @@ test.describe("authenticated workspace and member administration", () => {
     await page.goto(`/app/${primarySlug}/inventory`);
     await page.getByRole("button", { name: "New adjustment" }).click();
     inventoryDialog = page.getByRole("dialog");
-    await inventoryDialog
-      .getByLabel("Product / SKU")
-      .selectOption(adjustmentVariantId!);
-    await inventoryDialog.getByLabel("Change").selectOption("set");
+    await selectShadcnOption(
+      inventoryDialog.getByLabel("Product / SKU"),
+      adjustmentVariantId!,
+    );
+    await selectShadcnOption(inventoryDialog.getByLabel("Change"), "set");
     await inventoryDialog.getByLabel("Quantity").fill("1");
-    await inventoryDialog.getByLabel("Reason").selectOption("correction");
+    await selectShadcnOption(
+      inventoryDialog.getByLabel("Reason"),
+      "correction",
+    );
     await inventoryDialog
       .getByLabel("Note")
       .fill("Reduced to verify the low-stock attention queue");
@@ -1254,7 +1277,7 @@ test.describe("authenticated workspace and member administration", () => {
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 
     await page.getByRole("button", { name: "Manage Taylor Teammate" }).click();
-    await page.getByLabel("Role").selectOption("manager");
+    await selectShadcnOption(page.getByLabel("Role"), "manager");
     await page.getByLabel("Grant access to Warehouse").check();
     await page.getByRole("button", { name: "Save access" }).click();
     await expect(page.getByRole("status")).toContainText(
@@ -1279,7 +1302,7 @@ test.describe("authenticated workspace and member administration", () => {
     const invitedEmail = `invite-${project}-${suffix}@example.test`;
     await page.getByRole("button", { name: "Invite member" }).click();
     await page.getByLabel("Work email").fill(invitedEmail);
-    await page.getByLabel("Role").selectOption("cashier");
+    await selectShadcnOption(page.getByLabel("Role"), "cashier");
     await page.getByLabel("Grant access to Warehouse").check();
     await page.getByRole("button", { name: "Send invitation" }).click();
     await expect(page.getByRole("status")).toContainText("Invitation sent");

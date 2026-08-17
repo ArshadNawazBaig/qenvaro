@@ -10,7 +10,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
-import { Select } from "@/components/ui/select";
+import { SelectField } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 type InventorySection =
@@ -60,26 +60,19 @@ export function InventoryNav({
   return (
     <Card className="p-1" aria-label="Inventory sections">
       <div className="sm:hidden">
-        <label className="sr-only" htmlFor="inventory-section">
-          Inventory section
-        </label>
-        <Select
-          id="inventory-section"
+        <SelectField
+          ariaLabel="Inventory section"
+          options={items.map((item) => ({
+            label: item.label,
+            value: item.id,
+          }))}
           value={current}
-          onChange={(event) => {
-            const item = items.find(
-              (candidate) => candidate.id === event.target.value,
-            );
+          onValueChange={(value) => {
+            const item = items.find((candidate) => candidate.id === value);
             if (item) router.push(`${base}${item.href}`);
           }}
-          className="border-0 shadow-none"
-        >
-          {items.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.label}
-            </option>
-          ))}
-        </Select>
+          triggerClassName="border-0 shadow-none"
+        />
       </div>
       <div className="hidden flex-wrap gap-1 sm:flex">
         {items.map((item) => {

@@ -11,7 +11,7 @@ import { PermissionDenied } from "@/components/shared/states";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { SelectField } from "@/components/ui/select";
 import { env } from "@/config/env";
 import { demoSuppliers } from "@/modules/purchasing/demo-data";
 import { supplierListQuerySchema } from "@/modules/purchasing/schemas";
@@ -89,11 +89,16 @@ export default async function SuppliersPage({
                 defaultValue={query.q}
                 placeholder="Search suppliers…"
               />
-              <Select name="status" defaultValue={query.status}>
-                <option value="all">All statuses</option>
-                <option value="active">Active</option>
-                <option value="archived">Archived</option>
-              </Select>
+              <SelectField
+                ariaLabel="Supplier status"
+                name="status"
+                defaultValue={query.status}
+                options={[
+                  { value: "all", label: "All statuses" },
+                  { value: "active", label: "Active" },
+                  { value: "archived", label: "Archived" },
+                ]}
+              />
               <Button type="submit">Apply</Button>
             </form>
           </CardContent>

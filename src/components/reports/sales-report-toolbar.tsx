@@ -4,7 +4,7 @@ import { CalendarDays, Store } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
+import { SelectField } from "@/components/ui/select";
 import type {
   SalesReportRange,
   SalesReportStoreOption,
@@ -66,23 +66,23 @@ export function SalesReportToolbar({
           </Button>
         ))}
       </div>
-      <label className="relative flex min-w-0 items-center sm:w-64">
-        <span className="sr-only">Report store</span>
-        <Store className="text-muted-foreground pointer-events-none absolute left-3 size-4" />
-        <Select
+      <div className="relative min-w-0 sm:w-64">
+        <Store className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2" />
+        <SelectField
+          ariaLabel="Report store"
           value={selectedStoreId}
           disabled={pending || stores.length === 0}
-          onChange={(event) => update({ store: event.target.value })}
-          className="min-w-0 pr-8 pl-9"
-        >
-          <option value="all">All assigned stores</option>
-          {stores.map((store) => (
-            <option key={store.id} value={store.id}>
-              {store.name} · {store.code}
-            </option>
-          ))}
-        </Select>
-      </label>
+          onValueChange={(value) => update({ store: value })}
+          options={[
+            { value: "all", label: "All assigned stores" },
+            ...stores.map((store) => ({
+              value: store.id,
+              label: `${store.name} · ${store.code}`,
+            })),
+          ]}
+          triggerClassName="min-w-0 pl-9"
+        />
+      </div>
     </div>
   );
 }

@@ -26,6 +26,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select";
 import { TagBadge } from "@/components/tags/tag-badge";
 import type { ProductDetail } from "@/modules/products/schemas";
 import type { TagOption } from "@/modules/tags/schemas";
@@ -139,49 +140,51 @@ export function ProductDetailConsole({
                 </label>
                 <label className="space-y-1.5 text-sm font-medium">
                   Category
-                  <select
+                  <SelectField
+                    ariaLabel="Category"
                     name="category"
                     required
                     defaultValue={product.category}
-                    className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border px-3 text-sm outline-none focus-visible:ring-2"
-                  >
-                    {!categories.includes(product.category) && (
-                      <option value={product.category}>
-                        {product.category}
-                      </option>
-                    )}
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      ...(!categories.includes(product.category)
+                        ? [
+                            {
+                              value: product.category,
+                              label: product.category,
+                            },
+                          ]
+                        : []),
+                      ...categories.map((category) => ({
+                        value: category,
+                        label: category,
+                      })),
+                    ]}
+                  />
                 </label>
                 <label className="space-y-1.5 text-sm font-medium">
                   Unit of measure
-                  <select
+                  <SelectField
+                    ariaLabel="Unit of measure"
                     name="unitId"
                     required
-                    defaultValue={product.unitId ?? ""}
-                    className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border px-3 text-sm outline-none focus-visible:ring-2"
-                  >
-                    {product.unit &&
-                      !units.some((unit) => unit.id === product.unitId) && (
-                        <option value={product.unit.id}>
-                          {product.unit.name} ({product.unit.symbol})
-                        </option>
-                      )}
-                    {!product.unit && (
-                      <option value="" disabled>
-                        Choose a unit
-                      </option>
-                    )}
-                    {units.map((unit) => (
-                      <option key={unit.id} value={unit.id}>
-                        {unit.name} ({unit.symbol})
-                      </option>
-                    ))}
-                  </select>
+                    defaultValue={product.unitId ?? undefined}
+                    placeholder="Choose a unit"
+                    options={[
+                      ...(product.unit &&
+                      !units.some((unit) => unit.id === product.unitId)
+                        ? [
+                            {
+                              value: product.unit.id,
+                              label: `${product.unit.name} (${product.unit.symbol})`,
+                            },
+                          ]
+                        : []),
+                      ...units.map((unit) => ({
+                        value: unit.id,
+                        label: `${unit.name} (${unit.symbol})`,
+                      })),
+                    ]}
+                  />
                 </label>
                 <label className="space-y-1.5 text-sm font-medium">
                   Price ({product.currency})
@@ -206,16 +209,17 @@ export function ProductDetailConsole({
                 </label>
                 <label className="space-y-1.5 text-sm font-medium">
                   Status
-                  <select
+                  <SelectField
+                    ariaLabel="Product status"
                     name="status"
                     defaultValue={
                       product.status === "draft" ? "draft" : "active"
                     }
-                    className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border px-3 text-sm outline-none focus-visible:ring-2"
-                  >
-                    <option value="active">Active</option>
-                    <option value="draft">Draft</option>
-                  </select>
+                    options={[
+                      { value: "active", label: "Active" },
+                      { value: "draft", label: "Draft" },
+                    ]}
+                  />
                 </label>
                 <div className="space-y-1.5 text-sm font-medium">
                   Stable slug

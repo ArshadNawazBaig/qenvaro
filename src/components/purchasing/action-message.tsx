@@ -1,14 +1,11 @@
 "use client";
 
 import type { PurchasingActionState } from "@/app/app/[tenantSlug]/suppliers/actions";
-import { selectClassName } from "@/components/ui/select";
 
 export const purchasingInitialState: PurchasingActionState = {
   status: "idle",
   message: "",
 };
-export const purchasingSelectClass = selectClassName;
-
 export function PurchasingActionMessage({
   state,
 }: {

@@ -29,7 +29,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { selectClassName } from "@/components/ui/select";
+import { SelectField } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   salePaymentLabels,
@@ -58,6 +58,7 @@ function formatMoney(amountMinor: number, currency: string, locale: string) {
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amountMinor / 100);
 }
@@ -502,20 +503,21 @@ export function PosWorkspace({
           <div className="space-y-4 border-t p-4 sm:p-6">
             <label className="block space-y-1.5 text-sm font-medium">
               Customer <span className="text-muted-foreground">(optional)</span>
-              <select
-                className={selectClassName}
-                value={customerId}
-                onChange={(event) => setCustomerId(event.target.value)}
+              <SelectField
+                ariaLabel="Sale customer"
+                value={customerId || "walk-in"}
+                onValueChange={(value) =>
+                  setCustomerId(value === "walk-in" ? "" : value)
+                }
                 disabled={workspace.customers.length === 0}
-                aria-label="Sale customer"
-              >
-                <option value="">Walk-in customer</option>
-                {workspace.customers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.name} · {customer.code}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: "walk-in", label: "Walk-in customer" },
+                  ...workspace.customers.map((customer) => ({
+                    value: customer.id,
+                    label: `${customer.name} · ${customer.code}`,
+                  })),
+                ]}
+              />
             </label>
 
             <div className="space-y-3">
@@ -552,37 +554,30 @@ export function PosWorkspace({
                   key={payment.key}
                   className="grid min-w-0 gap-2 min-[390px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
                 >
-                  <select
-                    className={selectClassName}
+                  <SelectField
+                    ariaLabel={`Payment method ${index + 1}`}
                     value={payment.method}
-                    onChange={(event) =>
+                    onValueChange={(value) =>
                       setPayments((current) =>
                         current.map((item) =>
                           item.key === payment.key
                             ? {
                                 ...item,
-                                method: event.target.value as SalePaymentMethod,
+                                method: value as SalePaymentMethod,
                               }
                             : item,
                         ),
                       )
                     }
-                    aria-label={`Payment method ${index + 1}`}
-                  >
-                    {paymentMethods.map((method) => (
-                      <option
-                        key={method}
-                        value={method}
-                        disabled={payments.some(
-                          (other) =>
-                            other.key !== payment.key &&
-                            other.method === method,
-                        )}
-                      >
-                        {salePaymentLabels[method]}
-                      </option>
-                    ))}
-                  </select>
+                    options={paymentMethods.map((method) => ({
+                      value: method,
+                      label: salePaymentLabels[method],
+                      disabled: payments.some(
+                        (other) =>
+                          other.key !== payment.key && other.method === method,
+                      ),
+                    }))}
+                  />
                   <Input
                     value={payment.amount}
                     onChange={(event) =>

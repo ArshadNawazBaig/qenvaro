@@ -138,7 +138,7 @@ export function PlatformShell({ identity, children }: PlatformShellProps) {
   const router = useRouter();
 
   return (
-    <div className="bg-background min-h-screen p-0 lg:p-4 xl:p-6">
+    <div className="bg-background min-h-screen">
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
@@ -163,13 +163,13 @@ export function PlatformShell({ identity, children }: PlatformShellProps) {
       <div
         data-app-frame
         data-app-surface
-        className="dark:lg:border-border relative min-h-screen overflow-clip lg:grid lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[244px_minmax(0,1fr)] lg:rounded-[24px] lg:border lg:border-white/70"
+        className="relative min-h-screen overflow-clip lg:grid lg:grid-cols-[244px_minmax(0,1fr)]"
       >
-        <aside className="border-sidebar-border bg-sidebar text-sidebar-foreground relative z-40 hidden h-[calc(100vh-2rem)] flex-col border-r lg:sticky lg:top-4 lg:flex xl:top-6 xl:h-[calc(100vh-3rem)]">
+        <aside className="border-sidebar-border bg-sidebar text-sidebar-foreground relative z-40 hidden h-screen flex-col border-r lg:sticky lg:top-0 lg:flex">
           <PlatformNavigation />
         </aside>
         <div className="min-w-0">
-          <header className="bg-workspace/88 sticky top-0 z-30 flex h-[72px] items-center gap-3 px-4 backdrop-blur-xl sm:px-6 lg:top-4 xl:top-6">
+          <header className="bg-card/95 border-border/45 sticky top-0 z-30 flex h-[72px] items-center gap-3 border-b px-4 backdrop-blur-xl sm:px-6">
             <Button
               variant="ghost"
               size="icon"
