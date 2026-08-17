@@ -29,6 +29,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { TagColor, TagListItem } from "@/modules/tags/schemas";
 
 const initialState: TagActionState = { status: "idle", message: "" };
@@ -87,12 +88,11 @@ function TagFields({ tag }: { tag?: TagListItem }) {
       </label>
       <label className="space-y-1.5 text-sm font-medium">
         Description
-        <textarea
+        <Textarea
           name="description"
           maxLength={240}
           rows={3}
           defaultValue={tag?.description}
-          className="border-input bg-card w-full resize-y rounded-lg border p-3 text-sm"
           placeholder="How this tag should be used"
         />
       </label>

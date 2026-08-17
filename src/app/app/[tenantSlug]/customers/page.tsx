@@ -7,8 +7,8 @@ import {
 } from "@/components/customers/customer-management";
 import { CustomerToolbar } from "@/components/customers/customer-toolbar";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { env } from "@/config/env";
 import {
@@ -81,17 +81,16 @@ export default async function CustomersPage({
   const page = Math.min(query.page, pageCount);
 
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          {isDemo
+    <PageContainer>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail={
+          isDemo
             ? "Read-only customer-management preview"
-            : "Customer access and tenant ownership verified server-side"}
-        </span>
-      </div>
+            : "Customer access and tenant ownership verified server-side"
+        }
+      />
       <PageHeader
         eyebrow="Sales"
         title="Customers"
@@ -164,6 +163,6 @@ export default async function CustomersPage({
           />
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

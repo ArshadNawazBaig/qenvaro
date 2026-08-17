@@ -21,6 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { AttendanceListItem } from "@/modules/employees/schemas";
 import type { EmployeeReferenceData } from "@/server/repositories/employees";
 
@@ -136,12 +137,7 @@ export function RecordAttendanceDialog({
           <label className="space-y-1.5 text-sm font-medium sm:col-span-2">
             Internal note{" "}
             <span className="text-muted-foreground">(optional)</span>
-            <textarea
-              name="note"
-              maxLength={500}
-              rows={3}
-              className="border-input bg-card focus-visible:ring-ring w-full rounded-lg border p-3 text-sm outline-none focus-visible:ring-2"
-            />
+            <Textarea name="note" maxLength={500} rows={3} />
           </label>
           <div className="sm:col-span-2">
             <WorkforceActionMessage state={state} />

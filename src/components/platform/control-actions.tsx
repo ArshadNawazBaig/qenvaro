@@ -37,6 +37,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 function Message({ state }: { state: typeof platformInitialState }) {
   if (!state.message) return null;
@@ -101,13 +102,12 @@ export function TenantLifecycleDialog({
         <form action={action} className="mt-5 space-y-4">
           <label className="block space-y-1.5 text-sm font-medium">
             Required operational reason
-            <textarea
+            <Textarea
               name="reason"
               required
               minLength={10}
               maxLength={500}
               rows={4}
-              className="border-input bg-card w-full rounded-lg border p-3 text-sm"
             />
           </label>
           <Message state={state} />
@@ -189,13 +189,12 @@ export function UserLifecycleDialog({
           )}
           <label className="block space-y-1.5 text-sm font-medium">
             Required reason
-            <textarea
+            <Textarea
               name="reason"
               required
               minLength={10}
               maxLength={500}
               rows={4}
-              className="border-input bg-card w-full rounded-lg border p-3 text-sm"
             />
           </label>
           <Message state={state} />
@@ -260,13 +259,12 @@ export function GrantSupportDialog({ tenantId }: { tenantId: string }) {
           </label>
           <label className="block space-y-1.5 text-sm font-medium">
             Required support reason
-            <textarea
+            <Textarea
               name="reason"
               required
               minLength={15}
               maxLength={500}
               rows={4}
-              className="border-input bg-card w-full rounded-lg border p-3 text-sm"
             />
           </label>
           <Message state={state} />
@@ -312,13 +310,12 @@ export function RevokeSupportDialog({ grantId }: { grantId: string }) {
         <form action={action} className="mt-5 space-y-4">
           <label className="block space-y-1.5 text-sm font-medium">
             Required revocation reason
-            <textarea
+            <Textarea
               name="reason"
               required
               minLength={10}
               maxLength={500}
               rows={3}
-              className="border-input bg-card w-full rounded-lg border p-3 text-sm"
             />
           </label>
           <Message state={state} />
@@ -468,13 +465,12 @@ export function NewAnnouncementDialog() {
           </label>
           <label className="block space-y-1.5 text-sm font-medium">
             Message
-            <textarea
+            <Textarea
               name="message"
               required
               minLength={10}
               maxLength={1000}
               rows={4}
-              className="border-input bg-card w-full rounded-lg border p-3 text-sm"
             />
           </label>
           <div className="grid gap-4 sm:grid-cols-2">

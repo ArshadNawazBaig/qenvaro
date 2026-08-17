@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { OperationsNav } from "@/components/purchasing/operations-nav";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { PermissionDenied } from "@/components/shared/states";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { env } from "@/config/env";
 import { formatMoney } from "@/lib/money";
@@ -71,16 +71,13 @@ export default async function OperationsReportPage({
   const showMoney = (value: number) =>
     formatMoney({ amountMinor: value, currency: summary.currency });
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <OperationsNav tenantSlug={tenantSlug} current="/reports/operations" />
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          Last 90 days · approved expenses only
-        </span>
-      </div>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail="Last 90 days · approved expenses only"
+      />
       <PageHeader
         eyebrow="Reports"
         title="Purchasing & expenses"
@@ -169,6 +166,6 @@ export default async function OperationsReportPage({
           </p>
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

@@ -7,8 +7,8 @@ import {
 } from "@/components/categories/category-management";
 import { CategoryToolbar } from "@/components/categories/category-toolbar";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { env } from "@/config/env";
 import {
@@ -66,17 +66,16 @@ export default async function CategoriesPage({
   const pageCount = Math.max(1, Math.ceil(result.total / query.pageSize));
   const page = Math.min(query.page, pageCount);
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          {isDemo
+    <PageContainer>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail={
+          isDemo
             ? "Read-only taxonomy preview"
-            : "Tenant ownership and product assignments verified server-side"}
-        </span>
-      </div>
+            : "Tenant ownership and product assignments verified server-side"
+        }
+      />
       <PageHeader
         eyebrow="Products"
         parentHref={`/app/${tenantSlug}/products`}
@@ -133,6 +132,6 @@ export default async function CategoriesPage({
           isDemo={isDemo}
         />
       </Card>
-    </div>
+    </PageContainer>
   );
 }

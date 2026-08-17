@@ -29,6 +29,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { selectClassName } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import {
   salePaymentLabels,
   type SaleCatalogItem,
@@ -39,8 +41,6 @@ import {
 
 const initialState: SaleActionState = { status: "idle", message: "" };
 const paymentMethods = Object.keys(salePaymentLabels) as SalePaymentMethod[];
-const selectClassName =
-  "border-input bg-card h-10 w-full rounded-lg border px-3 text-sm shadow-[var(--shadow-button)] disabled:cursor-not-allowed disabled:opacity-50";
 
 interface CartLine {
   item: SaleCatalogItem;
@@ -653,11 +653,10 @@ export function PosWorkspace({
             <label className="block space-y-1.5 text-sm font-medium">
               Sale note{" "}
               <span className="text-muted-foreground">(optional)</span>
-              <textarea
+              <Textarea
                 name="note"
                 maxLength={500}
                 rows={2}
-                className="border-input bg-card w-full resize-y rounded-lg border p-3 text-sm"
                 placeholder="Internal checkout note"
               />
             </label>

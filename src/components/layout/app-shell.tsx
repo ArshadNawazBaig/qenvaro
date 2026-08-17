@@ -376,16 +376,16 @@ function SidebarContent({
     <>
       <div
         className={cn(
-          "border-sidebar-border flex h-[68px] items-center gap-3 border-b px-4",
+          "flex h-[72px] items-center gap-3 px-4",
           collapsed && "justify-center px-2",
         )}
       >
         <Link
           href={base}
-          className="flex min-w-0 items-center gap-3 rounded-lg"
+          className="flex min-w-0 items-center gap-3 rounded-xl"
           aria-label={`${brand.name} dashboard`}
         >
-          <span className="bg-primary text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold shadow-[var(--shadow-button)]">
+          <span className="bg-primary text-primary-foreground flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold shadow-[0_8px_20px_oklch(0.55_0.245_272/0.24)]">
             {brand.logoMark}
           </span>
           {!collapsed && (
@@ -401,7 +401,7 @@ function SidebarContent({
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                "border-sidebar-foreground/10 bg-sidebar hover:bg-sidebar-accent dark:bg-sidebar-foreground/5 dark:hover:bg-sidebar-foreground/10 flex w-full items-center gap-3 rounded-lg border p-2 text-left transition-colors",
+                "bg-workspace/75 hover:bg-accent flex w-full items-center gap-3 rounded-xl border border-transparent p-2 text-left transition-colors",
                 collapsed &&
                   "justify-center border-transparent bg-transparent shadow-none",
               )}
@@ -459,13 +459,13 @@ function SidebarContent({
         className={cn("flex-1 overflow-y-auto px-3 py-2", collapsed && "px-2")}
         aria-label="Primary navigation"
       >
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {navigationGroups.map((group) => (
             <div key={group.id}>
               {!collapsed && (
                 <button
                   type="button"
-                  className="text-sidebar-foreground/62 hover:text-sidebar-foreground flex h-7 w-full items-center justify-between rounded-md px-2 text-[10px] font-semibold tracking-[0.12em] uppercase transition-colors"
+                  className="text-sidebar-foreground/65 hover:text-sidebar-foreground flex h-7 w-full items-center justify-between rounded-md px-2 text-[9px] font-bold tracking-[0.15em] uppercase transition-colors"
                   onClick={() =>
                     setOpenGroups((current) => ({
                       ...current,
@@ -500,12 +500,9 @@ function SidebarContent({
                         title={collapsed ? item.label : undefined}
                         aria-current={active ? "page" : undefined}
                         className={cn(
-                          "text-sidebar-foreground/62 hover:bg-sidebar-foreground/8 hover:text-sidebar-foreground relative flex h-10 items-center gap-3 rounded-md px-2.5 text-sm font-medium transition-colors",
+                          "text-sidebar-foreground/62 hover:bg-accent hover:text-accent-foreground relative flex h-10 items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition-[color,background-color,box-shadow]",
                           active &&
-                            "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
-                          active &&
-                            !collapsed &&
-                            "before:bg-primary before:absolute before:top-2.5 before:-left-3 before:h-5 before:w-0.5 before:rounded-r-full",
+                            "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-[0_9px_20px_oklch(0.55_0.245_272/0.2)]",
                           collapsed && "justify-center px-2",
                         )}
                       >
@@ -521,17 +518,12 @@ function SidebarContent({
         </div>
       </nav>
 
-      <div
-        className={cn(
-          "border-sidebar-border space-y-2 border-t p-3",
-          collapsed && "px-2",
-        )}
-      >
+      <div className={cn("space-y-2 p-3 pt-2", collapsed && "px-2")}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                "hover:bg-sidebar-foreground/8 flex min-h-11 w-full items-center gap-3 rounded-md px-2.5 text-sm transition-colors",
+                "hover:bg-accent flex min-h-11 w-full items-center gap-3 rounded-xl px-2.5 text-sm transition-colors",
                 collapsed && "justify-center px-2",
               )}
               title={collapsed ? `Store: ${workspace.storeName}` : undefined}
@@ -578,7 +570,7 @@ function SidebarContent({
         </DropdownMenu>
 
         {!collapsed && (
-          <div className="border-sidebar-foreground/10 bg-sidebar dark:bg-sidebar-foreground/5 rounded-lg border p-3">
+          <div className="bg-workspace/80 rounded-xl p-3">
             <div className="mb-2 flex items-center justify-between text-xs">
               <span className="font-medium">Product usage</span>
               <span className="text-sidebar-foreground/65 tabular-nums">
@@ -622,29 +614,7 @@ export function AppShell({
   const router = useRouter();
 
   return (
-    <div className="bg-background min-h-screen overflow-x-clip">
-      <aside
-        className={cn(
-          "border-sidebar-border bg-sidebar text-sidebar-foreground fixed inset-y-0 left-0 z-40 hidden flex-col border-r transition-[width] duration-200 lg:flex",
-          collapsed ? "w-[76px]" : "w-[264px]",
-        )}
-      >
-        <SidebarContent
-          tenantSlug={tenantSlug}
-          workspace={workspace}
-          collapsed={collapsed}
-        />
-        <Button
-          variant="outline"
-          size="icon"
-          className="bg-card absolute top-[82px] -right-4 size-8 rounded-full shadow-[var(--shadow-float)]"
-          onClick={() => setCollapsed((value) => !value)}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-        </Button>
-      </aside>
-
+    <div className="bg-background min-h-screen overflow-x-clip p-0 lg:p-4 xl:p-6">
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
@@ -652,7 +622,7 @@ export function AppShell({
             onClick={() => setMobileOpen(false)}
             aria-label="Close navigation"
           />
-          <aside className="bg-sidebar text-sidebar-foreground relative flex h-full w-[296px] max-w-[86vw] flex-col border-r shadow-[var(--shadow-float)]">
+          <aside className="bg-sidebar text-sidebar-foreground relative flex h-full w-[296px] max-w-[86vw] flex-col rounded-r-2xl shadow-[var(--shadow-float)]">
             <button
               className="text-sidebar-foreground/60 hover:bg-sidebar-foreground/10 absolute top-4 right-3 rounded-lg p-1.5"
               onClick={() => setMobileOpen(false)}
@@ -669,151 +639,173 @@ export function AppShell({
           </aside>
         </div>
       )}
-
       <div
+        data-app-frame
+        data-app-surface
         className={cn(
-          "transition-[padding] duration-200",
-          collapsed ? "lg:pl-[76px]" : "lg:pl-[264px]",
+          "dark:lg:border-border relative min-h-screen overflow-clip lg:grid lg:min-h-[calc(100vh-2rem)] lg:rounded-[24px] lg:border lg:border-white/70",
+          collapsed
+            ? "lg:grid-cols-[76px_minmax(0,1fr)]"
+            : "lg:grid-cols-[252px_minmax(0,1fr)]",
         )}
       >
-        <header className="bg-background/90 sticky top-0 z-30 flex h-[68px] items-center gap-3 border-b px-4 backdrop-blur-xl sm:px-6">
+        <aside className="border-sidebar-border bg-sidebar text-sidebar-foreground relative z-40 hidden h-[calc(100vh-2rem)] flex-col border-r transition-[width] duration-200 lg:sticky lg:top-4 lg:flex xl:top-6 xl:h-[calc(100vh-3rem)]">
+          <SidebarContent
+            tenantSlug={tenantSlug}
+            workspace={workspace}
+            collapsed={collapsed}
+          />
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
-            className="lg:hidden"
-            onClick={() => setMobileOpen(true)}
-            aria-label="Open navigation"
+            className="bg-card absolute top-[82px] -right-3.5 size-7 rounded-full shadow-[var(--shadow-float)]"
+            onClick={() => setCollapsed((value) => !value)}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <Menu />
+            {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
           </Button>
-          <Link
-            href={`/app/${tenantSlug}`}
-            className="mr-auto flex items-center gap-2 text-sm font-semibold md:hidden"
-          >
-            <span className="bg-primary text-primary-foreground flex size-7 items-center justify-center rounded-lg text-[11px]">
-              {brand.logoMark}
-            </span>
-            {brand.name}
-          </Link>
-          <div className="relative hidden w-full max-w-md md:block">
-            <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-            <Input
-              className="bg-card/85 h-10 pr-14 pl-9"
-              placeholder="Search products, people, or settings…"
-              aria-label="Global search"
-            />
-            <kbd className="bg-muted text-muted-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-md border px-1.5 py-0.5 text-[10px] font-medium">
-              ⌘K
-            </kbd>
-          </div>
-          <div className="ml-auto hidden items-center gap-2 xl:flex">
-            <span className="text-muted-foreground bg-card/70 flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-medium shadow-[var(--shadow-button)]">
-              <Store className="size-3.5" />
-              <span className="max-w-40 truncate">{workspace.storeName}</span>
-            </span>
-          </div>
-          <div className="flex items-center gap-0.5 sm:gap-1">
+        </aside>
+
+        <div className="min-w-0">
+          <header className="bg-workspace/88 sticky top-0 z-30 flex h-[72px] items-center gap-3 px-4 backdrop-blur-xl sm:px-6 lg:top-4 xl:top-6">
             <Button
               variant="ghost"
               size="icon"
-              className="hidden min-[360px]:inline-flex"
-              asChild
+              className="lg:hidden"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open navigation"
             >
-              <a
-                href={`mailto:${brand.supportEmail}`}
-                aria-label="Contact help"
+              <Menu />
+            </Button>
+            <Link
+              href={`/app/${tenantSlug}`}
+              className="mr-auto flex items-center gap-2 text-sm font-semibold md:hidden"
+            >
+              <span className="bg-primary text-primary-foreground flex size-7 items-center justify-center rounded-lg text-[11px]">
+                {brand.logoMark}
+              </span>
+              {brand.name}
+            </Link>
+            <div className="relative hidden w-full max-w-md md:block">
+              <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+              <Input
+                className="bg-card/90 h-10 rounded-full border-transparent pr-14 pl-10 shadow-[var(--shadow-button)]"
+                placeholder="Search products, people, or settings…"
+                aria-label="Global search"
+              />
+              <kbd className="bg-muted text-muted-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-md border px-1.5 py-0.5 text-[10px] font-medium">
+                ⌘K
+              </kbd>
+            </div>
+            <div className="ml-auto hidden items-center gap-2 xl:flex">
+              <span className="text-muted-foreground bg-card flex h-9 items-center gap-2 rounded-full px-3 text-xs font-medium shadow-[var(--shadow-button)]">
+                <Store className="size-3.5" />
+                <span className="max-w-40 truncate">{workspace.storeName}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-0.5 sm:gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="bg-card hidden rounded-full shadow-[var(--shadow-button)] min-[360px]:inline-flex"
+                asChild
               >
-                <CircleHelp />
-              </a>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden min-[360px]:inline-flex"
-              onClick={() =>
-                setTheme(resolvedTheme === "dark" ? "light" : "dark")
-              }
-              aria-label="Toggle theme"
-            >
-              {resolvedTheme === "dark" ? <Sun /> : <Moon />}
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative"
-                  aria-label="Notifications"
+                <a
+                  href={`mailto:${brand.supportEmail}`}
+                  aria-label="Contact help"
                 >
-                  <Bell />
-                  <span className="bg-destructive ring-background absolute top-2 right-2 size-1.5 rounded-full ring-2" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-72">
-                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <div className="px-3 py-5 text-center">
-                  <p className="text-sm font-medium">You’re all caught up</p>
-                  <p className="text-muted-foreground mt-1 text-xs">
-                    New workspace alerts will appear here.
-                  </p>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="ml-1 flex items-center gap-2 rounded-full p-0.5 sm:rounded-lg sm:pr-2">
-                  <Avatar className="ring-card size-9 ring-2">
-                    <AvatarFallback>
-                      {initials(workspace.userName)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="hidden min-w-0 text-left 2xl:block">
-                    <span className="block max-w-28 truncate text-xs font-semibold">
+                  <CircleHelp />
+                </a>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="bg-card hidden rounded-full shadow-[var(--shadow-button)] min-[360px]:inline-flex"
+                onClick={() =>
+                  setTheme(resolvedTheme === "dark" ? "light" : "dark")
+                }
+                aria-label="Toggle theme"
+              >
+                {resolvedTheme === "dark" ? <Sun /> : <Moon />}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="bg-card relative rounded-full shadow-[var(--shadow-button)]"
+                    aria-label="Notifications"
+                  >
+                    <Bell />
+                    <span className="bg-destructive ring-background absolute top-2 right-2 size-1.5 rounded-full ring-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-72">
+                  <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <div className="px-3 py-5 text-center">
+                    <p className="text-sm font-medium">You’re all caught up</p>
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      New workspace alerts will appear here.
+                    </p>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="ml-1 flex items-center gap-2 rounded-full p-0.5 sm:rounded-lg sm:pr-2">
+                    <Avatar className="ring-card size-9 ring-2">
+                      <AvatarFallback>
+                        {initials(workspace.userName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="hidden min-w-0 text-left 2xl:block">
+                      <span className="block max-w-28 truncate text-xs font-semibold">
+                        {workspace.userName}
+                      </span>
+                      <span className="text-muted-foreground block text-[10px]">
+                        {workspace.planName} plan
+                      </span>
+                    </span>
+                    <ChevronDown className="text-muted-foreground hidden size-3.5 2xl:block" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                  <DropdownMenuLabel>
+                    <span className="text-foreground block">
                       {workspace.userName}
                     </span>
-                    <span className="text-muted-foreground block text-[10px]">
-                      {workspace.planName} plan
+                    <span className="truncate font-normal">
+                      {workspace.userEmail}
                     </span>
-                  </span>
-                  <ChevronDown className="text-muted-foreground hidden size-3.5 2xl:block" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60">
-                <DropdownMenuLabel>
-                  <span className="text-foreground block">
-                    {workspace.userName}
-                  </span>
-                  <span className="truncate font-normal">
-                    {workspace.userEmail}
-                  </span>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem disabled>
-                  <UserRound /> Account profile
-                </DropdownMenuItem>
-                {workspace.canViewMembers && (
-                  <DropdownMenuItem asChild>
-                    <Link href={`/app/${tenantSlug}/settings/members`}>
-                      <Settings /> Workspace settings
-                    </Link>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled>
+                    <UserRound /> Account profile
                   </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  disabled={workspace.isDemo}
-                  onSelect={async () => {
-                    await authClient.signOut();
-                    router.replace("/sign-in");
-                  }}
-                >
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </header>
-        <main className="min-h-[calc(100vh-68px)] min-w-0">{children}</main>
+                  {workspace.canViewMembers && (
+                    <DropdownMenuItem asChild>
+                      <Link href={`/app/${tenantSlug}/settings/members`}>
+                        <Settings /> Workspace settings
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    disabled={workspace.isDemo}
+                    onSelect={async () => {
+                      await authClient.signOut();
+                      router.replace("/sign-in");
+                    }}
+                  >
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </header>
+          <main className="min-h-[calc(100vh-72px)] min-w-0">{children}</main>
+        </div>
       </div>
     </div>
   );

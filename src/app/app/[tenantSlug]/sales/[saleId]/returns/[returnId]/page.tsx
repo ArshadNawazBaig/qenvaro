@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { PrintReceiptButton } from "@/components/sales/print-receipt-button";
+import { PageContainer } from "@/components/shared/page-container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Inset } from "@/components/ui/inset";
 import { env } from "@/config/env";
 import {
   returnIdSchema,
@@ -65,7 +67,7 @@ export default async function SaleReturnReceiptPage({
   }).format(new Date(receipt.completedAt));
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6 p-4 sm:p-6 lg:p-8 print:max-w-none print:p-0">
+    <PageContainer size="compact" className="print:max-w-none print:p-0">
       <div className="print:hidden">
         <PageHeader
           eyebrow="Returns"
@@ -110,7 +112,7 @@ export default async function SaleReturnReceiptPage({
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid gap-4 rounded-xl border p-4 sm:grid-cols-3">
+          <Inset className="grid gap-4 p-4 sm:grid-cols-3">
             <div>
               <p className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
                 Original receipt
@@ -133,9 +135,9 @@ export default async function SaleReturnReceiptPage({
                 {saleReturnReasonLabels[receipt.reason]}
               </p>
             </div>
-          </div>
+          </Inset>
 
-          <div className="divide-y rounded-xl border">
+          <Inset className="divide-y">
             {receipt.lines.map((line) => (
               <div
                 key={line.lineId}
@@ -157,12 +159,12 @@ export default async function SaleReturnReceiptPage({
                 </p>
               </div>
             ))}
-          </div>
+          </Inset>
 
           <div className="grid gap-6 md:grid-cols-2">
             <div>
               <h2 className="text-sm font-semibold">Recorded refund</h2>
-              <div className="mt-3 flex items-center justify-between gap-4 rounded-xl border p-4 text-sm">
+              <Inset className="mt-3 flex items-center justify-between gap-4 p-4 text-sm">
                 <span className="text-muted-foreground">
                   {salePaymentLabels[receipt.refund.method]}
                 </span>
@@ -173,7 +175,7 @@ export default async function SaleReturnReceiptPage({
                     receipt.locale,
                   )}
                 </span>
-              </div>
+              </Inset>
               {receipt.note && (
                 <div className="mt-5">
                   <h2 className="text-sm font-semibold">Internal note</h2>
@@ -183,7 +185,7 @@ export default async function SaleReturnReceiptPage({
                 </div>
               )}
             </div>
-            <div className="space-y-2 rounded-xl border p-4 text-sm">
+            <Inset className="space-y-2 p-4 text-sm">
               <div className="flex justify-between gap-4">
                 <span className="text-muted-foreground">Subtotal</span>
                 <span className="tabular-nums">
@@ -217,10 +219,10 @@ export default async function SaleReturnReceiptPage({
                   {money(receipt.totalMinor, receipt.currency, receipt.locale)}
                 </span>
               </div>
-            </div>
+            </Inset>
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageContainer>
   );
 }

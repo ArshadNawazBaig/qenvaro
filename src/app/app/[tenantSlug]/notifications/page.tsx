@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { NotificationCenter } from "@/components/governance/notification-center";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { demoTenantSettings } from "@/modules/settings/demo-data";
@@ -57,7 +58,7 @@ function View({
   data: Awaited<ReturnType<typeof getNotifications>>;
 }) {
   return (
-    <div className="mx-auto w-full max-w-[1200px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer size="narrow">
       <PageHeader
         eyebrow="Workspace"
         title="Notifications"
@@ -92,6 +93,6 @@ function View({
           )}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

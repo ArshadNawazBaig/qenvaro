@@ -1,17 +1,36 @@
 import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-export function Card({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+const cardVariants = cva(
+  "bg-card text-card-foreground min-w-0 overflow-hidden rounded-2xl border border-border/70 shadow-[var(--shadow-card)]",
+  {
+    variants: {
+      variant: {
+        default: "",
+        elevated: "shadow-[var(--shadow-float)]",
+        muted: "bg-muted/70 shadow-none",
+        outline: "bg-transparent shadow-none",
+        interactive:
+          "transition-[transform,box-shadow,border-color] hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[var(--shadow-float)]",
+        primary:
+          "border-primary bg-primary text-primary-foreground shadow-[0_18px_40px_oklch(0.55_0.245_272/0.24)]",
+      },
+    },
+    defaultVariants: { variant: "default" },
+  },
+);
+
+export interface CardProps
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof cardVariants> {}
+
+export function Card({ className, variant, ...props }: CardProps) {
   return (
     <div
       data-slot="card"
-      className={cn(
-        "bg-card text-card-foreground overflow-hidden rounded-xl border shadow-none",
-        className,
-      )}
+      className={cn(cardVariants({ variant }), className)}
       {...props}
     />
   );
@@ -24,7 +43,7 @@ export function CardHeader({
     <div
       data-slot="card-header"
       className={cn(
-        "grid auto-rows-min grid-cols-1 items-start gap-1.5 border-b px-5 py-5 has-[>[data-slot=card-action]]:grid-cols-[minmax(0,1fr)_auto] sm:px-6",
+        "border-border/65 grid auto-rows-min grid-cols-1 items-start gap-1.5 border-b px-5 py-5 has-[>[data-slot=card-action]]:grid-cols-[minmax(0,1fr)_auto] sm:px-6 sm:py-5",
         className,
       )}
       {...props}
@@ -56,7 +75,7 @@ export function CardTitle({
     <h2
       data-slot="card-title"
       className={cn(
-        "col-start-1 row-start-1 text-base font-semibold tracking-[-0.015em]",
+        "col-start-1 row-start-1 text-[15px] font-semibold tracking-[-0.02em]",
         className,
       )}
       {...props}
@@ -71,7 +90,7 @@ export function CardDescription({
     <p
       data-slot="card-description"
       className={cn(
-        "text-muted-foreground col-start-1 row-start-2 text-sm",
+        "text-muted-foreground col-start-1 row-start-2 text-xs leading-5",
         className,
       )}
       {...props}

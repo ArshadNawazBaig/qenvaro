@@ -32,6 +32,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { CustomerListItem } from "@/modules/customers/schemas";
 
 const initialState: CustomerActionState = { status: "idle", message: "" };
@@ -169,12 +170,11 @@ function CustomerFields({ customer }: { customer?: CustomerListItem }) {
       </label>
       <label className="space-y-1.5 text-sm font-medium sm:col-span-2">
         Internal notes <span className="text-muted-foreground">(optional)</span>
-        <textarea
+        <Textarea
           name="notes"
           maxLength={1_000}
           rows={3}
           defaultValue={customer?.notes}
-          className="border-input bg-card focus-visible:ring-ring w-full resize-y rounded-lg border p-3 text-sm outline-none focus-visible:ring-2"
           placeholder="Preferences or context for your team"
         />
       </label>

@@ -1,6 +1,7 @@
 import { History } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,7 @@ export default async function PlatformAuditPage({
   const query = await searchParams;
   const data = await getPlatformAuditLog(context, query.page);
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <PageHeader
         eyebrow="Platform"
         title="Platform audit log"
@@ -33,7 +34,7 @@ export default async function PlatformAuditPage({
           <p className="mt-3 font-semibold">No platform audit events</p>
         </Card>
       ) : (
-        <div className="overflow-hidden rounded-xl border">
+        <Card>
           {data.items.map((item) => (
             <article
               key={item.id}
@@ -67,7 +68,7 @@ export default async function PlatformAuditPage({
               </div>
             </article>
           ))}
-        </div>
+        </Card>
       )}
       {data.pages > 1 && (
         <div className="flex justify-end gap-2">
@@ -84,6 +85,6 @@ export default async function PlatformAuditPage({
           </Button>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

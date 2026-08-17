@@ -1,5 +1,6 @@
 import { Check, CreditCard } from "lucide-react";
 import type { Metadata } from "next";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -12,7 +13,7 @@ export default async function PlatformPlansPage() {
   const context = await requireVerifiedPlatformContext();
   const planItems = getPlatformPlans(context);
   return (
-    <div className="mx-auto w-full max-w-[1680px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer size="wide">
       <PageHeader
         eyebrow="Platform"
         title="Plan catalog"
@@ -81,6 +82,6 @@ export default async function PlatformPlansPage() {
         configuration. Runtime plan access continues to derive from verified
         webhook projections.
       </p>
-    </div>
+    </PageContainer>
   );
 }

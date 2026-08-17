@@ -24,6 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { formatMoney } from "@/lib/money";
 import type {
   ExpenseListItem,
@@ -151,12 +152,7 @@ export function NewExpenseDialog({
           </p>
           <label className="space-y-1.5 text-sm font-medium sm:col-span-2">
             Notes
-            <textarea
-              name="notes"
-              maxLength={1000}
-              rows={3}
-              className="border-input bg-card focus-visible:ring-ring w-full rounded-lg border p-3 text-sm outline-none focus-visible:ring-2"
-            />
+            <Textarea name="notes" maxLength={1000} rows={3} />
           </label>
           <div className="sm:col-span-2">
             <PurchasingActionMessage state={state} />
@@ -299,12 +295,7 @@ function Decide({
           <input type="hidden" name="expectedVersion" value={expense.version} />
           <label className="space-y-1.5 text-sm font-medium">
             Decision note
-            <textarea
-              name="note"
-              maxLength={500}
-              rows={3}
-              className="border-input bg-card w-full rounded-lg border p-3 text-sm"
-            />
+            <Textarea name="note" maxLength={500} rows={3} />
           </label>
           <PurchasingActionMessage state={state} />
           <div className="flex justify-end gap-2">

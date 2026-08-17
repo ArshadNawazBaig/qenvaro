@@ -14,9 +14,9 @@ function State({
   action?: React.ReactNode;
 }) {
   return (
-    <Card>
+    <Card variant="muted" className="border-dashed">
       <CardContent className="flex min-h-64 flex-col items-center justify-center p-8 text-center">
-        <div className="bg-muted text-muted-foreground mb-4 flex size-11 items-center justify-center rounded-full">
+        <div className="bg-card text-primary mb-4 flex size-12 items-center justify-center rounded-2xl shadow-[var(--shadow-button)]">
           {icon}
         </div>
         <h2 className="font-semibold">{title}</h2>
@@ -38,13 +38,27 @@ export function EmptyState({ action }: { action?: React.ReactNode }) {
     />
   );
 }
-export function ErrorState() {
+export function ErrorState({
+  title = "We couldn't load this view",
+  description = "The issue may be temporary. Try again, and contact support if it continues.",
+  onRetry,
+}: {
+  title?: string;
+  description?: string;
+  onRetry?: () => void;
+}) {
   return (
     <State
       icon={<AlertTriangle className="size-5" />}
-      title="We couldn't load this view"
-      description="The issue may be temporary. Try again, and contact support if it continues."
-      action={<Button variant="outline">Try again</Button>}
+      title={title}
+      description={description}
+      action={
+        onRetry ? (
+          <Button variant="outline" onClick={onRetry}>
+            Try again
+          </Button>
+        ) : undefined
+      }
     />
   );
 }

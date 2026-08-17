@@ -15,6 +15,7 @@ import {
   setSalaryProfileAction,
   transitionPayrollAction,
 } from "@/app/app/[tenantSlug]/employees/actions";
+import { MetricCard } from "@/components/dashboard/metric-card";
 import {
   WorkforceActionMessage,
   nativeSelectClass,
@@ -22,6 +23,14 @@ import {
 } from "@/components/employees/action-message";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardList,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogClose,
@@ -31,6 +40,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { formatMoney } from "@/lib/money";
 import type {
   PayrollRunListItem,
@@ -324,13 +334,12 @@ function PayrollTransition({
           {target === "reversed" && (
             <label className="space-y-1.5 text-sm font-medium">
               Reversal reason
-              <textarea
+              <Textarea
                 name="reason"
                 required
                 minLength={3}
                 maxLength={500}
                 rows={3}
-                className="border-input bg-card focus-visible:ring-ring w-full rounded-lg border p-3 text-sm outline-none focus-visible:ring-2"
               />
             </label>
           )}
@@ -401,51 +410,49 @@ export function PayrollManagement({
         className="grid gap-3 sm:grid-cols-3"
         aria-label="Payroll summary"
       >
-        <div className="bg-card rounded-xl border p-5">
-          <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-            Current salary profiles
-          </p>
-          <p className="mt-2 text-2xl font-semibold">{salaries.length}</p>
-        </div>
-        <div className="bg-card rounded-xl border p-5">
-          <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-            Runs awaiting action
-          </p>
-          <p className="mt-2 text-2xl font-semibold">
-            {
-              runs.filter((run) =>
-                ["draft", "review", "approved"].includes(run.status),
-              ).length
-            }
-          </p>
-        </div>
-        <div className="bg-card rounded-xl border p-5">
-          <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-            Latest finalized net
-          </p>
-          <p className="mt-2 text-2xl font-semibold">
-            {money(
-              runs.find((run) => run.status === "finalized")?.netMinor ?? 0,
-              currency,
-            )}
-          </p>
-        </div>
+        <MetricCard
+          label="Current salary profiles"
+          value={salaries.length.toLocaleString()}
+          detail="Effective compensation records"
+          icon={Banknote}
+        />
+        <MetricCard
+          label="Runs awaiting action"
+          value={runs
+            .filter((run) =>
+              ["draft", "review", "approved"].includes(run.status),
+            )
+            .length.toLocaleString()}
+          detail="Draft, review, or approved"
+          icon={RotateCcw}
+          tone="warning"
+        />
+        <MetricCard
+          label="Latest finalized net"
+          value={money(
+            runs.find((run) => run.status === "finalized")?.netMinor ?? 0,
+            currency,
+          )}
+          detail="Most recently completed run"
+          icon={CheckCircle2}
+          tone="success"
+        />
       </section>
 
-      <section className="bg-card overflow-hidden rounded-xl border">
-        <div className="border-b px-5 py-4">
-          <h2 className="font-semibold">Payroll runs</h2>
-          <p className="text-muted-foreground mt-1 text-sm">
+      <Card>
+        <CardHeader>
+          <CardTitle>Payroll runs</CardTitle>
+          <CardDescription>
             Draft → review → approved → finalized. Finalized runs are immutable.
-          </p>
-        </div>
+          </CardDescription>
+        </CardHeader>
         {runs.length === 0 ? (
-          <div className="p-10 text-center">
+          <CardContent className="p-10 text-center">
             <Banknote className="text-muted-foreground mx-auto size-7" />
             <p className="mt-3 font-medium">No payroll runs</p>
-          </div>
+          </CardContent>
         ) : (
-          <div className="divide-y">
+          <CardList>
             {runs.map((run) => {
               const target = transitionFor(run, permissions);
               return (
@@ -501,20 +508,20 @@ export function PayrollManagement({
                 </article>
               );
             })}
-          </div>
+          </CardList>
         )}
-      </section>
+      </Card>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <section className="bg-card overflow-hidden rounded-xl border">
-          <div className="border-b px-5 py-4">
-            <h2 className="font-semibold">Current compensation</h2>
-            <p className="text-muted-foreground mt-1 text-sm">
+        <Card>
+          <CardHeader>
+            <CardTitle>Current compensation</CardTitle>
+            <CardDescription>
               Restricted salary data. New profiles supersede older effective
               dates.
-            </p>
-          </div>
-          <div className="divide-y">
+            </CardDescription>
+          </CardHeader>
+          <CardList>
             {salaries.length === 0 ? (
               <p className="text-muted-foreground p-6 text-sm">
                 No accessible salary profiles.
@@ -560,16 +567,16 @@ export function PayrollManagement({
                 </div>
               ))
             )}
-          </div>
-        </section>
-        <section className="bg-card overflow-hidden rounded-xl border">
-          <div className="border-b px-5 py-4">
-            <h2 className="font-semibold">Payslips</h2>
-            <p className="text-muted-foreground mt-1 text-sm">
+          </CardList>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Payslips</CardTitle>
+            <CardDescription>
               Created only when a payroll run is finalized.
-            </p>
-          </div>
-          <div className="divide-y">
+            </CardDescription>
+          </CardHeader>
+          <CardList>
             {payslips.length === 0 ? (
               <p className="text-muted-foreground p-6 text-sm">
                 No finalized payslips in this scope.
@@ -596,19 +603,21 @@ export function PayrollManagement({
                 </div>
               ))
             )}
-          </div>
-        </section>
+          </CardList>
+        </Card>
       </div>
 
-      <div className="bg-muted/55 flex gap-3 rounded-xl border p-4 text-sm">
-        <ShieldCheck className="text-primary mt-0.5 size-5 shrink-0" />
-        <p>
-          <strong>Operational payroll only.</strong> Qenvaro calculates
-          configured compensation, attendance-based hourly/daily pay,
-          allowances, deductions, and overtime. It does not claim
-          jurisdiction-specific tax or statutory compliance.
-        </p>
-      </div>
+      <Card variant="muted">
+        <CardContent className="flex gap-3 p-4 text-sm">
+          <ShieldCheck className="text-primary mt-0.5 size-5 shrink-0" />
+          <p>
+            <strong>Operational payroll only.</strong> Qenvaro calculates
+            configured compensation, attendance-based hourly/daily pay,
+            allowances, deductions, and overtime. It does not claim
+            jurisdiction-specific tax or statutory compliance.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

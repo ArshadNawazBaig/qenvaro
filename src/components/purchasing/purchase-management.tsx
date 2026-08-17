@@ -32,6 +32,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { formatMoney } from "@/lib/money";
 import type {
   PurchaseOrderListItem,
@@ -253,12 +254,7 @@ export function NewPurchaseDialog({
           </fieldset>
           <label className="space-y-1.5 text-sm font-medium">
             Internal note
-            <textarea
-              name="note"
-              maxLength={1000}
-              rows={2}
-              className="border-input bg-card focus-visible:ring-ring w-full rounded-lg border p-3 text-sm outline-none focus-visible:ring-2"
-            />
+            <Textarea name="note" maxLength={1000} rows={2} />
           </label>
           <PurchasingActionMessage state={state} />
           <div className="flex justify-end gap-2">
@@ -332,13 +328,12 @@ function Transition({
           {target === "cancelled" && (
             <label className="space-y-1.5 text-sm font-medium">
               Cancellation reason
-              <textarea
+              <Textarea
                 name="reason"
                 required
                 minLength={3}
                 maxLength={500}
                 rows={3}
-                className="border-input bg-card w-full rounded-lg border p-3 text-sm"
               />
             </label>
           )}
@@ -450,12 +445,7 @@ function Receive({
           </div>
           <label className="space-y-1.5 text-sm font-medium">
             Receipt note
-            <textarea
-              name="note"
-              maxLength={500}
-              rows={2}
-              className="border-input bg-card w-full rounded-lg border p-3 text-sm"
-            />
+            <Textarea name="note" maxLength={500} rows={2} />
           </label>
           <PurchasingActionMessage state={state} />
           <div className="flex justify-end gap-2">

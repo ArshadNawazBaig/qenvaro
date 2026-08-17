@@ -4,6 +4,7 @@ import {
   ArchiveAnnouncementButton,
   NewAnnouncementDialog,
 } from "@/components/platform/control-actions";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -24,7 +25,7 @@ export default async function PlatformAnnouncementsPage() {
   const context = await requireVerifiedPlatformContext();
   const items = await getPlatformAnnouncements(context);
   return (
-    <div className="mx-auto w-full max-w-[1200px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer size="narrow">
       <PageHeader
         eyebrow="Platform"
         title="Announcements"
@@ -71,6 +72,6 @@ export default async function PlatformAnnouncementsPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

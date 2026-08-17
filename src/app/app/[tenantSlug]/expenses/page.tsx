@@ -5,10 +5,13 @@ import {
   NewExpenseDialog,
 } from "@/components/purchasing/expense-management";
 import { OperationsNav } from "@/components/purchasing/operations-nav";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { PermissionDenied } from "@/components/shared/states";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { env } from "@/config/env";
 import {
   demoExpenses,
@@ -62,16 +65,13 @@ export default async function ExpensesPage({
       if (env.NODE_ENV === "production") notFound();
     }
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <OperationsNav tenantSlug={tenantSlug} current="/expenses" />
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          Only approved expenses enter operational reports
-        </span>
-      </div>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail="Only approved expenses enter operational reports"
+      />
       <PageHeader
         eyebrow="Operations"
         title="Expenses"
@@ -92,37 +92,26 @@ export default async function ExpensesPage({
         <Card>
           <CardContent className="border-b p-4">
             <form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_170px_170px_auto]">
-              <input
+              <Input
                 name="q"
                 defaultValue={query.q}
                 placeholder="Search vendor, category, number…"
-                className="border-input bg-card min-h-10 rounded-lg border px-3 text-sm"
               />
-              <select
-                name="status"
-                defaultValue={query.status}
-                className="border-input bg-card min-h-10 rounded-lg border px-3 text-sm"
-              >
+              <Select name="status" defaultValue={query.status}>
                 <option value="all">All statuses</option>
                 <option value="submitted">Submitted</option>
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
-              </select>
-              <select
-                name="store"
-                defaultValue={query.store}
-                className="border-input bg-card min-h-10 rounded-lg border px-3 text-sm"
-              >
+              </Select>
+              <Select name="store" defaultValue={query.store}>
                 <option value="all">All stores</option>
                 {reference.stores.map((store) => (
                   <option key={store.id} value={store.id}>
                     {store.name}
                   </option>
                 ))}
-              </select>
-              <button className="bg-primary text-primary-foreground rounded-lg px-4 text-sm font-medium">
-                Apply
-              </button>
+              </Select>
+              <Button type="submit">Apply</Button>
             </form>
           </CardContent>
           <ExpenseManagement
@@ -134,6 +123,6 @@ export default async function ExpensesPage({
           />
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

@@ -2,6 +2,7 @@ import { Search, ShieldCheck, UsersRound } from "lucide-react";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/shared/page-header";
 import { UserLifecycleDialog } from "@/components/platform/control-actions";
+import { PageContainer } from "@/components/shared/page-container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,7 +20,7 @@ export default async function PlatformUsersPage({
   const query = await searchParams;
   const data = await getPlatformUsers(context, query);
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <PageHeader
         eyebrow="Platform"
         title="Users"
@@ -96,6 +97,6 @@ export default async function PlatformUsersPage({
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

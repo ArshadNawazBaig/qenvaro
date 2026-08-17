@@ -2,6 +2,7 @@ import { History, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,7 @@ function AuditView({
 }) {
   if (!data.enabled)
     return (
-      <div className="mx-auto w-full max-w-[1200px] space-y-6 p-4 sm:p-6 lg:p-8">
+      <PageContainer size="narrow">
         <PageHeader
           eyebrow="Governance"
           title="Audit log"
@@ -71,10 +72,10 @@ function AuditView({
             </Link>
           </Button>
         </Card>
-      </div>
+      </PageContainer>
     );
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <PageHeader
         eyebrow="Governance"
         title="Audit log"
@@ -89,7 +90,7 @@ function AuditView({
           <p className="mt-3 font-semibold">No audit events found</p>
         </Card>
       ) : (
-        <div className="overflow-hidden rounded-xl border">
+        <Card>
           <div className="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,1fr)_auto] gap-4 border-b px-5 py-3 text-xs font-semibold tracking-wider uppercase lg:grid">
             <span>Action</span>
             <span>Summary</span>
@@ -125,7 +126,7 @@ function AuditView({
               </time>
             </article>
           ))}
-        </div>
+        </Card>
       )}
       {data.pages > 1 && (
         <div className="flex justify-end gap-2">
@@ -154,6 +155,6 @@ function AuditView({
           </Button>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

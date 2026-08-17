@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProductAvailabilityDialog } from "@/components/inventory/inventory-settings";
 import { InventoryNav } from "@/components/inventory/inventory-nav";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -88,15 +89,12 @@ export default async function ProductAvailabilityPage({
   };
   const storeById = new Map(stores.map((store) => [store.id, store]));
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          Product versions and store inventory are checked again when saving
-        </span>
-      </div>
+    <PageContainer>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail="Product versions and store inventory are checked again when saving"
+      />
       <PageHeader
         eyebrow="Inventory"
         parentHref={`/app/${tenantSlug}/inventory`}
@@ -273,6 +271,6 @@ export default async function ProductAvailabilityPage({
           </div>
         </div>
       </Card>
-    </div>
+    </PageContainer>
   );
 }

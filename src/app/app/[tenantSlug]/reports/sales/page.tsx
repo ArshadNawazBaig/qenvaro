@@ -2,6 +2,7 @@ import { BarChart3 } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SalesReportView } from "@/components/reports/sales-report-view";
+import { PageContainer } from "@/components/shared/page-container";
 import { Card, CardContent } from "@/components/ui/card";
 import { env } from "@/config/env";
 import { hasPermission } from "@/modules/permissions/permissions";
@@ -51,7 +52,7 @@ export default async function SalesReportPage({
 
   if (permissionDenied)
     return (
-      <div className="mx-auto w-full max-w-[1480px] p-4 sm:p-6 lg:p-8">
+      <PageContainer>
         <Card>
           <CardContent className="flex min-h-72 flex-col items-center justify-center text-center">
             <BarChart3 className="text-muted-foreground size-8" />
@@ -64,7 +65,7 @@ export default async function SalesReportPage({
             </p>
           </CardContent>
         </Card>
-      </div>
+      </PageContainer>
     );
 
   return (

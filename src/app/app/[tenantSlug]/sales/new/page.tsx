@@ -2,8 +2,8 @@ import { ShoppingCart } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PosWorkspace } from "@/components/sales/pos-workspace";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { env } from "@/config/env";
 import { hasPermission } from "@/modules/permissions/permissions";
@@ -44,17 +44,16 @@ export default async function NewSalePage({
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          {workspace.store
+    <PageContainer>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail={
+          workspace.store
             ? `${workspace.store.name} · ${workspace.store.code}`
-            : "No active store selected"}
-        </span>
-      </div>
+            : "No active store selected"
+        }
+      />
       <PageHeader
         eyebrow="Sales"
         title="New sale"
@@ -92,6 +91,6 @@ export default async function NewSalePage({
           disabled={isDemo || !canComplete}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

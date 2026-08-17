@@ -6,6 +6,7 @@ import {
   Webhook,
 } from "lucide-react";
 import type { Metadata } from "next";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -46,7 +47,7 @@ export default async function PlatformSystemPage() {
     },
   ];
   return (
-    <div className="mx-auto w-full max-w-[1200px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer size="narrow">
       <PageHeader
         eyebrow="Platform"
         title="System health"
@@ -77,6 +78,6 @@ export default async function PlatformSystemPage() {
         Generated {overview.generatedAt}. Health reads aggregate metadata only
         and never inspect tenant-owned business records.
       </p>
-    </div>
+    </PageContainer>
   );
 }

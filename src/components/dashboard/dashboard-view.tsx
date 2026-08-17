@@ -1,15 +1,22 @@
 import {
   ArrowDownRight,
   ArrowUpRight,
+  CircleDollarSign,
   CalendarDays,
   Check,
   CircleAlert,
   PackageCheck,
   PackageX,
+  Percent,
+  ReceiptText,
+  TrendingUp,
   TriangleAlert,
 } from "lucide-react";
 import Link from "next/link";
+import { MetricCard } from "@/components/dashboard/metric-card";
 import { SalesOverview } from "@/components/dashboard/sales-overview";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
+import { PageHeader } from "@/components/shared/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -43,31 +50,6 @@ function money(amountMinor: number, dashboard: DashboardOverview): string {
   return formatMoney(
     { amountMinor, currency: dashboard.currency },
     dashboard.locale,
-  );
-}
-
-function PerformanceStat({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-}) {
-  return (
-    <div className="min-w-0 px-4 py-4 sm:px-6">
-      <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.08em] uppercase">
-        {label}
-      </p>
-      <p
-        className="mt-2 truncate text-base font-semibold tracking-[-0.025em] tabular-nums lg:text-lg"
-        title={value}
-      >
-        {value}
-      </p>
-      <p className="text-muted-foreground mt-1 truncate text-xs">{detail}</p>
-    </div>
   );
 }
 
@@ -109,25 +91,18 @@ function PeriodControl({
 
 function SalesChange({ dashboard }: { dashboard: DashboardOverview }) {
   if (!dashboard.canViewSales)
-    return <span className="text-muted-foreground">Permission required</span>;
+    return <span className="text-inherit">Permission required</span>;
   const change = dashboard.sales.changePercent;
   if (change === null)
-    return (
-      <span className="text-muted-foreground">No prior-period baseline</span>
-    );
+    return <span className="text-inherit">No prior-period baseline</span>;
   const positive = change >= 0;
   const Icon = positive ? ArrowUpRight : ArrowDownRight;
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 font-semibold",
-        positive ? "text-success-foreground" : "text-destructive",
-      )}
-    >
+    <span className="text-primary-foreground inline-flex items-center gap-1 font-semibold">
       <Icon className="size-3.5" aria-hidden="true" />
       {positive ? "+" : ""}
       {change.toFixed(1)}%
-      <span className="text-muted-foreground ml-1 font-normal">
+      <span className="text-primary-foreground ml-1 font-normal">
         vs. prior period
       </span>
     </span>
@@ -144,96 +119,88 @@ function SalesPerformance({
   const visible = dashboard.canViewSales;
   const grossProfit = dashboard.sales.grossProfitMinor;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Sales performance</CardTitle>
-        <CardDescription>
-          {dashboard.activeStore
-            ? `${dashboard.activeStore.name} · ${dashboard.rangeLabel.toLowerCase()}`
-            : dashboard.rangeLabel}
-        </CardDescription>
-        <CardAction className="flex items-center gap-2 text-xs font-medium">
-          <span
-            className={cn(
-              "size-1.5 rounded-full",
-              isDemo ? "bg-warning" : "bg-success",
-            )}
+    <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+      <MetricCard
+        label="Net sales"
+        value={visible ? money(dashboard.sales.netSalesMinor, dashboard) : "—"}
+        detail={<SalesChange dashboard={dashboard} />}
+        icon={CircleDollarSign}
+        emphasis
+      />
+      <MetricCard
+        label="Completed orders"
+        value={
+          visible
+            ? dashboard.sales.completedSales.toLocaleString(dashboard.locale)
+            : "—"
+        }
+        detail={
+          visible
+            ? `Average ${money(dashboard.sales.averageOrderMinor, dashboard)}`
+            : "Sales access required"
+        }
+        icon={ReceiptText}
+        tone="success"
+      />
+      <MetricCard
+        label="Gross profit"
+        value={
+          visible && grossProfit !== null ? money(grossProfit, dashboard) : "—"
+        }
+        detail={
+          visible && grossProfit === null
+            ? "Cost data unavailable"
+            : "Estimated from recorded costs"
+        }
+        icon={TrendingUp}
+        tone="primary"
+      />
+      <MetricCard
+        label="Gross margin"
+        value={
+          visible && dashboard.sales.marginPercent !== null
+            ? `${dashboard.sales.marginPercent.toFixed(1)}%`
+            : "—"
+        }
+        detail={
+          visible && dashboard.sales.marginPercent === null
+            ? "Awaiting complete cost data"
+            : "Across completed orders"
+        }
+        icon={Percent}
+        tone="warning"
+      />
+      <Card className="sm:col-span-2">
+        <CardHeader>
+          <CardTitle>Sales activity</CardTitle>
+          <CardDescription>
+            {dashboard.activeStore
+              ? `${dashboard.activeStore.name} · ${dashboard.rangeLabel.toLowerCase()}`
+              : dashboard.rangeLabel}
+          </CardDescription>
+          <CardAction className="flex items-center gap-2 text-xs font-medium">
+            <span
+              className={cn(
+                "size-1.5 rounded-full",
+                isDemo ? "bg-warning" : "bg-success",
+              )}
+            />
+            <span className="text-muted-foreground">
+              {isDemo ? "Sample data" : "Live data"}
+            </span>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="p-0">
+          <SalesOverview
+            data={dashboard.trend}
+            currency={dashboard.currency}
+            locale={dashboard.locale}
+            rangeLabel={dashboard.rangeLabel}
+            canViewSales={dashboard.canViewSales}
           />
-          <span className="text-muted-foreground">
-            {isDemo ? "Sample data" : "Live data"}
-          </span>
-        </CardAction>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="px-5 pt-6 sm:px-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="min-w-0">
-              <p className="text-muted-foreground text-xs font-medium">
-                Net sales
-              </p>
-              <p className="mt-2 truncate text-4xl leading-none font-semibold tracking-[-0.055em] tabular-nums sm:text-[2.75rem]">
-                {visible
-                  ? money(dashboard.sales.netSalesMinor, dashboard)
-                  : "—"}
-              </p>
-            </div>
-            <div className="text-xs">
-              <SalesChange dashboard={dashboard} />
-            </div>
-          </div>
-          <div className="mt-6 grid grid-cols-1 divide-y border-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-            <PerformanceStat
-              label="Orders"
-              value={
-                visible
-                  ? dashboard.sales.completedSales.toLocaleString(
-                      dashboard.locale,
-                    )
-                  : "—"
-              }
-              detail={
-                visible
-                  ? `Avg. ${money(dashboard.sales.averageOrderMinor, dashboard)}`
-                  : "Sales access required"
-              }
-            />
-            <PerformanceStat
-              label="Gross profit"
-              value={
-                visible && grossProfit !== null
-                  ? money(grossProfit, dashboard)
-                  : "—"
-              }
-              detail={
-                visible && grossProfit === null
-                  ? "Cost data unavailable"
-                  : "Estimated"
-              }
-            />
-            <PerformanceStat
-              label="Margin"
-              value={
-                visible && dashboard.sales.marginPercent !== null
-                  ? `${dashboard.sales.marginPercent.toFixed(1)}%`
-                  : "—"
-              }
-              detail={
-                visible && dashboard.sales.marginPercent === null
-                  ? "Awaiting complete cost data"
-                  : "Gross margin"
-              }
-            />
-          </div>
-        </div>
-        <SalesOverview
-          data={dashboard.trend}
-          currency={dashboard.currency}
-          locale={dashboard.locale}
-          rangeLabel={dashboard.rangeLabel}
-          canViewSales={dashboard.canViewSales}
-        />
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -627,51 +594,47 @@ export function DashboardView({
   isDemo: boolean;
 }) {
   return (
-    <div className="mx-auto w-full max-w-[1540px] space-y-6 p-4 sm:p-6 lg:p-8 xl:p-10">
-      <header className="flex flex-col gap-5 border-b pb-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="min-w-0">
-          <div className="text-muted-foreground mb-3 flex flex-wrap items-center gap-2 text-xs">
-            <span className="truncate">{dashboard.businessName}</span>
-            <span aria-hidden="true">/</span>
+    <PageContainer size="wide">
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo workspace" : "Live workspace"}
+        detail={
+          <>
+            <span>{dashboard.businessName}</span>
+            <span aria-hidden="true">·</span>
             <span>
               {isDemo
-                ? "Demo workspace"
+                ? "Sample operations"
                 : (dashboard.activeStore?.name ?? "No active store")}
             </span>
-            <span
-              className={cn(
-                "ml-1 size-1.5 rounded-full",
-                isDemo ? "bg-warning" : "bg-success",
-              )}
-            />
-          </div>
-          <h1 className="text-[1.85rem] leading-none font-semibold tracking-[-0.04em] sm:text-[2.15rem]">
-            Business overview
-          </h1>
-          <p className="text-muted-foreground mt-2 text-sm leading-6">
-            Welcome back, {dashboard.firstName}. Here is the latest from your
-            authorized workspace.
-          </p>
-        </div>
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <div className="text-muted-foreground hidden items-center gap-2 text-xs xl:flex">
-            <CalendarDays className="size-4" aria-hidden="true" />
-            {dashboard.rangeLabel}
-          </div>
-          <PeriodControl tenantSlug={tenantSlug} range={dashboard.range} />
-          {catalog && (
-            <Button asChild>
-              <Link href={`/app/${tenantSlug}/products`}>
-                View catalog <ArrowUpRight />
-              </Link>
-            </Button>
-          )}
-        </div>
-      </header>
+          </>
+        }
+      />
+      <PageHeader
+        eyebrow="Dashboard"
+        title="Business overview"
+        description={`Welcome back, ${dashboard.firstName}. Here is the latest from your authorized workspace.`}
+        actions={
+          <>
+            <div className="text-muted-foreground hidden items-center gap-2 text-xs xl:flex">
+              <CalendarDays className="size-4" aria-hidden="true" />
+              {dashboard.rangeLabel}
+            </div>
+            <PeriodControl tenantSlug={tenantSlug} range={dashboard.range} />
+            {catalog && (
+              <Button asChild>
+                <Link href={`/app/${tenantSlug}/products`}>
+                  View catalog <ArrowUpRight />
+                </Link>
+              </Button>
+            )}
+          </>
+        }
+      />
 
-      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1.75fr)_minmax(300px,0.72fr)]">
+      <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1.75fr)_minmax(300px,0.72fr)]">
         <section
-          className="min-w-0 space-y-6"
+          className="min-w-0 space-y-5"
           aria-label="Dashboard performance"
         >
           <SalesPerformance dashboard={dashboard} isDemo={isDemo} />
@@ -679,7 +642,7 @@ export function DashboardView({
         </section>
 
         <section
-          className="min-w-0 space-y-6"
+          className="min-w-0 space-y-5"
           aria-label="Dashboard operations"
         >
           <AttentionPanel
@@ -709,6 +672,6 @@ export function DashboardView({
           )}
         </section>
       </div>
-    </div>
+    </PageContainer>
   );
 }

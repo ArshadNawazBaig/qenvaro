@@ -2,6 +2,7 @@ import { AlertTriangle, CalendarDays, CreditCard } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ export default async function PlatformSubscriptionsPage() {
   const context = await requireVerifiedPlatformContext();
   const data = await getPlatformSubscriptions(context);
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <PageHeader
         eyebrow="Platform"
         title="Subscriptions, trials and failed payments"
@@ -59,7 +60,7 @@ export default async function PlatformSubscriptionsPage() {
           </p>
         </Card>
       ) : (
-        <div className="overflow-hidden rounded-xl border">
+        <Card>
           {data.items.map((item) => (
             <article
               key={item.id}
@@ -95,8 +96,8 @@ export default async function PlatformSubscriptionsPage() {
               )}
             </article>
           ))}
-        </div>
+        </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

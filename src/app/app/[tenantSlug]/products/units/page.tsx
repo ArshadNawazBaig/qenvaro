@@ -2,13 +2,13 @@ import { Archive, Boxes, Link2, Ruler } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import {
   NewUnitDialog,
   UnitManagement,
 } from "@/components/units/unit-management";
 import { UnitToolbar } from "@/components/units/unit-toolbar";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { env } from "@/config/env";
 import { hasPermission } from "@/modules/permissions/permissions";
@@ -70,17 +70,16 @@ export default async function UnitsPage({
   const page = Math.min(query.page, pageCount);
 
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          {isDemo
+    <PageContainer>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail={
+          isDemo
             ? "Read-only unit-management preview"
-            : "Tenant ownership and product assignments verified server-side"}
-        </span>
-      </div>
+            : "Tenant ownership and product assignments verified server-side"
+        }
+      />
       <PageHeader
         eyebrow="Products"
         parentHref={`/app/${tenantSlug}/products`}
@@ -137,6 +136,6 @@ export default async function UnitsPage({
           isDemo={isDemo}
         />
       </Card>
-    </div>
+    </PageContainer>
   );
 }

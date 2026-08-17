@@ -7,10 +7,13 @@ import {
 } from "@/components/employees/employee-management";
 import { WorkforceNav } from "@/components/employees/workforce-nav";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { PermissionDenied } from "@/components/shared/states";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { env } from "@/config/env";
 import {
   demoEmployees,
@@ -90,16 +93,13 @@ export default async function EmployeesPage({
   const pageCount = Math.max(1, Math.ceil(result.total / query.pageSize));
   const page = Math.min(query.page, pageCount);
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <WorkforceNav tenantSlug={tenantSlug} current="/employees" />
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          General employee records exclude compensation values
-        </span>
-      </div>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail="General employee records exclude compensation values"
+      />
       <PageHeader
         eyebrow="People"
         title="Employees"
@@ -151,38 +151,27 @@ export default async function EmployeesPage({
         <Card>
           <CardContent className="border-b p-4">
             <form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px_180px_auto]">
-              <input
+              <Input
                 name="q"
                 defaultValue={query.q}
                 placeholder="Search employees, codes, roles…"
-                className="border-input bg-card focus-visible:ring-ring min-h-10 rounded-lg border px-3 text-sm outline-none focus-visible:ring-2"
               />
-              <select
-                name="status"
-                defaultValue={query.status}
-                className="border-input bg-card min-h-10 rounded-lg border px-3 text-sm"
-              >
+              <Select name="status" defaultValue={query.status}>
                 <option value="all">All statuses</option>
                 <option value="active">Active</option>
                 <option value="on_leave">On leave</option>
                 <option value="terminated">Terminated</option>
                 <option value="archived">Archived</option>
-              </select>
-              <select
-                name="store"
-                defaultValue={query.store}
-                className="border-input bg-card min-h-10 rounded-lg border px-3 text-sm"
-              >
+              </Select>
+              <Select name="store" defaultValue={query.store}>
                 <option value="all">All stores</option>
                 {stores.map((store) => (
                   <option key={store.id} value={store.id}>
                     {store.name}
                   </option>
                 ))}
-              </select>
-              <button className="bg-primary text-primary-foreground min-h-10 rounded-lg px-4 text-sm font-medium">
-                Apply filters
-              </button>
+              </Select>
+              <Button type="submit">Apply filters</Button>
             </form>
           </CardContent>
           <EmployeeManagement
@@ -198,6 +187,6 @@ export default async function EmployeesPage({
           />
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

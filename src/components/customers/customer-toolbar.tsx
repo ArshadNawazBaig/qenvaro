@@ -3,6 +3,7 @@
 import { Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CustomerListQuery } from "@/modules/customers/schemas";
@@ -46,35 +47,35 @@ export function CustomerToolbar({ query }: { query: CustomerListQuery }) {
         />
       </form>
       <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:flex">
-        <select
+        <FilterSelect
+          label="Filter customer status"
           value={query.status}
           onChange={(event) => update("status", event.target.value)}
-          className="bg-card h-9 min-w-0 rounded-md border px-3 text-xs font-medium lg:min-w-36"
-          aria-label="Filter customer status"
-        >
-          <option value="all">All statuses</option>
-          <option value="active">Active</option>
-          <option value="archived">Archived</option>
-        </select>
-        <select
+          options={[
+            { value: "all", label: "All statuses" },
+            { value: "active", label: "Active" },
+            { value: "archived", label: "Archived" },
+          ]}
+        />
+        <FilterSelect
+          label="Sort customers"
           value={query.sort}
           onChange={(event) => update("sort", event.target.value)}
-          className="bg-card h-9 min-w-0 rounded-md border px-3 text-xs font-medium lg:min-w-36"
-          aria-label="Sort customers"
-        >
-          <option value="name">Sort: Name</option>
-          <option value="updatedAt">Sort: Updated</option>
-          <option value="createdAt">Sort: Newest</option>
-        </select>
-        <select
+          options={[
+            { value: "name", label: "Sort: Name" },
+            { value: "updatedAt", label: "Sort: Updated" },
+            { value: "createdAt", label: "Sort: Newest" },
+          ]}
+        />
+        <FilterSelect
+          label="Customer sort direction"
           value={query.direction}
           onChange={(event) => update("direction", event.target.value)}
-          className="bg-card h-9 min-w-0 rounded-md border px-3 text-xs font-medium lg:min-w-32"
-          aria-label="Customer sort direction"
-        >
-          <option value="asc">Ascending</option>
-          <option value="desc">Descending</option>
-        </select>
+          options={[
+            { value: "asc", label: "Ascending" },
+            { value: "desc", label: "Descending" },
+          ]}
+        />
       </div>
       {filtered && (
         <Button

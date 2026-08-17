@@ -5,6 +5,7 @@ import {
   NewStoreDialog,
   StoreManagement,
 } from "@/components/settings/store-management";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { hasPermission } from "@/modules/permissions/permissions";
@@ -62,7 +63,7 @@ function StoresPage({
     (store) => store.status === "active",
   ).length;
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <PageHeader
         eyebrow="Settings"
         title="Stores"
@@ -91,6 +92,6 @@ function StoresPage({
         canManage={canManage}
         isDemo={isDemo}
       />
-    </div>
+    </PageContainer>
   );
 }

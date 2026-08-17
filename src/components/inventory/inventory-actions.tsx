@@ -26,11 +26,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { selectClassName } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import type { InventoryVariantOption } from "@/modules/inventory/schemas";
 
 const initialState: InventoryActionState = { status: "idle", message: "" };
-const selectClassName =
-  "border-input bg-card h-10 w-full rounded-lg border px-3 text-sm shadow-[var(--shadow-button)] disabled:cursor-not-allowed disabled:opacity-50";
 
 interface StoreOption {
   id: string;
@@ -229,14 +229,13 @@ export function StockAdjustmentDialog({
           </label>
           <label className="block space-y-1.5 text-sm font-medium">
             Note
-            <textarea
+            <Textarea
               name="note"
               minLength={3}
               maxLength={500}
               rows={3}
               required
               placeholder="Why is this stock changing?"
-              className="border-input bg-card w-full resize-y rounded-lg border p-3 text-sm"
             />
           </label>
           <ActionMessage state={state} />
@@ -510,14 +509,13 @@ export function StockTransferDialog({
           </div>
           <label className="block space-y-1.5 text-sm font-medium">
             Transfer note
-            <textarea
+            <Textarea
               name="note"
               minLength={3}
               maxLength={500}
               rows={3}
               required
               placeholder="Reason, courier, or internal reference"
-              className="border-input bg-card w-full resize-y rounded-lg border p-3 text-sm"
             />
           </label>
           <ActionMessage state={state} />

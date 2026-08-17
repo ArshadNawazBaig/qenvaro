@@ -1,11 +1,12 @@
 "use client";
 
+import { PageContainer } from "@/components/shared/page-container";
 import { ErrorState } from "@/components/shared/states";
 
-export default function WorkforceError() {
+export default function WorkforceError({ retry }: { retry: () => void }) {
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <ErrorState />
-    </div>
+    <PageContainer>
+      <ErrorState onRetry={retry} />
+    </PageContainer>
   );
 }

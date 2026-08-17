@@ -3,6 +3,7 @@
 import { ArrowDownAZ, ArrowUpAZ, Search, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CategoryListQuery } from "@/modules/categories/schemas";
@@ -42,30 +43,26 @@ export function CategoryToolbar({ query }: { query: CategoryListQuery }) {
         />
       </form>
       <div className="flex max-w-full gap-2 overflow-x-auto pb-1 lg:pb-0">
-        <label>
-          <span className="sr-only">Category status</span>
-          <select
-            value={query.status}
-            onChange={(event) => update("status", event.target.value)}
-            className="bg-card h-9 min-w-36 rounded-md border px-3 text-xs font-medium"
-          >
-            <option value="all">All statuses</option>
-            <option value="active">Active</option>
-            <option value="archived">Archived</option>
-          </select>
-        </label>
-        <label>
-          <span className="sr-only">Sort categories</span>
-          <select
-            value={query.sort}
-            onChange={(event) => update("sort", event.target.value)}
-            className="bg-card h-9 min-w-36 rounded-md border px-3 text-xs font-medium"
-          >
-            <option value="name">Sort: Name</option>
-            <option value="products">Sort: Products</option>
-            <option value="updatedAt">Sort: Updated</option>
-          </select>
-        </label>
+        <FilterSelect
+          label="Category status"
+          value={query.status}
+          onChange={(event) => update("status", event.target.value)}
+          options={[
+            { value: "all", label: "All statuses" },
+            { value: "active", label: "Active" },
+            { value: "archived", label: "Archived" },
+          ]}
+        />
+        <FilterSelect
+          label="Sort categories"
+          value={query.sort}
+          onChange={(event) => update("sort", event.target.value)}
+          options={[
+            { value: "name", label: "Sort: Name" },
+            { value: "products", label: "Sort: Products" },
+            { value: "updatedAt", label: "Sort: Updated" },
+          ]}
+        />
         <Button
           type="button"
           variant="outline"

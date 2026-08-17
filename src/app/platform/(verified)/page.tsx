@@ -5,12 +5,12 @@ import {
   Clock3,
   CreditCard,
   Database,
-  ShieldCheck,
   UsersRound,
   Webhook,
 } from "lucide-react";
 import type { Metadata } from "next";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -86,15 +86,12 @@ export default async function PlatformOverviewPage() {
     0,
   );
   return (
-    <div className="mx-auto w-full max-w-[1680px] space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="success">
-          <ShieldCheck className="size-3" /> Verified platform session
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          Aggregate SaaS metadata · generated {formatDate(overview.generatedAt)}
-        </span>
-      </div>
+    <PageContainer size="wide">
+      <PageStatus
+        tone="live"
+        label="Verified platform session"
+        detail={`Aggregate SaaS metadata · generated ${formatDate(overview.generatedAt)}`}
+      />
       <PageHeader
         eyebrow="Platform"
         title="Service overview"
@@ -283,6 +280,6 @@ export default async function PlatformOverviewPage() {
         customers, sales, employees, compensation, and other tenant-owned
         records are never queried by this repository.
       </p>
-    </div>
+    </PageContainer>
   );
 }

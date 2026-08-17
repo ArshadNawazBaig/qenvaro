@@ -28,6 +28,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { UnitListItem } from "@/modules/units/schemas";
 
 const initialState: UnitActionState = { status: "idle", message: "" };
@@ -75,12 +76,11 @@ function UnitFields({ unit }: { unit?: UnitListItem }) {
       </label>
       <label className="space-y-1.5 text-sm font-medium sm:col-span-2">
         Description
-        <textarea
+        <Textarea
           name="description"
           maxLength={240}
           rows={3}
           defaultValue={unit?.description}
-          className="border-input bg-card focus-visible:ring-ring w-full resize-y rounded-lg border p-3 text-sm outline-none focus-visible:ring-2"
           placeholder="Where this unit is used"
         />
       </label>

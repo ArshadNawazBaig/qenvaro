@@ -5,9 +5,9 @@ import {
   NewPurchaseDialog,
   PurchaseManagement,
 } from "@/components/purchasing/purchase-management";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { PermissionDenied } from "@/components/shared/states";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { env } from "@/config/env";
 import {
@@ -62,16 +62,13 @@ export default async function PurchasesPage({
       if (env.NODE_ENV === "production") notFound();
     }
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <OperationsNav tenantSlug={tenantSlug} current="/purchases" />
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          Receiving writes the inventory ledger atomically
-        </span>
-      </div>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail="Receiving writes the inventory ledger atomically"
+      />
       <PageHeader
         eyebrow="Purchasing"
         title="Purchase orders"
@@ -102,6 +99,6 @@ export default async function PurchasesPage({
           />
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

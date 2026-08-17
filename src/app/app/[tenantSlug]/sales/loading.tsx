@@ -1,11 +1,9 @@
+import { PageContainer } from "@/components/shared/page-container";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function SalesLoading() {
   return (
-    <div
-      className="mx-auto w-full max-w-[1480px] animate-pulse space-y-6 p-4 sm:p-6 lg:p-8"
-      aria-label="Loading sales history"
-    >
+    <PageContainer className="animate-pulse" aria-label="Loading sales history">
       <div className="bg-muted h-5 w-40 rounded-md" />
       <div className="space-y-3">
         <div className="bg-muted h-9 w-52 rounded-lg" />
@@ -29,6 +27,6 @@ export default function SalesLoading() {
           ))}
         </CardContent>
       </Card>
-    </div>
+    </PageContainer>
   );
 }

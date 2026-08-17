@@ -6,8 +6,7 @@ import {
   UserCog,
   UsersRound,
 } from "lucide-react";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { SectionNav } from "@/components/shared/section-nav";
 
 const items = [
   { href: "/settings/business", label: "Business", icon: Building2 },
@@ -26,29 +25,11 @@ export function SettingsNav({
   current: string;
 }) {
   return (
-    <nav
-      className="bg-card flex gap-1 overflow-x-auto rounded-xl border p-1"
-      aria-label="Business settings"
-    >
-      {items.map((item) => {
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.href}
-            href={`/app/${tenantSlug}${item.href}`}
-            aria-current={current === item.href ? "page" : undefined}
-            className={cn(
-              "focus-visible:ring-ring flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium outline-none focus-visible:ring-2",
-              current === item.href
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-          >
-            <Icon className="size-4" />
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <SectionNav
+      baseHref={`/app/${tenantSlug}`}
+      current={current}
+      items={items}
+      label="Business settings"
+    />
   );
 }

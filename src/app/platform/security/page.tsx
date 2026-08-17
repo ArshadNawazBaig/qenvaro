@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PlatformTwoFactorSetup } from "@/components/platform/two-factor-setup";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { requirePlatformIdentity } from "@/server/auth/platform-context";
@@ -9,7 +10,7 @@ export const metadata: Metadata = { title: "Platform security" };
 export default async function PlatformSecurityPage() {
   const identity = await requirePlatformIdentity();
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <div className="flex items-center gap-2">
         <Badge variant="warning">Security gateway</Badge>
         <span className="text-muted-foreground text-xs">
@@ -25,6 +26,6 @@ export default async function PlatformSecurityPage() {
         enabled={identity.twoFactorEnabled}
         sessionAssured={identity.sessionAssured}
       />
-    </div>
+    </PageContainer>
   );
 }

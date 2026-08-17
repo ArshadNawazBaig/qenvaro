@@ -25,6 +25,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { selectClassName } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { calculateSaleReturn } from "@/modules/sales/return-policy";
 import {
   saleReturnReasonLabels,
@@ -37,8 +39,6 @@ import {
 } from "@/modules/sales/schemas";
 
 const initialState: SaleReturnActionState = { status: "idle", message: "" };
-const selectClassName =
-  "border-input bg-card h-10 w-full rounded-lg border px-3 text-sm shadow-[var(--shadow-button)] disabled:cursor-not-allowed disabled:opacity-50";
 
 function money(amountMinor: number, currency: string, locale: string) {
   return new Intl.NumberFormat(locale, {
@@ -390,13 +390,12 @@ export function ReturnWorkspace({
               <span className="text-muted-foreground">
                 {reason === "other" ? "(required)" : "(optional)"}
               </span>
-              <textarea
+              <Textarea
                 name="note"
                 maxLength={500}
                 minLength={reason === "other" ? 3 : undefined}
                 required={reason === "other"}
                 rows={3}
-                className="border-input bg-card w-full resize-y rounded-lg border p-3 text-sm"
                 placeholder="Internal return note"
               />
             </label>

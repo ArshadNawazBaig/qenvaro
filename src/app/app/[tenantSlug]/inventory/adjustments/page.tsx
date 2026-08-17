@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { StockAdjustmentDialog } from "@/components/inventory/inventory-actions";
 import { InventoryNav } from "@/components/inventory/inventory-nav";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -71,15 +72,12 @@ export default async function StockAdjustmentsPage({
     }
   }
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          Posted records are immutable and retained for audit history
-        </span>
-      </div>
+    <PageContainer>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail="Posted records are immutable and retained for audit history"
+      />
       <PageHeader
         eyebrow="Inventory"
         parentHref={`/app/${tenantSlug}/inventory`}
@@ -208,6 +206,6 @@ export default async function StockAdjustmentsPage({
           </>
         )}
       </Card>
-    </div>
+    </PageContainer>
   );
 }

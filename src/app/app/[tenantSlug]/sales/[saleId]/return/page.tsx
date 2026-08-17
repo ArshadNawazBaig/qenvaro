@@ -1,9 +1,9 @@
 import { RotateCcw } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { ReturnWorkspace } from "@/components/sales/return-workspace";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { env } from "@/config/env";
 import { hasPermission } from "@/modules/permissions/permissions";
@@ -42,13 +42,12 @@ export default async function SaleReturnPage({
   if (!permissionDenied && !workspace) notFound();
 
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="warning">Controlled return</Badge>
-        <span className="text-muted-foreground text-xs">
-          Refund amounts are derived from the original completed receipt
-        </span>
-      </div>
+    <PageContainer>
+      <PageStatus
+        tone="demo"
+        label="Controlled return"
+        detail="Refund amounts are derived from the original completed receipt"
+      />
       <PageHeader
         eyebrow="Receipt"
         parentHref={`/app/${tenantSlug}/sales/${parsed.data}`}
@@ -75,6 +74,6 @@ export default async function SaleReturnPage({
           />
         )
       )}
-    </div>
+    </PageContainer>
   );
 }

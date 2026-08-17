@@ -24,6 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { LeaveListItem } from "@/modules/employees/schemas";
 import type { EmployeeReferenceData } from "@/server/repositories/employees";
 
@@ -96,13 +97,12 @@ export function NewLeaveDialog({
           </div>
           <label className="space-y-1.5 text-sm font-medium">
             Reason
-            <textarea
+            <Textarea
               name="reason"
               required
               minLength={3}
               maxLength={500}
               rows={3}
-              className="border-input bg-card focus-visible:ring-ring w-full rounded-lg border p-3 text-sm outline-none focus-visible:ring-2"
             />
           </label>
           <WorkforceActionMessage state={state} />
@@ -167,12 +167,7 @@ function LeaveDecision({
           <label className="space-y-1.5 text-sm font-medium">
             Decision note{" "}
             <span className="text-muted-foreground">(optional)</span>
-            <textarea
-              name="note"
-              maxLength={500}
-              rows={3}
-              className="border-input bg-card focus-visible:ring-ring w-full rounded-lg border p-3 text-sm outline-none focus-visible:ring-2"
-            />
+            <Textarea name="note" maxLength={500} rows={3} />
           </label>
           <WorkforceActionMessage state={state} />
           <div className="flex justify-end gap-2">

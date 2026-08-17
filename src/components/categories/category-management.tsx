@@ -28,6 +28,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { CategoryListItem } from "@/modules/categories/schemas";
 
 const initialState: CategoryActionState = { status: "idle", message: "" };
@@ -89,12 +90,7 @@ export function NewCategoryDialog({
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             Description
-            <textarea
-              name="description"
-              maxLength={500}
-              rows={4}
-              className="border-input bg-card w-full resize-y rounded-md border p-3 text-sm"
-            />
+            <Textarea name="description" maxLength={500} rows={4} />
           </label>
           <ActionMessage state={state} />
           <div className="flex justify-end gap-2">
@@ -194,12 +190,11 @@ function CategoryActions({
             </label>
             <label className="space-y-1.5 text-sm font-medium">
               Description
-              <textarea
+              <Textarea
                 name="description"
                 maxLength={500}
                 rows={4}
                 defaultValue={category.description}
-                className="border-input bg-card w-full resize-y rounded-md border p-3 text-sm"
               />
             </label>
             <ActionMessage state={updateState} />

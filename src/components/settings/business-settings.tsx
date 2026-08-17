@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { TenantSettingsProjection } from "@/modules/settings/schemas";
 
 function useSettingsAction(state: typeof settingsInitialState) {
@@ -109,13 +110,12 @@ export function BusinessSettings({
             </label>
             <label className="space-y-1.5 text-sm font-medium sm:col-span-2">
               Business address
-              <textarea
+              <Textarea
                 name="address"
                 maxLength={500}
                 rows={3}
                 defaultValue={settings.address}
                 disabled={disabled}
-                className="border-input bg-card focus-visible:ring-ring w-full rounded-lg border p-3 text-sm disabled:opacity-60"
               />
             </label>
             <label className="space-y-1.5 text-sm font-medium">

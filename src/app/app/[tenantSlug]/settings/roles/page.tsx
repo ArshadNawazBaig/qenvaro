@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CustomRoleManagement } from "@/components/settings/custom-role-management";
 import { SettingsNav } from "@/components/settings/settings-nav";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { hasPermission } from "@/modules/permissions/permissions";
 import { getCustomRoleWorkspace } from "@/server/repositories/custom-roles";
@@ -17,7 +18,7 @@ export default async function RolesSettingsPage({
   const { tenantSlug } = await params;
   if (tenantSlug === "demo")
     return (
-      <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 sm:p-6 lg:p-8">
+      <PageContainer>
         <PageHeader
           eyebrow="Settings"
           title="Roles and permissions"
@@ -35,7 +36,7 @@ export default async function RolesSettingsPage({
           canManage={false}
           isDemo
         />
-      </div>
+      </PageContainer>
     );
   const context = await requireTenantContext(tenantSlug).catch(() =>
     notFound(),
@@ -43,7 +44,7 @@ export default async function RolesSettingsPage({
   if (!hasPermission(context.permissions, "settings:read")) notFound();
   const workspace = await getCustomRoleWorkspace(context);
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <PageHeader
         eyebrow="Settings"
         title="Roles and permissions"
@@ -59,6 +60,6 @@ export default async function RolesSettingsPage({
         }
         isDemo={false}
       />
-    </div>
+    </PageContainer>
   );
 }

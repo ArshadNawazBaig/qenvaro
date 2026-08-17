@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { StockTransferDialog } from "@/components/inventory/inventory-actions";
 import { InventoryNav } from "@/components/inventory/inventory-nav";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -65,15 +66,12 @@ export default async function StockTransfersPage({
     }
   }
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          Transfers post source and destination stock atomically
-        </span>
-      </div>
+    <PageContainer>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail="Transfers post source and destination stock atomically"
+      />
       <PageHeader
         eyebrow="Inventory"
         parentHref={`/app/${tenantSlug}/inventory`}
@@ -191,6 +189,6 @@ export default async function StockTransfersPage({
           </>
         )}
       </Card>
-    </div>
+    </PageContainer>
   );
 }

@@ -14,6 +14,7 @@ import {
   TenantLifecycleDialog,
 } from "@/components/platform/control-actions";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -51,7 +52,7 @@ export default async function PlatformTenantDetailPage({
       grant.status === "active" && new Date(grant.expiresAt) > new Date(),
   );
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="outline">
           <ShieldAlert className="size-3" /> Metadata boundary
@@ -230,6 +231,6 @@ export default async function PlatformTenantDetailPage({
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageContainer>
   );
 }

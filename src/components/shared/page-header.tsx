@@ -17,10 +17,13 @@ export function PageHeader({
   parentHref,
 }: PageHeaderProps) {
   return (
-    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+    <div
+      data-slot="page-header"
+      className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"
+    >
       <div className="min-w-0">
         <nav
-          className="text-muted-foreground mb-2.5 flex items-center gap-1.5 text-xs font-medium"
+          className="text-muted-foreground mb-2 flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.08em] uppercase"
           aria-label="Breadcrumb"
         >
           {parentHref ? (
@@ -33,17 +36,17 @@ export function PageHeader({
           <ChevronRight className="size-3" />
           <span aria-current="page">{title}</span>
         </nav>
-        <h1 className="text-[1.7rem] leading-tight font-semibold tracking-[-0.035em] sm:text-[2rem]">
+        <h1 className="text-[1.75rem] leading-[1.05] font-semibold tracking-[-0.045em] sm:text-[2.15rem]">
           {title}
         </h1>
         {description && (
-          <p className="text-muted-foreground mt-1.5 max-w-2xl text-sm leading-6">
+          <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-6">
             {description}
           </p>
         )}
       </div>
       {actions && (
-        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:max-w-[58%] sm:justify-end">
           {actions}
         </div>
       )}

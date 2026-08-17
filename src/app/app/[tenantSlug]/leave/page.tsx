@@ -5,9 +5,9 @@ import {
   NewLeaveDialog,
 } from "@/components/employees/leave-management";
 import { WorkforceNav } from "@/components/employees/workforce-nav";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { PermissionDenied } from "@/components/shared/states";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { env } from "@/config/env";
 import {
@@ -71,16 +71,13 @@ export default async function LeavePage({
     }
   }
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <WorkforceNav tenantSlug={tenantSlug} current="/leave" />
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          Calendar-day operational leave tracking
-        </span>
-      </div>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail="Calendar-day operational leave tracking"
+      />
       <PageHeader
         eyebrow="People"
         title="Leave"
@@ -107,6 +104,6 @@ export default async function LeavePage({
           />
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

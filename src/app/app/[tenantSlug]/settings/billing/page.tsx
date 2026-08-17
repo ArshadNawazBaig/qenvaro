@@ -11,6 +11,7 @@ import {
   BillingManagementActions,
   BillingPlanPicker,
 } from "@/components/billing/billing-console";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { SettingsNav } from "@/components/settings/settings-nav";
 import { Badge } from "@/components/ui/badge";
@@ -66,7 +67,7 @@ export default async function BillingPage({
   const billing = await getBillingOverview(context);
   const status = statusPresentation(billing.billingStatus);
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <PageHeader
         title="Plans and billing"
         description="Manage the organization subscription, usage, and Stripe billing portal."
@@ -254,6 +255,6 @@ export default async function BillingPage({
           </a>
         </CardContent>
       </Card>
-    </div>
+    </PageContainer>
   );
 }

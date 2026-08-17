@@ -13,6 +13,7 @@ import {
 } from "@/components/inventory/inventory-actions";
 import { InventoryNav } from "@/components/inventory/inventory-nav";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -89,17 +90,16 @@ export default async function InventoryPage({
     }
   }
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          {overview.store
+    <PageContainer>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail={
+          overview.store
             ? `Viewing ${overview.store.name} · ${overview.store.code}`
-            : "Choose or assign an active store"}
-        </span>
-      </div>
+            : "Choose or assign an active store"
+        }
+      />
       <PageHeader
         eyebrow="Operations"
         title="Inventory"
@@ -302,6 +302,6 @@ export default async function InventoryPage({
           )}
         </Card>
       </div>
-    </div>
+    </PageContainer>
   );
 }

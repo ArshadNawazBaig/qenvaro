@@ -1,5 +1,6 @@
 import { Webhook } from "lucide-react";
 import type { Metadata } from "next";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -20,7 +21,7 @@ export default async function PlatformWebhooksPage() {
   const context = await requireVerifiedPlatformContext();
   const items = await getPlatformWebhooks(context);
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <PageHeader
         eyebrow="Platform"
         title="Verified webhook events"
@@ -33,7 +34,7 @@ export default async function PlatformWebhooksPage() {
           <p className="mt-3 font-semibold">No verified events yet</p>
         </Card>
       ) : (
-        <div className="overflow-hidden rounded-xl border">
+        <Card>
           {items.map((item) => (
             <article
               key={item.id}
@@ -75,8 +76,8 @@ export default async function PlatformWebhooksPage() {
               </div>
             </article>
           ))}
-        </div>
+        </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

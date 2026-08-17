@@ -6,9 +6,9 @@ import {
   SalaryProfileDialog,
 } from "@/components/employees/payroll-management";
 import { WorkforceNav } from "@/components/employees/workforce-nav";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { PermissionDenied } from "@/components/shared/states";
-import { Badge } from "@/components/ui/badge";
 import { env } from "@/config/env";
 import {
   demoEmployees,
@@ -88,16 +88,13 @@ export default async function PayrollPage({
     }
   }
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <WorkforceNav tenantSlug={tenantSlug} current="/payroll" />
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          Compensation access is separately permission-gated
-        </span>
-      </div>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail="Compensation access is separately permission-gated"
+      />
       <PageHeader
         eyebrow="People"
         title="Payroll"
@@ -141,6 +138,6 @@ export default async function PayrollPage({
           isDemo={isDemo}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

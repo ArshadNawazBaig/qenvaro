@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
+import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 type InventorySection =
@@ -62,7 +63,7 @@ export function InventoryNav({
         <label className="sr-only" htmlFor="inventory-section">
           Inventory section
         </label>
-        <select
+        <Select
           id="inventory-section"
           value={current}
           onChange={(event) => {
@@ -71,14 +72,14 @@ export function InventoryNav({
             );
             if (item) router.push(`${base}${item.href}`);
           }}
-          className="bg-card h-10 w-full rounded-lg border-0 px-3 text-sm font-medium"
+          className="border-0 shadow-none"
         >
           {items.map((item) => (
             <option key={item.id} value={item.id}>
               {item.label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
       <div className="hidden flex-wrap gap-1 sm:flex">
         {items.map((item) => {
@@ -91,7 +92,7 @@ export function InventoryNav({
               className={cn(
                 "text-muted-foreground hover:bg-muted hover:text-foreground flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors",
                 current === item.id &&
-                  "bg-foreground text-background hover:bg-foreground hover:text-background",
+                  "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground shadow-[var(--shadow-button)]",
               )}
             >
               <Icon className="size-4" />

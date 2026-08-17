@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SecurityDataSettings } from "@/components/settings/security-data-settings";
 import { SettingsNav } from "@/components/settings/settings-nav";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { hasPermission } from "@/modules/permissions/permissions";
 import { demoTenantSettings } from "@/modules/settings/demo-data";
@@ -70,7 +71,7 @@ function SecurityPage({
   isDemo: boolean;
 }) {
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <PageHeader
         eyebrow="Settings"
         title="Security, integrations and data"
@@ -85,6 +86,6 @@ function SecurityPage({
         canRequestDeletion={canRequestDeletion}
         isDemo={isDemo}
       />
-    </div>
+    </PageContainer>
   );
 }

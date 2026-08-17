@@ -25,6 +25,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { StoreSettingsItem } from "@/modules/settings/schemas";
 
 function StoreFields({
@@ -67,12 +68,11 @@ function StoreFields({
       </label>
       <label className="space-y-1.5 text-sm font-medium sm:col-span-2">
         Address
-        <textarea
+        <Textarea
           name="address"
           maxLength={500}
           rows={3}
           defaultValue={store?.address}
-          className="border-input bg-card w-full rounded-lg border p-3 text-sm"
         />
       </label>
     </div>

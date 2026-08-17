@@ -1,13 +1,13 @@
 "use client";
 
 import type { PurchasingActionState } from "@/app/app/[tenantSlug]/suppliers/actions";
+import { selectClassName } from "@/components/ui/select";
 
 export const purchasingInitialState: PurchasingActionState = {
   status: "idle",
   message: "",
 };
-export const purchasingSelectClass =
-  "border-input bg-card focus-visible:ring-ring min-h-10 w-full rounded-lg border px-3 text-sm outline-none focus-visible:ring-2";
+export const purchasingSelectClass = selectClassName;
 
 export function PurchasingActionMessage({
   state,

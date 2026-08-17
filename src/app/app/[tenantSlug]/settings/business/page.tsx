@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BusinessSettings } from "@/components/settings/business-settings";
 import { SettingsNav } from "@/components/settings/settings-nav";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { hasPermission } from "@/modules/permissions/permissions";
 import { demoTenantSettings } from "@/modules/settings/demo-data";
@@ -52,7 +53,7 @@ function SettingsPage({
   isDemo: boolean;
 }) {
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <PageHeader
         eyebrow="Settings"
         title="Business profile"
@@ -70,6 +71,6 @@ function SettingsPage({
         canManage={canManage}
         isDemo={isDemo}
       />
-    </div>
+    </PageContainer>
   );
 }

@@ -4,6 +4,7 @@ import { CalendarDays, Store } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import type {
   SalesReportRange,
   SalesReportStoreOption,
@@ -68,11 +69,11 @@ export function SalesReportToolbar({
       <label className="relative flex min-w-0 items-center sm:w-64">
         <span className="sr-only">Report store</span>
         <Store className="text-muted-foreground pointer-events-none absolute left-3 size-4" />
-        <select
+        <Select
           value={selectedStoreId}
           disabled={pending || stores.length === 0}
           onChange={(event) => update({ store: event.target.value })}
-          className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full min-w-0 rounded-md border pr-8 pl-9 text-sm outline-none focus-visible:ring-[3px] disabled:opacity-50"
+          className="min-w-0 pr-8 pl-9"
         >
           <option value="all">All assigned stores</option>
           {stores.map((store) => (
@@ -80,7 +81,7 @@ export function SalesReportToolbar({
               {store.name} · {store.code}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
     </div>
   );

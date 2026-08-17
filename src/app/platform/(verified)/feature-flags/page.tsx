@@ -4,6 +4,7 @@ import {
   NewFeatureFlagDialog,
   TenantFlagOverrideForm,
 } from "@/components/platform/control-actions";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -15,7 +16,7 @@ export default async function PlatformFeatureFlagsPage() {
   const context = await requireVerifiedPlatformContext();
   const flags = await getPlatformFlags(context);
   return (
-    <div className="mx-auto w-full max-w-[1200px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer size="narrow">
       <PageHeader
         eyebrow="Platform"
         title="Feature flags"
@@ -53,6 +54,6 @@ export default async function PlatformFeatureFlagsPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

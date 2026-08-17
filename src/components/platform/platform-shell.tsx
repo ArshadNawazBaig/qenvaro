@@ -73,8 +73,8 @@ function PlatformNavigation({ close }: { close?: () => void }) {
   const pathname = usePathname();
   return (
     <>
-      <div className="border-sidebar-border flex h-16 items-center gap-3 border-b px-5">
-        <span className="bg-foreground text-background flex size-8 items-center justify-center rounded-lg font-bold">
+      <div className="flex h-[72px] items-center gap-3 px-5">
+        <span className="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-xl font-bold shadow-[0_8px_20px_oklch(0.55_0.245_272/0.24)]">
           {brand.logoMark}
         </span>
         <span>
@@ -84,7 +84,7 @@ function PlatformNavigation({ close }: { close?: () => void }) {
           </span>
         </span>
       </div>
-      <div className="px-4 py-5">
+      <div className="px-4 pt-2 pb-5">
         <Badge variant="outline" className="gap-1.5">
           <ShieldCheck className="size-3" /> Restricted area
         </Badge>
@@ -107,8 +107,9 @@ function PlatformNavigation({ close }: { close?: () => void }) {
               href={item.href}
               onClick={close}
               className={cn(
-                "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground flex h-9 items-center gap-3 rounded-md px-2.5 text-sm font-medium",
-                active && "bg-sidebar-accent text-sidebar-foreground",
+                "text-sidebar-foreground/62 hover:bg-accent hover:text-accent-foreground flex h-10 items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition-[color,background-color,box-shadow]",
+                active &&
+                  "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-[0_9px_20px_oklch(0.55_0.245_272/0.2)]",
               )}
             >
               <item.icon className="size-4" /> {item.label}
@@ -116,8 +117,8 @@ function PlatformNavigation({ close }: { close?: () => void }) {
           );
         })}
       </nav>
-      <div className="border-sidebar-border p-4">
-        <div className="bg-muted rounded-lg p-3">
+      <div className="p-4">
+        <div className="bg-workspace/80 rounded-xl p-3">
           <p className="flex items-center gap-2 text-xs font-medium">
             <Activity className="text-success-foreground size-3.5" /> Metadata
             boundary
@@ -137,10 +138,7 @@ export function PlatformShell({ identity, children }: PlatformShellProps) {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen">
-      <aside className="border-sidebar-border bg-sidebar text-sidebar-foreground fixed inset-y-0 left-0 z-40 hidden w-[252px] flex-col border-r lg:flex">
-        <PlatformNavigation />
-      </aside>
+    <div className="bg-background min-h-screen p-0 lg:p-4 xl:p-6">
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
@@ -148,7 +146,7 @@ export function PlatformShell({ identity, children }: PlatformShellProps) {
             aria-label="Close navigation"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="bg-sidebar relative flex h-full w-[280px] flex-col border-r shadow-xl">
+          <aside className="bg-sidebar relative flex h-full w-[280px] flex-col rounded-r-2xl shadow-[var(--shadow-float)]">
             <Button
               variant="ghost"
               size="icon"
@@ -162,71 +160,82 @@ export function PlatformShell({ identity, children }: PlatformShellProps) {
           </aside>
         </div>
       )}
-      <div className="lg:pl-[252px]">
-        <header className="bg-background/92 sticky top-0 z-30 flex h-16 items-center gap-3 border-b px-4 backdrop-blur-md sm:px-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            aria-label="Open navigation"
-            onClick={() => setMobileOpen(true)}
-          >
-            <Menu />
-          </Button>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">
-              Platform operations
-            </p>
-            <p className="text-muted-foreground hidden text-xs sm:block">
-              Aggregate service metadata only
-            </p>
-          </div>
-          <div className="ml-auto flex items-center gap-1.5">
-            <Badge
-              variant={
-                identity.twoFactorEnabled && identity.sessionAssured
-                  ? "success"
-                  : "warning"
-              }
-              className="hidden sm:inline-flex"
-            >
-              {identity.twoFactorEnabled && identity.sessionAssured
-                ? "2FA verified"
-                : "2FA required"}
-            </Badge>
+      <div
+        data-app-frame
+        data-app-surface
+        className="dark:lg:border-border relative min-h-screen overflow-clip lg:grid lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[244px_minmax(0,1fr)] lg:rounded-[24px] lg:border lg:border-white/70"
+      >
+        <aside className="border-sidebar-border bg-sidebar text-sidebar-foreground relative z-40 hidden h-[calc(100vh-2rem)] flex-col border-r lg:sticky lg:top-4 lg:flex xl:top-6 xl:h-[calc(100vh-3rem)]">
+          <PlatformNavigation />
+        </aside>
+        <div className="min-w-0">
+          <header className="bg-workspace/88 sticky top-0 z-30 flex h-[72px] items-center gap-3 px-4 backdrop-blur-xl sm:px-6 lg:top-4 xl:top-6">
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Toggle theme"
-              onClick={() =>
-                setTheme(resolvedTheme === "dark" ? "light" : "dark")
-              }
+              className="lg:hidden"
+              aria-label="Open navigation"
+              onClick={() => setMobileOpen(true)}
             >
-              {resolvedTheme === "dark" ? <Sun /> : <Moon />}
+              <Menu />
             </Button>
-            <Avatar className="ml-1">
-              <AvatarFallback>{initials(identity.name)}</AvatarFallback>
-            </Avatar>
-            <div className="hidden max-w-40 min-w-0 sm:block">
-              <p className="truncate text-xs font-semibold">{identity.name}</p>
-              <p className="text-muted-foreground truncate text-[11px]">
-                {identity.email}
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">
+                Platform operations
+              </p>
+              <p className="text-muted-foreground hidden text-xs sm:block">
+                Aggregate service metadata only
               </p>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Sign out"
-              onClick={async () => {
-                await authClient.signOut();
-                router.replace("/sign-in");
-              }}
-            >
-              <LogOut />
-            </Button>
-          </div>
-        </header>
-        <main className="min-w-0">{children}</main>
+            <div className="ml-auto flex items-center gap-1.5">
+              <Badge
+                variant={
+                  identity.twoFactorEnabled && identity.sessionAssured
+                    ? "success"
+                    : "warning"
+                }
+                className="hidden sm:inline-flex"
+              >
+                {identity.twoFactorEnabled && identity.sessionAssured
+                  ? "2FA verified"
+                  : "2FA required"}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Toggle theme"
+                onClick={() =>
+                  setTheme(resolvedTheme === "dark" ? "light" : "dark")
+                }
+              >
+                {resolvedTheme === "dark" ? <Sun /> : <Moon />}
+              </Button>
+              <Avatar className="ml-1 shadow-[var(--shadow-button)]">
+                <AvatarFallback>{initials(identity.name)}</AvatarFallback>
+              </Avatar>
+              <div className="hidden max-w-40 min-w-0 sm:block">
+                <p className="truncate text-xs font-semibold">
+                  {identity.name}
+                </p>
+                <p className="text-muted-foreground truncate text-[11px]">
+                  {identity.email}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Sign out"
+                onClick={async () => {
+                  await authClient.signOut();
+                  router.replace("/sign-in");
+                }}
+              >
+                <LogOut />
+              </Button>
+            </div>
+          </header>
+          <main className="min-w-0">{children}</main>
+        </div>
       </div>
     </div>
   );

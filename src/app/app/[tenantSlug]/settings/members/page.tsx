@@ -8,6 +8,7 @@ import {
   MemberAccessDialog,
   StoreAccessBadges,
 } from "@/components/members/member-management";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { SettingsNav } from "@/components/settings/settings-nav";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -52,7 +53,7 @@ export default async function MembersPage({
   const canRemove = hasPermission(context.permissions, "member:remove");
   const data = await getTenantMemberManagementData(context, await headers());
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <PageHeader
         title="Team access"
         description="Manage business roles and the stores each person can access."
@@ -208,6 +209,6 @@ export default async function MembersPage({
           </CardList>
         )}
       </Card>
-    </div>
+    </PageContainer>
   );
 }

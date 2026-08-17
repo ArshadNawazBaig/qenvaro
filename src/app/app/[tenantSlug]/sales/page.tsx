@@ -3,10 +3,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { SalesHistory } from "@/components/sales/sales-history";
 import { SalesHistoryToolbar } from "@/components/sales/sales-history-toolbar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { env } from "@/config/env";
@@ -64,17 +64,16 @@ export default async function SalesPage({
     }).format(amountMinor / 100);
 
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          {isDemo
+    <PageContainer>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail={
+          isDemo
             ? "Read-only sales and return-status preview"
-            : "Only receipts from assigned stores are shown"}
-        </span>
-      </div>
+            : "Only receipts from assigned stores are shown"
+        }
+      />
       <PageHeader
         eyebrow="Sales"
         title="Sales history"
@@ -138,6 +137,6 @@ export default async function SalesPage({
           />
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

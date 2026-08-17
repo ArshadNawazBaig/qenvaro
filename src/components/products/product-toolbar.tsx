@@ -3,46 +3,11 @@
 import { ListFilter, Search, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ProductListQuery } from "@/modules/products/schemas";
 import type { TagOption } from "@/modules/tags/schemas";
-
-function FilterSelect({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: { label: string; value: string }[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="min-w-0 sm:min-w-32">
-      <span className="sr-only">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="bg-card h-10 w-full appearance-none rounded-lg border px-3 pr-8 text-xs font-medium shadow-[var(--shadow-button)]"
-        style={{
-          backgroundImage:
-            "linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)",
-          backgroundPosition: "calc(100% - 14px) 50%,calc(100% - 10px) 50%",
-          backgroundSize: "4px 4px,4px 4px",
-          backgroundRepeat: "no-repeat",
-        }}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
 
 export function ProductToolbar({
   query,
@@ -97,7 +62,7 @@ export function ProductToolbar({
         <FilterSelect
           label="Category"
           value={query.category}
-          onChange={(value) => update("category", value)}
+          onChange={(event) => update("category", event.target.value)}
           options={[
             { label: "All categories", value: "all" },
             ...categories.map((category) => ({
@@ -109,7 +74,7 @@ export function ProductToolbar({
         <FilterSelect
           label="Stock"
           value={query.stock}
-          onChange={(value) => update("stock", value)}
+          onChange={(event) => update("stock", event.target.value)}
           options={[
             { label: "All stock", value: "all" },
             { label: "In stock", value: "in-stock" },
@@ -121,7 +86,7 @@ export function ProductToolbar({
         <FilterSelect
           label="Tag"
           value={query.tag}
-          onChange={(value) => update("tag", value)}
+          onChange={(event) => update("tag", event.target.value)}
           options={[
             { label: "All tags", value: "all" },
             ...tags.map((tag) => ({ label: tag.name, value: tag.id })),
@@ -130,7 +95,7 @@ export function ProductToolbar({
         <FilterSelect
           label="Status"
           value={query.status}
-          onChange={(value) => update("status", value)}
+          onChange={(event) => update("status", event.target.value)}
           options={[
             { label: "All status", value: "all" },
             { label: "Active", value: "active" },
@@ -141,7 +106,7 @@ export function ProductToolbar({
         <FilterSelect
           label="Sort"
           value={query.sort}
-          onChange={(value) => update("sort", value)}
+          onChange={(event) => update("sort", event.target.value)}
           options={[
             { label: "Sort: Revenue", value: "revenue" },
             { label: "Sort: Name", value: "name" },

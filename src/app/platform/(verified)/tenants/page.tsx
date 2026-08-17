@@ -1,6 +1,7 @@
 import { Building2, Search } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ export default async function PlatformTenantsPage({
   const query = await searchParams;
   const data = await getPlatformTenants(context, query);
   return (
-    <div className="mx-auto w-full max-w-[1680px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer size="wide">
       <PageHeader
         eyebrow="Platform"
         title="Tenants"
@@ -49,7 +50,7 @@ export default async function PlatformTenantsPage({
           <p className="mt-3 font-semibold">No tenants found</p>
         </Card>
       ) : (
-        <div className="overflow-hidden rounded-xl border">
+        <Card>
           <div className="hidden grid-cols-[minmax(0,1.5fr)_minmax(0,.8fr)_minmax(0,.8fr)_minmax(0,1fr)_auto] gap-4 border-b px-5 py-3 text-xs font-semibold tracking-wider uppercase lg:grid">
             <span>Tenant</span>
             <span>Plan</span>
@@ -92,7 +93,7 @@ export default async function PlatformTenantsPage({
               </Button>
             </article>
           ))}
-        </div>
+        </Card>
       )}
       {data.pages > 1 && (
         <div className="flex justify-end gap-2">
@@ -115,6 +116,6 @@ export default async function PlatformTenantsPage({
           </Button>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

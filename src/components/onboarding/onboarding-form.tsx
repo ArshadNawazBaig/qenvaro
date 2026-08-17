@@ -8,6 +8,7 @@ import {
 } from "@/app/onboarding/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { selectClassName } from "@/components/ui/select";
 import { plans } from "@/config/plans";
 import { cn } from "@/lib/utils";
 
@@ -42,9 +43,6 @@ function FieldError({ errors }: { errors?: string[] }) {
   if (!errors?.length) return null;
   return <span className="text-destructive text-xs">{errors[0]}</span>;
 }
-
-const selectClassName =
-  "border-input bg-card flex h-9 w-full rounded-md border px-3 text-sm shadow-[0_1px_1px_rgb(30_24_18/0.02)]";
 
 export function OnboardingForm() {
   const formRef = useRef<HTMLFormElement>(null);

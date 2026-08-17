@@ -20,8 +20,8 @@ import {
 import { ReportTransactions } from "@/components/reports/report-transactions";
 import { SalesReportToolbar } from "@/components/reports/sales-report-toolbar";
 import { SalesReportTrend } from "@/components/reports/sales-report-trend";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
@@ -56,17 +56,16 @@ export function SalesReportView({
   ];
 
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          {isDemo
+    <PageContainer>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail={
+          isDemo
             ? "Read-only reporting preview"
-            : "Restricted to your assigned stores"}
-        </span>
-      </div>
+            : "Restricted to your assigned stores"
+        }
+      />
       <PageHeader
         eyebrow="Reports"
         title="Sales performance"
@@ -205,6 +204,6 @@ export function SalesReportView({
         <PackageCheck className="size-3.5" /> Product and profit contribution
         use immutable sale and return snapshots.
       </p>
-    </div>
+    </PageContainer>
   );
 }

@@ -5,9 +5,9 @@ import {
   RecordAttendanceDialog,
 } from "@/components/employees/attendance-management";
 import { WorkforceNav } from "@/components/employees/workforce-nav";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { PermissionDenied } from "@/components/shared/states";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { env } from "@/config/env";
 import {
@@ -69,16 +69,13 @@ export default async function AttendancePage({
     }
   }
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <WorkforceNav tenantSlug={tenantSlug} current="/attendance" />
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          Most recent 100 authorized records
-        </span>
-      </div>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail="Most recent 100 authorized records"
+      />
       <PageHeader
         eyebrow="People"
         title="Attendance"
@@ -100,6 +97,6 @@ export default async function AttendancePage({
           <AttendanceManagement items={items} />
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

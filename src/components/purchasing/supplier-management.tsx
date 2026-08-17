@@ -24,6 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { SupplierListItem } from "@/modules/purchasing/schemas";
 
 function SupplierFields({ supplier }: { supplier?: SupplierListItem }) {
@@ -67,12 +68,11 @@ function SupplierFields({ supplier }: { supplier?: SupplierListItem }) {
       </label>
       <label className="space-y-1.5 text-sm font-medium sm:col-span-2">
         Address
-        <textarea
+        <Textarea
           name="address"
           maxLength={500}
           rows={2}
           defaultValue={supplier?.address}
-          className="border-input bg-card focus-visible:ring-ring w-full rounded-lg border p-3 text-sm outline-none focus-visible:ring-2"
         />
       </label>
       <label className="space-y-1.5 text-sm font-medium">
@@ -94,12 +94,11 @@ function SupplierFields({ supplier }: { supplier?: SupplierListItem }) {
       </label>
       <label className="space-y-1.5 text-sm font-medium sm:col-span-2">
         Internal notes
-        <textarea
+        <Textarea
           name="notes"
           maxLength={1000}
           rows={3}
           defaultValue={supplier?.notes}
-          className="border-input bg-card focus-visible:ring-ring w-full rounded-lg border p-3 text-sm outline-none focus-visible:ring-2"
         />
       </label>
     </div>

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { InventoryNav } from "@/components/inventory/inventory-nav";
 import { LowStockAlertPreferencesForm } from "@/components/inventory/inventory-settings";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -60,17 +61,16 @@ export default async function LowStockAlertsPage({
   const lowCount = items.filter((item) => item.severity === "low").length;
   const outCount = items.filter((item) => item.severity === "out").length;
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          {store
+    <PageContainer>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail={
+          store
             ? `Attention queue for ${store.name} · ${store.code}`
-            : "Choose or assign an active store"}
-        </span>
-      </div>
+            : "Choose or assign an active store"
+        }
+      />
       <PageHeader
         eyebrow="Inventory"
         parentHref={`/app/${tenantSlug}/inventory`}
@@ -185,6 +185,6 @@ export default async function LowStockAlertsPage({
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageContainer>
   );
 }

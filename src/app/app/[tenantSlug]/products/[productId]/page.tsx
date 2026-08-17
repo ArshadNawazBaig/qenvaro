@@ -14,6 +14,7 @@ import { notFound } from "next/navigation";
 import { ProductDetailConsole } from "@/components/products/product-detail-console";
 import { ProductImageManagement } from "@/components/products/product-image-management";
 import { VariantManagement } from "@/components/products/variant-management";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { TagBadge } from "@/components/tags/tag-badge";
 import { Badge } from "@/components/ui/badge";
@@ -109,17 +110,16 @@ export default async function ProductDetailPage({
 
   const productsHref = `/app/${tenantSlug}/products`;
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          {isDemo
+    <PageContainer>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail={
+          isDemo
             ? "Read-only preview"
-            : "Tenant ownership and store access verified server-side"}
-        </span>
-      </div>
+            : "Tenant ownership and store access verified server-side"
+        }
+      />
       <PageHeader
         eyebrow="Products"
         parentHref={productsHref}
@@ -351,6 +351,6 @@ export default async function ProductDetailPage({
           </Card>
         </aside>
       </div>
-    </div>
+    </PageContainer>
   );
 }

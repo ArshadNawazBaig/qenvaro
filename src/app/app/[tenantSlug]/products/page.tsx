@@ -17,8 +17,8 @@ import { ProductInsights } from "@/components/products/product-insights";
 import { ProductCsvActions } from "@/components/products/product-csv-actions";
 import { ProductTable } from "@/components/products/product-table";
 import { ProductToolbar } from "@/components/products/product-toolbar";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -149,21 +149,16 @@ export default async function ProductsPage({
       ? "Billing access is read-only; importing is currently disabled."
       : baseCsvDisabledReason;
   return (
-    <div className="mx-auto w-full max-w-[1680px] space-y-6 p-4 sm:p-6 lg:p-8 xl:p-9">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge
-          variant={isDemo ? "warning" : "success"}
-          className="gap-1.5 px-2.5 py-1"
-        >
-          <span className="size-1.5 rounded-full bg-current opacity-75" />
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          {isDemo
+    <PageContainer size="wide">
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail={
+          isDemo
             ? "Connect local services and sign in to enable authenticated mutations."
-            : "Tenant and store access verified server-side."}
-        </span>
-      </div>
+            : "Tenant and store access verified server-side."
+        }
+      />
       <PageHeader
         title="Products"
         description="Manage the catalog, availability, and product performance across every store."
@@ -263,6 +258,6 @@ export default async function ProductsPage({
           isDemo={isDemo}
         />
       </Card>
-    </div>
+    </PageContainer>
   );
 }

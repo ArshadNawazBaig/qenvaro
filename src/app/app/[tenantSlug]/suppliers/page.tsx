@@ -5,10 +5,13 @@ import {
   NewSupplierDialog,
   SupplierManagement,
 } from "@/components/purchasing/supplier-management";
+import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { PermissionDenied } from "@/components/shared/states";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { env } from "@/config/env";
 import { demoSuppliers } from "@/modules/purchasing/demo-data";
 import { supplierListQuerySchema } from "@/modules/purchasing/schemas";
@@ -57,16 +60,13 @@ export default async function SuppliersPage({
       if (env.NODE_ENV === "production") notFound();
     }
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <PageContainer>
       <OperationsNav tenantSlug={tenantSlug} current="/suppliers" />
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isDemo ? "warning" : "success"}>
-          {isDemo ? "Demo data" : "Live tenant data"}
-        </Badge>
-        <span className="text-muted-foreground text-xs">
-          Supplier changes are snapshotted into orders
-        </span>
-      </div>
+      <PageStatus
+        tone={isDemo ? "demo" : "live"}
+        label={isDemo ? "Demo data" : "Live tenant data"}
+        detail="Supplier changes are snapshotted into orders"
+      />
       <PageHeader
         eyebrow="Purchasing"
         title="Suppliers"
@@ -84,24 +84,17 @@ export default async function SuppliersPage({
         <Card>
           <CardContent className="border-b p-4">
             <form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
-              <input
+              <Input
                 name="q"
                 defaultValue={query.q}
                 placeholder="Search suppliers…"
-                className="border-input bg-card min-h-10 rounded-lg border px-3 text-sm"
               />
-              <select
-                name="status"
-                defaultValue={query.status}
-                className="border-input bg-card min-h-10 rounded-lg border px-3 text-sm"
-              >
+              <Select name="status" defaultValue={query.status}>
                 <option value="all">All statuses</option>
                 <option value="active">Active</option>
                 <option value="archived">Archived</option>
-              </select>
-              <button className="bg-primary text-primary-foreground rounded-lg px-4 text-sm font-medium">
-                Apply
-              </button>
+              </Select>
+              <Button type="submit">Apply</Button>
             </form>
           </CardContent>
           <SupplierManagement
@@ -112,6 +105,6 @@ export default async function SuppliersPage({
           />
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

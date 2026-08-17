@@ -3,6 +3,7 @@
 import { Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { UnitListQuery } from "@/modules/units/schemas";
@@ -39,26 +40,26 @@ export function UnitToolbar({ query }: { query: UnitListQuery }) {
           aria-label="Search units"
         />
       </form>
-      <select
+      <FilterSelect
+        label="Filter unit status"
         value={query.status}
         onChange={(event) => update("status", event.target.value)}
-        className="bg-card h-9 min-w-36 rounded-md border px-3 text-xs font-medium"
-        aria-label="Filter unit status"
-      >
-        <option value="all">All statuses</option>
-        <option value="active">Active</option>
-        <option value="archived">Archived</option>
-      </select>
-      <select
+        options={[
+          { value: "all", label: "All statuses" },
+          { value: "active", label: "Active" },
+          { value: "archived", label: "Archived" },
+        ]}
+      />
+      <FilterSelect
+        label="Sort units"
         value={query.sort}
         onChange={(event) => update("sort", event.target.value)}
-        className="bg-card h-9 min-w-36 rounded-md border px-3 text-xs font-medium"
-        aria-label="Sort units"
-      >
-        <option value="name">Sort: Name</option>
-        <option value="products">Sort: Products</option>
-        <option value="updatedAt">Sort: Updated</option>
-      </select>
+        options={[
+          { value: "name", label: "Sort: Name" },
+          { value: "products", label: "Sort: Products" },
+          { value: "updatedAt", label: "Sort: Updated" },
+        ]}
+      />
       {(query.q || query.status !== "all" || query.sort !== "name") && (
         <Button
           variant="ghost"
