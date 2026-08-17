@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { AuthCard } from "@/components/auth/auth-card";
 import { ForgotPasswordForm } from "@/components/auth/password-forms";
+import { redirectAuthenticatedUserFromGuestRoute } from "@/server/auth/guest-route";
 
-export default function ForgotPasswordPage() {
+export default async function ForgotPasswordPage() {
+  await redirectAuthenticatedUserFromGuestRoute();
   return (
     <AuthCard
       title="Reset your password"

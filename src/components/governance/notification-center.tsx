@@ -82,15 +82,22 @@ export function NotificationCenter({
                   onClick={() => {
                     setPendingId(item.id);
                     React.startTransition(async () => {
-                      const result = await markNotificationReadAction(
-                        tenantSlug,
-                        item.id,
-                      );
-                      if (result.status === "success")
-                        toast.success(result.message);
-                      else toast.error(result.message);
-                      setPendingId("");
-                      router.refresh();
+                      try {
+                        const result = await markNotificationReadAction(
+                          tenantSlug,
+                          item.id,
+                        );
+                        if (result.status === "success") {
+                          toast.success(result.message);
+                          router.refresh();
+                        } else toast.error(result.message);
+                      } catch {
+                        toast.error(
+                          "The notification could not be updated. Try again.",
+                        );
+                      } finally {
+                        setPendingId("");
+                      }
                     });
                   }}
                 >

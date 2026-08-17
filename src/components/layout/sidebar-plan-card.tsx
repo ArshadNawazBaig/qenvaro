@@ -20,44 +20,51 @@ export function SidebarPlanCard({
     : 0;
 
   return (
-    <section className="relative isolate overflow-hidden rounded-xl border border-black/80 bg-[#18181b] p-3 text-white shadow-[0_1px_2px_rgb(0_0_0/0.16)]">
+    <section className="relative isolate overflow-hidden rounded-2xl border border-white/[0.08] bg-[#191a1f] p-3.5 text-white shadow-[0_8px_24px_rgb(15_23_42/0.12)]">
       <span
         aria-hidden="true"
-        className="absolute -top-10 -left-8 -z-10 size-28 rounded-full bg-white/[0.035]"
+        className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
       />
       <span
         aria-hidden="true"
-        className="absolute -top-14 -right-12 -z-10 size-36 rounded-full border-[24px] border-white opacity-[0.035]"
+        className="absolute -top-20 -right-16 -z-10 size-44 rounded-full bg-[#6266f4]/10 blur-2xl"
       />
 
-      <div>
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="min-w-0 text-sm leading-[18px] font-semibold tracking-[-0.02em]">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h2 className="text-sm leading-[18px] font-semibold tracking-[-0.02em]">
             Upgrade your plan
           </h2>
-          <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[9px] leading-3 font-semibold tracking-[0.08em] text-white/75 uppercase">
-            {planName}
-          </span>
+          <p className="mt-1 text-[10px] leading-[14px] text-white/55">
+            Get higher limits and advanced business tools.
+          </p>
         </div>
-        <p className="mt-0.5 text-[9px] leading-[13px] text-white/55">
-          Unlock higher limits and more business tools.
-        </p>
+        <span className="mt-0.5 shrink-0 rounded-full border border-white/[0.08] bg-white/[0.07] px-1.5 py-1 text-[8px] leading-none font-semibold tracking-[0.1em] text-white/70 uppercase">
+          {planName}
+        </span>
       </div>
 
-      <div className="mt-3" aria-label="Product usage">
-        <div className="mb-1.5 flex items-center justify-between text-[9px]">
+      <div className="mt-3">
+        <div className="mb-1.5 flex items-center justify-between text-[10px] leading-none">
           <span className="font-medium text-white/75">Product usage</span>
-          <span className="text-white/55 tabular-nums">
+          <span className="text-white/50 tabular-nums">
             {productLimit ? `${usage}%` : "Flexible"}
           </span>
         </div>
-        <div className="h-1 overflow-hidden rounded-full bg-white/10">
+        <div
+          className="h-1.5 overflow-hidden rounded-full bg-white/[0.09]"
+          role="progressbar"
+          aria-label="Product usage"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={productLimit ? usage : undefined}
+        >
           <div
-            className="h-full rounded-full bg-[#676cf4] transition-[width]"
+            className="h-full rounded-full bg-gradient-to-r from-[#696df6] to-[#8185ff] transition-[width] duration-300"
             style={{ width: productLimit ? `${usage}%` : "0%" }}
           />
         </div>
-        <p className="mt-1.5 text-[9px] text-white/60 tabular-nums">
+        <p className="mt-1.5 text-[9px] text-white/45 tabular-nums">
           {productCount.toLocaleString()}
           {productLimit ? ` of ${productLimit.toLocaleString()}` : ""} products
         </p>
@@ -67,9 +74,9 @@ export function SidebarPlanCard({
         <Link
           href={href}
           onClick={onNavigate}
-          className="mt-3 flex h-8 w-full items-center justify-center rounded-lg bg-[#5157ed] px-3 text-[10px] font-semibold text-white shadow-[0_4px_10px_rgb(81_87_237/0.22)] transition-colors hover:bg-[#5d63f3] focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#18181b] focus-visible:outline-none"
+          className="mt-3 flex h-8 w-full items-center justify-center rounded-lg bg-[#565af2] px-3 text-[10px] font-semibold text-white shadow-[0_5px_14px_rgb(86_90_242/0.2)] transition-[background-color,box-shadow,transform] hover:-translate-y-px hover:bg-[#6165f5] hover:shadow-[0_7px_18px_rgb(86_90_242/0.24)] focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#191a1f] focus-visible:outline-none active:translate-y-0"
         >
-          Explore upgrade options
+          View upgrade options
         </Link>
       )}
     </section>

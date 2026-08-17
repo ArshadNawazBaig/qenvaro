@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { AuthCard } from "@/components/auth/auth-card";
 import { SignInForm } from "@/components/auth/sign-in-form";
+import { redirectAuthenticatedUserFromGuestRoute } from "@/server/auth/guest-route";
 
-export default function SignInPage() {
+export default async function SignInPage() {
+  await redirectAuthenticatedUserFromGuestRoute();
   return (
     <AuthCard
       title="Welcome back"

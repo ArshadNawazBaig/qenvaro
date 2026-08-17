@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { AuthCard } from "@/components/auth/auth-card";
 import { SignUpForm } from "@/components/auth/sign-up-form";
+import { redirectAuthenticatedUserFromGuestRoute } from "@/server/auth/guest-route";
 
-export default function SignUpPage() {
+export default async function SignUpPage() {
+  await redirectAuthenticatedUserFromGuestRoute();
   return (
     <AuthCard
       title="Create your workspace"

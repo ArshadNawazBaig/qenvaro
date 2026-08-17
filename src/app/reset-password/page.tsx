@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { AuthCard } from "@/components/auth/auth-card";
 import { ResetPasswordForm } from "@/components/auth/password-forms";
+import { redirectAuthenticatedUserFromGuestRoute } from "@/server/auth/guest-route";
 
 export default async function ResetPasswordPage({
   searchParams,
 }: {
   searchParams: Promise<{ token?: string }>;
 }) {
+  await redirectAuthenticatedUserFromGuestRoute();
   const { token } = await searchParams;
   return (
     <AuthCard
