@@ -19,6 +19,7 @@ import {
   reportMoney,
 } from "@/components/reports/report-format";
 import { ReportTransactions } from "@/components/reports/report-transactions";
+import { ReportsNav } from "@/components/reports/reports-nav";
 import { SalesReportToolbar } from "@/components/reports/sales-report-toolbar";
 import { SalesReportTrend } from "@/components/reports/sales-report-trend";
 import { PageContainer, PageStatus } from "@/components/shared/page-container";
@@ -66,6 +67,7 @@ export function SalesReportView({
 
   return (
     <PageContainer>
+      <ReportsNav tenantSlug={tenantSlug} current="/reports/sales" />
       <PageStatus
         tone={isDemo ? "demo" : "live"}
         label={isDemo ? "Demo data" : "Live tenant data"}

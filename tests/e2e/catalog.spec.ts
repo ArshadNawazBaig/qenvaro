@@ -235,6 +235,50 @@ test("demo point of sale is responsive and honestly read-only", async ({
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
 
+test("demo reports overview is responsive and links detailed analysis", async ({
+  page,
+}) => {
+  await page.goto("/app/demo/reports");
+  await expect(
+    page.getByRole("heading", { name: "Reports overview", exact: true }),
+  ).toBeVisible();
+  const reportNavigation = page.getByRole("navigation", { name: "Reports" });
+  await expect(reportNavigation.locator('a[aria-current="page"]')).toHaveCount(
+    1,
+  );
+  await expect(page.getByLabel("Reports overview summary")).toBeVisible();
+  await expect(
+    page.getByText("Performance trend", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Detailed reports", { exact: true }),
+  ).toBeVisible();
+
+  const period = page.getByRole("combobox", {
+    name: "Reports overview period",
+  });
+  await period.click();
+  await page.getByRole("option", { name: "Last 90 days" }).click();
+  await expect(page).toHaveURL(/range=90d/);
+
+  const store = page.getByRole("combobox", {
+    name: "Reports overview store",
+  });
+  await store.click();
+  await page.getByRole("option", { name: "West Harbor · WH" }).click();
+  await expect(page).toHaveURL(/store=demo-west/);
+
+  await page.setViewportSize({ width: 320, height: 700 });
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(0);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
+
 test("demo sales reporting is responsive and returns-aware", async ({
   page,
 }) => {
@@ -242,11 +286,13 @@ test("demo sales reporting is responsive and returns-aware", async ({
   await expect(
     page.getByRole("heading", { name: "Sales performance", exact: true }),
   ).toBeVisible();
-  await expect(page.locator('a[aria-current="page"]')).toHaveCount(1);
-  await expect(page.locator('a[aria-current="page"]')).toHaveAttribute(
-    "href",
-    "/app/demo/reports/sales",
+  const reportNavigation = page.getByRole("navigation", { name: "Reports" });
+  await expect(reportNavigation.locator('a[aria-current="page"]')).toHaveCount(
+    1,
   );
+  await expect(
+    reportNavigation.locator('a[aria-current="page"]'),
+  ).toHaveAttribute("href", "/app/demo/reports/sales");
   const summary = page.getByLabel("Sales report summary");
   await expect(summary.getByText("Gross sales", { exact: true })).toBeVisible();
   await expect(summary.getByText("Net sales", { exact: true })).toBeVisible();

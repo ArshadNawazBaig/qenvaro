@@ -80,6 +80,7 @@ interface NavigationGroup {
     | "sales"
     | "people"
     | "operations"
+    | "reports"
     | "manage";
   label: string;
   items: NavigationItem[];
@@ -161,6 +162,7 @@ function SidebarContent({
     sales: true,
     people: true,
     operations: true,
+    reports: true,
     manage: true,
   });
   const base = `/app/${tenantSlug}`;
@@ -229,15 +231,6 @@ function SidebarContent({
               },
             ]
           : []),
-        ...(workspace.canViewReports
-          ? [
-              {
-                label: "Sales report",
-                icon: ChartNoAxesCombined,
-                href: "/reports/sales",
-              },
-            ]
-          : []),
         ...(workspace.canViewCustomers
           ? [{ label: "Customers", icon: ContactRound, href: "/customers" }]
           : []),
@@ -282,16 +275,30 @@ function SidebarContent({
         ...(workspace.canViewExpenses
           ? [{ label: "Expenses", icon: Receipt, href: "/expenses" }]
           : []),
-        ...(workspace.canViewReports
-          ? [
-              {
-                label: "Operations report",
-                icon: TrendingUp,
-                href: "/reports/operations",
-              },
-            ]
-          : []),
       ],
+    },
+    {
+      id: "reports",
+      label: "Reports",
+      items: workspace.canViewReports
+        ? [
+            {
+              label: "Reports overview",
+              icon: ChartNoAxesCombined,
+              href: "/reports",
+            },
+            {
+              label: "Sales performance",
+              icon: TrendingUp,
+              href: "/reports/sales",
+            },
+            {
+              label: "Purchasing & expenses",
+              icon: ReceiptText,
+              href: "/reports/operations",
+            },
+          ]
+        : [],
     },
     {
       id: "manage",
@@ -353,6 +360,7 @@ function SidebarContent({
         pathname !== `${href}/new` &&
         !pathname.startsWith(`${href}/new/`)
       );
+    if (item.href === "/reports") return pathname === href;
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 

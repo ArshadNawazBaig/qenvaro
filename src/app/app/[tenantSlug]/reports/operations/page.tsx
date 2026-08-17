@@ -8,8 +8,8 @@ import {
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MetricCard } from "@/components/dashboard/metric-card";
-import { OperationsNav } from "@/components/purchasing/operations-nav";
 import { OperationsReportToolbar } from "@/components/reports/operations-report-toolbar";
+import { ReportsNav } from "@/components/reports/reports-nav";
 import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { PermissionDenied } from "@/components/shared/states";
@@ -18,11 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { env } from "@/config/env";
 import { formatMoney } from "@/lib/money";
-import {
-  demoExpenses,
-  demoPurchaseOrders,
-} from "@/modules/purchasing/demo-data";
 import { hasPermission } from "@/modules/permissions/permissions";
+import { getDemoOperationsSummary } from "@/modules/reports/operations-demo-data";
 import { operationsReportQuerySchema } from "@/modules/reports/operations-schemas";
 import {
   PurchasingRepository,
@@ -47,61 +44,7 @@ export default async function OperationsReportPage({
     range: untrustedQuery.range,
     store: untrustedQuery.store,
   });
-  const demoAsOf = new Date("2026-08-17T12:00:00.000Z");
-  const demoStoreIds = new Set(["demo-store", "demo-west"]);
-  const selectedDemoStore =
-    query.store === "all" || demoStoreIds.has(query.store)
-      ? query.store
-      : "all";
-  const demoDays =
-    query.range === "30d" ? 30 : query.range === "365d" ? 365 : 90;
-  const demoPeriodStart = new Date(demoAsOf.getTime() - demoDays * 86_400_000);
-  const demoExpensesInScope = demoExpenses.filter(
-    (expense) =>
-      (selectedDemoStore === "all" || expense.storeId === selectedDemoStore) &&
-      expense.expenseDate >= demoPeriodStart.toISOString().slice(0, 10),
-  );
-  const demoPurchasesInScope = demoPurchaseOrders.filter(
-    (purchase) =>
-      (selectedDemoStore === "all" || purchase.storeId === selectedDemoStore) &&
-      new Date(purchase.createdAt) >= demoPeriodStart,
-  );
-  const approved = demoExpensesInScope.filter(
-    (expense) => expense.status === "approved",
-  );
-  let summary: OperationsSummary = {
-    approvedExpenseMinor: approved.reduce(
-      (sum, item) => sum + item.amountMinor,
-      0,
-    ),
-    submittedExpenseMinor: demoExpensesInScope
-      .filter((item) => item.status === "submitted")
-      .reduce((sum, item) => sum + item.amountMinor, 0),
-    receivedPurchaseMinor:
-      selectedDemoStore === "all" || selectedDemoStore === "demo-west"
-        ? 4_920_000
-        : 0,
-    openPurchaseMinor: demoPurchasesInScope.reduce(
-      (sum, order) => sum + order.totalMinor,
-      0,
-    ),
-    expenseCount: demoExpensesInScope.length,
-    receiptCount:
-      selectedDemoStore === "all" || selectedDemoStore === "demo-west" ? 1 : 0,
-    currency: "PKR",
-    expenseCategories: approved.map((item) => ({
-      name: item.category,
-      amountMinor: item.amountMinor,
-    })),
-    stores: [
-      { id: "demo-store", name: "Downtown" },
-      { id: "demo-west", name: "West Harbor" },
-    ],
-    range: query.range,
-    selectedStoreId: selectedDemoStore,
-    periodStart: demoPeriodStart.toISOString(),
-    asOf: demoAsOf.toISOString(),
-  };
+  let summary: OperationsSummary = getDemoOperationsSummary(query);
   let isDemo = true;
   let denied = false;
   let canExport = false;
@@ -124,7 +67,7 @@ export default async function OperationsReportPage({
     formatMoney({ amountMinor: value, currency: summary.currency });
   return (
     <PageContainer>
-      <OperationsNav tenantSlug={tenantSlug} current="/reports/operations" />
+      <ReportsNav tenantSlug={tenantSlug} current="/reports/operations" />
       <PageStatus
         tone={isDemo ? "demo" : "live"}
         label={isDemo ? "Demo data" : "Live tenant data"}
