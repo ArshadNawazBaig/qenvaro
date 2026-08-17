@@ -1,11 +1,13 @@
 "use client";
 
 import {
+  Barcode,
   ChevronLeft,
   ChevronRight,
   Minus,
   PackageOpen,
   Plus,
+  Printer,
   RefreshCw,
   Search,
   ShoppingCart,
@@ -20,6 +22,7 @@ import {
 } from "@/app/app/[tenantSlug]/sales/new/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -53,6 +56,9 @@ interface PaymentDraft {
   method: SalePaymentMethod;
   amount: string;
 }
+
+type ScanResponse =
+  { ok: true; item: SaleCatalogItem } | { ok: false; message: string };
 
 function formatMoney(amountMinor: number, currency: string, locale: string) {
   return new Intl.NumberFormat(locale, {
@@ -159,11 +165,15 @@ export function PosWorkspace({
   const pathname = usePathname();
   const params = useSearchParams();
   const [search, setSearch] = React.useState(query.q);
+  const [scanCode, setScanCode] = React.useState("");
+  const [scanning, setScanning] = React.useState(false);
   const [cart, setCart] = React.useState<CartLine[]>([]);
   const [customerId, setCustomerId] = React.useState("");
   const [payments, setPayments] = React.useState<PaymentDraft[]>([
     { key: "payment-1", method: "cash", amount: "" },
   ]);
+  const [printAfterSale, setPrintAfterSale] = React.useState(true);
+  const scannerInputRef = React.useRef<HTMLInputElement>(null);
   const [requestKey] = React.useState(() => `sale:${crypto.randomUUID()}`);
   const [state, action, pending] = React.useActionState(
     completeSaleAction.bind(null, tenantSlug),
@@ -171,10 +181,18 @@ export function PosWorkspace({
   );
 
   React.useEffect(() => {
+    if (!disabled && !scanning) scannerInputRef.current?.focus();
+  }, [disabled, scanning]);
+
+  React.useEffect(() => {
     if (state.status !== "success" || !state.saleId) return;
     toast.success(state.message);
-    router.push(`/app/${tenantSlug}/sales/${state.saleId}`);
-  }, [router, state, tenantSlug]);
+    const receiptHref = `/app/${tenantSlug}/sales/${state.saleId}`;
+    if (printAfterSale) {
+      window.sessionStorage.setItem("qenvaro:auto-print-sale", state.saleId);
+    }
+    router.push(receiptHref);
+  }, [printAfterSale, router, state, tenantSlug]);
 
   function navigateCatalog(next: { q?: string; page?: number }) {
     const searchParams = new URLSearchParams(params.toString());
@@ -202,10 +220,61 @@ export function PosWorkspace({
         : 1_000_000;
       return current.map((line) =>
         line.item.variantId === item.variantId
-          ? { ...line, quantity: Math.min(maximum, line.quantity + 1) }
+          ? {
+              ...line,
+              item,
+              quantity: Math.min(maximum, line.quantity + 1),
+            }
           : line,
       );
     });
+  }
+
+  async function scanItem(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const code = scanCode.trim();
+    if (!code || scanning || disabled) return;
+    setScanning(true);
+    try {
+      const response = await fetch(
+        `/api/app/${encodeURIComponent(tenantSlug)}/sales/scan?code=${encodeURIComponent(code)}`,
+        { cache: "no-store" },
+      );
+      const result = (await response.json()) as ScanResponse;
+      if (!response.ok || !result.ok) {
+        toast.error(
+          result.ok
+            ? "The scanned item is unavailable."
+            : result.message || "No product matched this barcode.",
+        );
+        return;
+      }
+      const item = result.item;
+      if (item.inventoryTracking && (item.quantity ?? 0) <= 0) {
+        toast.error(`${item.productName} is out of stock at this store.`);
+        return;
+      }
+      const existing = cart.find(
+        (line) => line.item.variantId === item.variantId,
+      );
+      if (
+        existing &&
+        item.inventoryTracking &&
+        existing.quantity >= (item.quantity ?? 0)
+      ) {
+        toast.error(
+          `Only ${(item.quantity ?? 0).toLocaleString()} unit${item.quantity === 1 ? " is" : "s are"} available.`,
+        );
+        return;
+      }
+      addItem(item);
+      setScanCode("");
+      toast.success(`${item.productName} added to the sale.`);
+    } catch {
+      toast.error("The barcode could not be scanned right now.");
+    } finally {
+      setScanning(false);
+    }
   }
 
   function updateLine(variantId: string, changes: Partial<CartLine>) {
@@ -259,7 +328,49 @@ export function PosWorkspace({
             {workspace.store?.name ?? "this store"}.
           </CardDescription>
         </CardHeader>
-        <div className="border-b px-4 pb-4 sm:px-6">
+        <div className="space-y-4 border-b px-4 pb-4 sm:px-6">
+          <div className="bg-muted/35 rounded-xl border p-3 sm:p-4">
+            <div className="flex items-start gap-3">
+              <span className="bg-card text-primary flex size-9 shrink-0 items-center justify-center rounded-lg border">
+                <Barcode className="size-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">Scan product</p>
+                <p className="text-muted-foreground mt-0.5 text-xs leading-5">
+                  Scan a barcode or enter an exact SKU. Keyboard scanners that
+                  send Enter add the item automatically.
+                </p>
+              </div>
+            </div>
+            <form
+              className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row"
+              onSubmit={scanItem}
+            >
+              <Input
+                ref={scannerInputRef}
+                value={scanCode}
+                onChange={(event) => setScanCode(event.target.value)}
+                placeholder="Scan barcode or enter SKU"
+                aria-label="Scan barcode or SKU"
+                autoComplete="off"
+                autoFocus={!disabled}
+                disabled={disabled || scanning}
+                className="font-mono"
+              />
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={disabled || scanning || !scanCode.trim()}
+              >
+                <Barcode /> {scanning ? "Scanning…" : "Add scanned item"}
+              </Button>
+            </form>
+            {disabled && (
+              <p className="text-muted-foreground mt-2 text-xs">
+                Barcode checkout is disabled in the public demo.
+              </p>
+            )}
+          </div>
           <form
             className="relative"
             onSubmit={(event) => {
@@ -655,6 +766,27 @@ export function PosWorkspace({
                 placeholder="Internal checkout note"
               />
             </label>
+
+            <div className="bg-muted/35 flex items-start gap-3 rounded-xl border p-3">
+              <Checkbox
+                id="print-after-sale"
+                checked={printAfterSale}
+                onCheckedChange={(checked) =>
+                  setPrintAfterSale(checked === true)
+                }
+              />
+              <label
+                htmlFor="print-after-sale"
+                className="min-w-0 cursor-pointer text-sm"
+              >
+                <span className="flex items-center gap-2 font-medium">
+                  <Printer className="size-4" /> Print bill after completion
+                </span>
+                <span className="text-muted-foreground mt-0.5 block text-xs leading-5">
+                  Opens the browser print dialog after the receipt is issued.
+                </span>
+              </label>
+            </div>
 
             <div className="space-y-2 border-t pt-4 text-sm">
               <div className="flex justify-between gap-4">

@@ -126,7 +126,6 @@ test.describe("authenticated workspace and member administration", () => {
       "x-forwarded-for":
         project === "mobile" ? "198.51.100.21" : "198.51.100.20",
     });
-
     await page.goto("/sign-up");
     await page.getByLabel("Full name").fill("Morgan Owner");
     await page.getByLabel("Work email").fill(ownerEmail);
@@ -194,6 +193,7 @@ test.describe("authenticated workspace and member administration", () => {
 
     const productName = `Counter Display ${suffix}`;
     const updatedProductName = `Counter Display Pro ${suffix}`;
+    const productBarcode = `890100${suffix.replaceAll("-", "")}`;
     const unitName = `Case ${suffix}`;
     const unitSymbol = `cs-${suffix.slice(0, 4)}`;
     await page.goto(`/app/${primarySlug}/products`);
@@ -237,6 +237,7 @@ test.describe("authenticated workspace and member administration", () => {
     const createProductDialog = page.getByRole("dialog");
     await createProductDialog.getByLabel("Product name").fill(productName);
     await createProductDialog.getByLabel("SKU").fill(`CD-${suffix}`);
+    await createProductDialog.getByLabel("Barcode").fill(productBarcode);
     await selectShadcnOption(
       createProductDialog.getByLabel("Category"),
       "Retail Hardware",
@@ -388,9 +389,12 @@ test.describe("authenticated workspace and member administration", () => {
           document.documentElement.clientWidth,
       ),
     ).toBe(0);
-    await page
-      .getByRole("button", { name: `Add ${updatedProductName}` })
-      .click();
+    await page.getByLabel("Scan barcode or SKU").fill(productBarcode);
+    await page.getByLabel("Scan barcode or SKU").press("Enter");
+    await expect(
+      page.getByText(`${updatedProductName} added to the sale.`),
+    ).toBeVisible();
+    await expect(page.getByLabel("Print bill after completion")).toBeChecked();
     await page.getByLabel("Sale customer").click();
     const saleCustomerOption = page
       .getByRole("option")
@@ -409,6 +413,17 @@ test.describe("authenticated workspace and member administration", () => {
       page.getByText(updatedProductName, { exact: true }),
     ).toBeVisible();
     await expect(page.getByText(/^MAIN-\d{6}$/).first()).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Print bill" }),
+    ).toBeVisible();
+    await expect(page.getByRole("status")).toHaveText("Print dialog opened.");
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          window.sessionStorage.getItem("qenvaro:auto-print-sale"),
+        ),
+      )
+      .toBeNull();
     const completedSale = await database
       .collection<StringDocument>("sales")
       .findOne({ tenantId: primaryTenantId, status: "completed" });

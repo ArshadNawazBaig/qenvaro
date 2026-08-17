@@ -224,6 +224,16 @@ textarea:focus-visible,
 }
 
 @media print {
+  @page {
+    margin: 5mm;
+  }
+
+  html,
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
   [data-app-frame] {
     display: block !important;
     min-height: auto !important;
@@ -244,5 +254,26 @@ textarea:focus-visible,
   [data-slot="card"] {
     break-inside: avoid;
     box-shadow: none !important;
+  }
+
+  [data-sale-bill] {
+    width: 72mm !important;
+    max-width: 72mm !important;
+    margin: 0 auto !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+
+  [data-sale-bill] * {
+    border-color: #d4d4d4 !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+
+  [data-sale-bill] [data-slot="inset"] {
+    background: white !important;
   }
 }

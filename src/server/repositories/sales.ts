@@ -2,6 +2,7 @@ import "server-only";
 import { safeCurrency } from "@/config/currencies";
 import { requirePermission } from "@/modules/permissions/permissions";
 import {
+  type SaleCatalogItem,
   type SaleCatalogQuery,
   type SalePaymentMethod,
   type SaleReceipt,
@@ -14,6 +15,8 @@ import type { TenantContext } from "@/server/tenancy/context";
 interface SaleWorkspaceProfile {
   tenantId: string;
   businessName: string;
+  phone?: string;
+  address?: string;
   currency: string;
   locale: string;
   timezone: string;
@@ -24,6 +27,7 @@ interface SaleWorkspaceStore {
   tenantId: string;
   code: string;
   name: string;
+  address?: string;
 }
 
 interface CatalogAggregateItem {
@@ -31,12 +35,15 @@ interface CatalogAggregateItem {
   productId: string;
   name: string;
   sku: string;
+  normalizedSku?: string;
+  barcode?: string;
   priceMinor: number;
   currency: string;
   product: {
     _id: string;
     name: string;
     sku: string;
+    barcode?: string;
     category: string;
     currency: string;
     type?: "simple" | "variant" | "service";
@@ -157,8 +164,10 @@ export class SaleRepository {
       ? {
           $or: [
             { sku: { $regex: safe, $options: "i" } },
+            { barcode: { $regex: safe, $options: "i" } },
             { "product.name": { $regex: safe, $options: "i" } },
             { "product.sku": { $regex: safe, $options: "i" } },
+            { "product.barcode": { $regex: safe, $options: "i" } },
           ],
         }
       : {};
@@ -194,6 +203,7 @@ export class SaleRepository {
                 $project: {
                   name: 1,
                   sku: 1,
+                  barcode: 1,
                   category: 1,
                   currency: 1,
                   type: 1,
@@ -317,6 +327,132 @@ export class SaleRepository {
     };
   }
 
+  async scan(
+    context: TenantContext,
+    untrustedCode: string,
+  ): Promise<SaleCatalogItem | null> {
+    requirePermission(context.permissions, "sale:create");
+    const code = untrustedCode.trim();
+    if (!code || !context.activeStoreId) return null;
+    if (!context.allowedStoreIds.has(context.activeStoreId)) return null;
+    const database = await getDatabase();
+    const [profile, store] = await Promise.all([
+      database
+        .collection<SaleWorkspaceProfile>("tenantProfiles")
+        .findOne(
+          { tenantId: context.tenantId },
+          { projection: { currency: 1 } },
+        ),
+      database.collection<SaleWorkspaceStore>("stores").findOne(
+        {
+          _id: context.activeStoreId,
+          tenantId: context.tenantId,
+          status: "active",
+          deletedAt: { $exists: false },
+        },
+        { projection: { code: 1, name: 1 } },
+      ),
+    ]);
+    if (!profile || !store) return null;
+
+    const item = await database
+      .collection("productVariants")
+      .aggregate<CatalogAggregateItem>([
+        {
+          $match: {
+            tenantId: context.tenantId,
+            status: "active",
+            deletedAt: { $exists: false },
+            $or: [{ barcode: code }, { normalizedSku: code.toUpperCase() }],
+          },
+        },
+        {
+          $set: {
+            _scanRank: { $cond: [{ $eq: ["$barcode", code] }, 0, 1] },
+          },
+        },
+        {
+          $lookup: {
+            from: "products",
+            let: { productId: "$productId" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ["$_id", "$$productId"] },
+                  tenantId: context.tenantId,
+                  status: "active",
+                  deletedAt: { $exists: false },
+                  $or: [
+                    { allowedStoreIds: { $exists: false } },
+                    { allowedStoreIds: { $size: 0 } },
+                    { allowedStoreIds: String(store._id) },
+                  ],
+                },
+              },
+              {
+                $project: {
+                  name: 1,
+                  sku: 1,
+                  category: 1,
+                  currency: 1,
+                  type: 1,
+                  inventoryTracking: 1,
+                  taxRateBps: 1,
+                },
+              },
+            ],
+            as: "product",
+          },
+        },
+        { $unwind: "$product" },
+        { $sort: { _scanRank: 1, _id: 1 } },
+        { $limit: 1 },
+      ])
+      .next();
+    if (!item) return null;
+
+    const inventoryTracking =
+      item.product.inventoryTracking !== false &&
+      item.product.type !== "service";
+    const level = inventoryTracking
+      ? await database
+          .collection<{
+            tenantId: string;
+            storeId: string;
+            variantId: string;
+            quantity: number;
+            version?: number;
+          }>("inventoryLevels")
+          .findOne(
+            {
+              tenantId: context.tenantId,
+              storeId: context.activeStoreId,
+              variantId: String(item._id),
+            },
+            { projection: { quantity: 1, version: 1 } },
+          )
+      : null;
+    return {
+      productId: item.productId,
+      variantId: String(item._id),
+      productName: item.product.name,
+      variantName: item.name,
+      sku: item.sku,
+      category: item.product.category,
+      priceMinor: item.priceMinor,
+      taxRateBps:
+        Number.isInteger(item.product.taxRateBps) &&
+        Number(item.product.taxRateBps) >= 0 &&
+        Number(item.product.taxRateBps) <= 10_000
+          ? Number(item.product.taxRateBps)
+          : 0,
+      currency: safeCurrency(profile.currency),
+      inventoryTracking,
+      quantity: inventoryTracking ? (level?.quantity ?? 0) : null,
+      levelVersion: inventoryTracking ? (level?.version ?? 0) : 0,
+    };
+  }
+
   async receipt(
     context: TenantContext,
     saleId: string,
@@ -337,13 +473,15 @@ export class SaleRepository {
         .collection<SaleWorkspaceStore>("stores")
         .findOne(
           { _id: sale.storeId, tenantId: context.tenantId },
-          { projection: { code: 1, name: 1 } },
+          { projection: { code: 1, name: 1, address: 1 } },
         ),
       database.collection<SaleWorkspaceProfile>("tenantProfiles").findOne(
         { tenantId: context.tenantId },
         {
           projection: {
             businessName: 1,
+            phone: 1,
+            address: 1,
             locale: 1,
             currency: 1,
             timezone: 1,
@@ -371,8 +509,15 @@ export class SaleRepository {
       id: String(sale._id),
       receiptNumber: sale.receiptNumber,
       businessName: profile.businessName,
+      businessPhone: profile.phone ?? "",
+      businessAddress: profile.address ?? "",
       status: sale.status,
-      store: { id: String(store._id), code: store.code, name: store.name },
+      store: {
+        id: String(store._id),
+        code: store.code,
+        name: store.name,
+        address: store.address ?? "",
+      },
       customer: sale.customer,
       currency: safeCurrency(sale.currency || profile.currency),
       locale: safeLocale(profile.locale),

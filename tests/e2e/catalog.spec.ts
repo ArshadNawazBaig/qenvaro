@@ -209,6 +209,10 @@ test("demo point of sale is responsive and honestly read-only", async ({
     "href",
     "/app/demo/sales/new",
   );
+  await expect(page.getByLabel("Scan barcode or SKU")).toBeDisabled();
+  await expect(
+    page.getByText("Barcode checkout is disabled in the public demo."),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Add Counter Kit" }).click();
   await expect(page.getByText("Current sale", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Fill remaining total" }).click();

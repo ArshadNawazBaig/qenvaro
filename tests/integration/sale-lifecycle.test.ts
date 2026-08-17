@@ -30,6 +30,7 @@ describe.skipIf(!enabled)("atomic point-of-sale lifecycle", () => {
   const otherTenantId = `org_sale_other_${suffix}`;
   const storeId = `store_sale_${suffix}`;
   const otherStoreId = `store_sale_other_${suffix}`;
+  const barcode = `890${suffix.replaceAll("-", "").slice(0, 16)}`;
   const client = new MongoClient(process.env.MONGODB_URI!);
   let database: Db;
   let productId: string;
@@ -83,6 +84,8 @@ describe.skipIf(!enabled)("atomic point-of-sale lifecycle", () => {
         tenantId,
         slug: ownerContext.tenantSlug,
         businessName: "Sale Integration",
+        phone: "+92 21 555 0100",
+        address: "100 Commerce Road, Karachi",
         currency: "PKR",
         locale: "en-PK",
         timezone: "Asia/Karachi",
@@ -115,6 +118,7 @@ describe.skipIf(!enabled)("atomic point-of-sale lifecycle", () => {
         tenantId,
         code: "MAIN",
         name: "Main Store",
+        address: "12 Market Street, Karachi",
         status: "active",
         createdAt: now,
         updatedAt: now,
@@ -133,6 +137,7 @@ describe.skipIf(!enabled)("atomic point-of-sale lifecycle", () => {
       await new ProductService().createSimple(ownerContext, {
         name: "Sale Counter Kit",
         sku: `SALE-${suffix.slice(0, 8)}`,
+        barcode,
         category: "Hardware",
         priceMinor: 1_000,
         openingStock: 10,
@@ -142,6 +147,7 @@ describe.skipIf(!enabled)("atomic point-of-sale lifecycle", () => {
       await new ProductService().createSimple(otherContext, {
         name: "Other Counter Kit",
         sku: `OTHER-${suffix.slice(0, 8)}`,
+        barcode,
         category: "Hardware",
         priceMinor: 1_000,
         openingStock: 5,
@@ -216,6 +222,39 @@ describe.skipIf(!enabled)("atomic point-of-sale lifecycle", () => {
     expect(workspace.customers).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: customerId })]),
     );
+  });
+
+  it("resolves barcode and SKU scans only inside the active tenant store", async () => {
+    const repository = new SaleRepository();
+    const [byBarcode, bySku, otherTenantMatch] = await Promise.all([
+      repository.scan(ownerContext, barcode),
+      repository.scan(ownerContext, `sale-${suffix.slice(0, 8)}`),
+      repository.scan(otherContext, barcode),
+    ]);
+    expect(byBarcode).toMatchObject({
+      productId,
+      variantId: `${productId}_default`,
+      quantity: 10,
+      levelVersion: 1,
+    });
+    expect(bySku?.variantId).toBe(`${productId}_default`);
+    expect(otherTenantMatch?.productId).toBe(otherProductId);
+    await expect(
+      repository.scan(
+        {
+          ...ownerContext,
+          roles: ["VIEWER"],
+          permissions: resolvePermissions(["VIEWER"]),
+        },
+        barcode,
+      ),
+    ).rejects.toBeInstanceOf(PermissionError);
+    await expect(
+      repository.scan({ ...ownerContext, activeStoreId: null }, barcode),
+    ).resolves.toBeNull();
+    await expect(
+      repository.scan(ownerContext, "missing-code"),
+    ).resolves.toBeNull();
   });
 
   it("atomically completes payment, receipt, snapshots, and inventory", async () => {
@@ -434,6 +473,11 @@ describe.skipIf(!enabled)("atomic point-of-sale lifecycle", () => {
       id: saleId,
       receiptNumber: "MAIN-000001",
       businessName: "Sale Integration",
+      businessPhone: "+92 21 555 0100",
+      businessAddress: "100 Commerce Road, Karachi",
+      store: expect.objectContaining({
+        address: "12 Market Street, Karachi",
+      }),
       totalMinor: 1_980,
       timezone: "Asia/Karachi",
     });

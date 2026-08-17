@@ -4,7 +4,7 @@ Last updated: 2026-08-17
 
 ## Current status
 
-All six implementation phases and the repository release gate are complete. The application covers authenticated multi-tenant onboarding and billing, catalog and inventory, customers and sales, employees and operational payroll, purchasing and expenses, tenant settings/governance, and a two-factor-protected platform control plane. The final tree passed formatting, lint, strict type checking, 105 unit tests, 101 MongoDB integration tests, 20 desktop/mobile Playwright tests, 30 database migrations, the production build, and the security/diff review on 2026-08-17.
+All six implementation phases and the repository release gate are complete. The application covers authenticated multi-tenant onboarding and billing, catalog and inventory, customers and sales, employees and operational payroll, purchasing and expenses, tenant settings/governance, and a two-factor-protected platform control plane. The final tree passed formatting, lint, strict type checking, 107 unit tests, 102 MongoDB integration tests, 20 desktop/mobile Playwright tests, 30 database migrations, the production build, and the security/diff review on 2026-08-17.
 
 ## Phases
 
@@ -25,7 +25,7 @@ All six implementation phases and the repository release gate are complete. The 
 - Central plan catalog, Stripe Checkout/Portal, verified webhook entitlement projection, paid-through cancellation behavior, past-due grace, suspended-tenant billing recovery, atomic quotas, and a production-safe usage reconciliation command.
 - Responsive white-surface tenant shell and canonical shared card system across dashboard, catalog, inventory, customers, sales, employees, purchasing, settings, governance, and reports.
 - Tenant-scoped categories, tags, units, stocked products and non-stock services, independent variant barcode/cost data, Cloudinary galleries, store-scoped availability, safe CSV preview/import/export, append-only inventory movements, adjustments, transfers, and low-stock policy/alerts. Catalog bulk actions, store filters, and column controls operate through shared components rather than display-only controls.
-- Server-authoritative POS totals, split recorded tenders, immutable snapshots, atomic receipts/inventory/revenue/audit, partial/final returns, refunds, auditable manual-payment sale voids with inventory/revenue reversal, tenant-calendar sales reporting, and formula-safe CSV/print output.
+- Server-authoritative POS totals, exact barcode/SKU scanning with live active-store stock, split recorded tenders, immutable snapshots, atomic receipts/inventory/revenue/audit, professional thermal-width printable customer bills with optional automatic printing, partial/final returns, refunds, auditable manual-payment sale voids with inventory/revenue reversal, tenant-calendar sales reporting, and formula-safe CSV/print output.
 - Employee lifecycle and account links, store assignments, attendance, leave, salary profiles, compensation isolation, payroll preparation/review/approval/finalization/reversal, immutable payslips, and explicit operational-payroll limitations.
 - Supplier lifecycle, purchase snapshots and state machine, partial/final goods receipts, atomic stock integration, approved-only expenses, Cloudinary receipts, and operational purchasing/expense reporting.
 - Business, regional, tax, numbering, inventory, integration-readiness, store, team, role, security, data export/deletion-request, notification, and advanced audit settings, including verified ownership transfer to an existing member.

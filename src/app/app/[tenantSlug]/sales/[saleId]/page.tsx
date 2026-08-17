@@ -88,7 +88,7 @@ export default async function SaleReceiptPage({
           }
           actions={
             <>
-              <PrintReceiptButton />
+              <PrintReceiptButton saleId={receipt.id} />
               {receipt.status === "completed" && canVoid && (
                 <VoidSaleDialog
                   tenantSlug={tenantSlug}
@@ -114,7 +114,7 @@ export default async function SaleReceiptPage({
           }
         />
       </div>
-      <Card className="print:border-0">
+      <Card data-sale-bill className="print:border-0">
         <CardHeader className="gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
           <div>
             <div className="flex items-center gap-2">
@@ -126,6 +126,16 @@ export default async function SaleReceiptPage({
                 <CardDescription>
                   {receipt.store.name} · {receipt.store.code}
                 </CardDescription>
+                {(receipt.store.address || receipt.businessAddress) && (
+                  <p className="text-muted-foreground mt-1 max-w-sm text-xs leading-5">
+                    {receipt.store.address || receipt.businessAddress}
+                  </p>
+                )}
+                {receipt.businessPhone && (
+                  <p className="text-muted-foreground mt-0.5 text-xs">
+                    {receipt.businessPhone}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -207,7 +217,7 @@ export default async function SaleReceiptPage({
             ))}
           </Inset>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2 print:grid-cols-1">
             <div>
               <h2 className="text-sm font-semibold">Payment record</h2>
               <div className="mt-3 space-y-2">
@@ -288,7 +298,7 @@ export default async function SaleReceiptPage({
           </div>
 
           {returnWorkspace && returnWorkspace.previousReturns.length > 0 && (
-            <div>
+            <div className="print:hidden">
               <h2 className="text-sm font-semibold">Returns</h2>
               <Inset className="mt-3 divide-y">
                 {returnWorkspace.previousReturns.map((item) => (
@@ -326,6 +336,12 @@ export default async function SaleReceiptPage({
               </Inset>
             </div>
           )}
+          <div className="border-t pt-4 text-center">
+            <p className="text-sm font-semibold">Thank you for your purchase</p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Keep this bill for returns and order verification.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </PageContainer>

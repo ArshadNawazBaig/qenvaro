@@ -71,6 +71,12 @@ export const saleCatalogQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(6).max(30).catch(12),
 });
 
+export const saleScanQuerySchema = z
+  .object({
+    code: z.string().trim().min(1).max(160),
+  })
+  .strict();
+
 export const receiptIdSchema = opaqueIdSchema;
 
 export const voidSaleSchema = z
@@ -87,6 +93,7 @@ export type SalePaymentInput = z.infer<typeof salePaymentInputSchema>;
 export type CompleteSaleInput = z.infer<typeof completeSaleSchema>;
 export type VoidSaleInput = z.infer<typeof voidSaleSchema>;
 export type SaleCatalogQuery = z.infer<typeof saleCatalogQuerySchema>;
+export type SaleScanQuery = z.infer<typeof saleScanQuerySchema>;
 
 export interface SaleCatalogItem {
   productId: string;
@@ -149,8 +156,10 @@ export interface SaleReceipt {
   id: string;
   receiptNumber: string;
   businessName: string;
+  businessPhone: string;
+  businessAddress: string;
   status: "completed" | "voided";
-  store: { id: string; code: string; name: string };
+  store: { id: string; code: string; name: string; address: string };
   customer: { id: string; code: string; name: string } | null;
   currency: string;
   locale: string;
