@@ -171,6 +171,7 @@ describe.skipIf(!enabled)(
         "auditLogs",
         "customRoleDefinitions",
         "memberCustomRoleAssignments",
+        "memberStoreAssignments",
         "notificationReads",
         "notifications",
         "products",
@@ -250,7 +251,7 @@ describe.skipIf(!enabled)(
         type: "export",
         confirmation: "REQUEST EXPORT",
       });
-      const [profile, product, variant, counter, store, request] =
+      const [profile, product, variant, counter, store, assignment, request] =
         await Promise.all([
           database.collection("tenantProfiles").findOne({ tenantId }),
           database.collection("products").findOne({ tenantId }),
@@ -261,6 +262,11 @@ describe.skipIf(!enabled)(
           database
             .collection<StringDocument>("stores")
             .findOne({ _id: createdStoreId, tenantId }),
+          database.collection("memberStoreAssignments").findOne({
+            tenantId,
+            membershipId: context.membershipId,
+            storeId: createdStoreId,
+          }),
           database
             .collection("tenantDataRequests")
             .findOne({ tenantId, type: "export" }),
@@ -279,6 +285,7 @@ describe.skipIf(!enabled)(
       expect(variant).toMatchObject({ currency: "AED" });
       expect(counter).toMatchObject({ value: 2 });
       expect(store).toMatchObject({ status: "archived", version: 2 });
+      expect(assignment).toBeTruthy();
       expect(request).toMatchObject({ status: "requested" });
       const auditText = JSON.stringify(
         await database.collection("auditLogs").find({ tenantId }).toArray(),

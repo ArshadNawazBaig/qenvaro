@@ -14,6 +14,7 @@ import {
   TenantSuspendedError,
   type TenantContext,
 } from "./context";
+import { hasAllStoreAccess } from "./store-access";
 
 const roleMap: Record<string, TenantRole> = {
   owner: "OWNER",
@@ -107,10 +108,7 @@ export async function requireTenantContext(
     )
     .toArray();
   let allowedStoreIds: string[];
-  if (
-    assignments.length === 0 &&
-    roles.some((role) => role === "OWNER" || role === "ADMIN")
-  ) {
+  if (hasAllStoreAccess(roles, assignments.length)) {
     allowedStoreIds = (
       await database
         .collection<{ _id: string }>("stores")

@@ -420,6 +420,26 @@ export class TenantSettingsService {
           } as StoreDocument,
           { session },
         );
+        await database
+          .collection<StringIdDocument>("memberStoreAssignments")
+          .updateOne(
+            {
+              tenantId: context.tenantId,
+              membershipId: context.membershipId,
+              storeId: id,
+            },
+            {
+              $setOnInsert: {
+                _id: createOpaqueId("msa"),
+                tenantId: context.tenantId,
+                membershipId: context.membershipId,
+                storeId: id,
+                createdAt: now,
+                createdBy: context.userId,
+              },
+            },
+            { session, upsert: true },
+          );
         await audit(database, context, session, {
           action: "store.created",
           entityType: "store",

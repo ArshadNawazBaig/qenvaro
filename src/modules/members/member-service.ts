@@ -8,6 +8,7 @@ import type { AssignableMemberRole } from "@/modules/members/roles";
 import { auth } from "@/server/auth/auth";
 import { getDatabase, getMongoClient } from "@/server/db/client";
 import type { TenantContext } from "@/server/tenancy/context";
+import { hasAllStoreAccess } from "@/server/tenancy/store-access";
 
 type StringDocument = { _id: string } & Record<string, unknown>;
 
@@ -126,22 +127,24 @@ export async function getTenantMemberManagementData(
   }
   const allStoreIds = stores.map((store) => String(store._id));
   return {
-    members: memberResult.members.map((member) => ({
-      id: member.id,
-      userId: member.userId,
-      name: member.user.name,
-      email: member.user.email,
-      role: member.role,
-      joinedAt: member.createdAt.toISOString(),
-      storeIds:
-        memberStores.get(member.id) ??
-        (member.role
-          .split(",")
-          .some((role) => role === "owner" || role === "admin")
-          ? allStoreIds
-          : []),
-      isCurrentUser: member.userId === context.userId,
-    })),
+    members: memberResult.members.map((member) => {
+      const roles = member.role.split(",");
+      const assignedStoreIds = memberStores.get(member.id);
+      const canAccessAllStores = hasAllStoreAccess(
+        roles,
+        assignedStoreIds?.length ?? 0,
+      );
+      return {
+        id: member.id,
+        userId: member.userId,
+        name: member.user.name,
+        email: member.user.email,
+        role: member.role,
+        joinedAt: member.createdAt.toISOString(),
+        storeIds: canAccessAllStores ? allStoreIds : (assignedStoreIds ?? []),
+        isCurrentUser: member.userId === context.userId,
+      };
+    }),
     invitations: invitations
       .filter((invitation) => invitation.status === "pending")
       .map((invitation) => ({
