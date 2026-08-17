@@ -32,13 +32,13 @@ export default async function NotificationsPage({
               severity: "warning" as const,
               href: `/app/${tenantSlug}/inventory/alerts`,
               createdAt: new Date().toISOString(),
-              read: false,
+              read: true,
               source: "tenant" as const,
             },
           ],
           page: 1,
           pages: 1,
-          unread: 1,
+          unread: 0,
           total: 1,
         }}
       />

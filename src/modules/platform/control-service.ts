@@ -25,6 +25,10 @@ import {
   type UnbanPlatformUserInput,
 } from "./schemas";
 import { getMongoClient } from "@/server/db/client";
+import {
+  publishNotificationCreated,
+  publishNotificationRemoved,
+} from "@/server/realtime/publisher";
 import type { VerifiedPlatformContext } from "@/server/auth/platform-context";
 
 type StringDocument = { _id: string } & Record<string, unknown>;
@@ -564,6 +568,21 @@ export class PlatformControlService {
         });
       }),
     );
+    publishNotificationCreated(
+      { kind: "platform" },
+      {
+        notification: {
+          id,
+          title: input.title,
+          message: input.message,
+          severity: input.severity,
+          href: input.href || null,
+          createdAt: now.toISOString(),
+          read: false,
+          source: "platform",
+        },
+      },
+    );
     return { id };
   }
 
@@ -602,5 +621,6 @@ export class PlatformControlService {
         });
       }),
     );
+    publishNotificationRemoved({ kind: "platform" }, { notificationId: id });
   }
 }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createOpaqueId } from "@/lib/utils";
 import { getDatabase } from "@/server/db/client";
+import { publishNotificationRead } from "@/server/realtime/publisher";
 import { canReadNotification } from "@/server/repositories/governance";
 import { requireTenantContext } from "@/server/tenancy/resolve-context";
 
@@ -27,7 +28,7 @@ export async function markNotificationReadAction(
         message: "That notification is unavailable.",
       };
     const database = await getDatabase();
-    await database
+    const result = await database
       .collection<{ _id: string } & Record<string, unknown>>(
         "notificationReads",
       )
@@ -48,7 +49,17 @@ export async function markNotificationReadAction(
         },
         { upsert: true },
       );
-    revalidatePath(`/app/${context.tenantSlug}/notifications`);
+    if (result.upsertedCount === 1) {
+      publishNotificationRead(
+        {
+          kind: "user",
+          tenantId: context.tenantId,
+          userId: context.userId,
+        },
+        { notificationId: id },
+      );
+    }
+    revalidatePath(`/app/${context.tenantSlug}`, "layout");
     return {
       status: "success" as const,
       message: "Notification marked as read.",

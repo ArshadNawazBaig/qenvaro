@@ -6,9 +6,11 @@ import { createOpaqueId } from "@/lib/utils";
 import { requireTenantWriteEntitlement } from "@/modules/billing/entitlements";
 import type { AssignableMemberRole } from "@/modules/members/roles";
 import { transferOwnershipSchema } from "@/modules/members/schemas";
+import type { RealtimeNotification } from "@/modules/notifications/realtime";
 import { requirePermission } from "@/modules/permissions/permissions";
 import { auth } from "@/server/auth/auth";
 import { getDatabase, getMongoClient } from "@/server/db/client";
+import { publishNotificationCreated } from "@/server/realtime/publisher";
 import type { TenantContext } from "@/server/tenancy/context";
 import { hasAllStoreAccess } from "@/server/tenancy/store-access";
 
@@ -71,6 +73,10 @@ export async function transferTenantOwnership(
     throw new MemberManagementInvariantError("self_protected");
   const client = await getMongoClient();
   const database = await getDatabase();
+  let realtimeNotifications: Array<{
+    userId: string;
+    notification: RealtimeNotification;
+  }> = [];
   await client.withSession(async (session) => {
     await session.withTransaction(async () => {
       const currentOwner = await database
@@ -160,10 +166,12 @@ export async function transferTenantOwnership(
         },
         { session },
       );
+      const targetNotificationId = createOpaqueId("not");
+      const previousOwnerNotificationId = createOpaqueId("not");
       await database.collection<StringDocument>("notifications").insertMany(
         [
           {
-            _id: createOpaqueId("not"),
+            _id: targetNotificationId,
             tenantId: context.tenantId,
             recipientUserId: target.userId,
             title: "You are now the business owner",
@@ -174,7 +182,7 @@ export async function transferTenantOwnership(
             createdAt: now,
           },
           {
-            _id: createOpaqueId("not"),
+            _id: previousOwnerNotificationId,
             tenantId: context.tenantId,
             recipientUserId: currentOwner.userId,
             title: "Ownership transfer completed",
@@ -187,8 +195,48 @@ export async function transferTenantOwnership(
         ],
         { session },
       );
+      realtimeNotifications = [
+        {
+          userId: target.userId,
+          notification: {
+            id: targetNotificationId,
+            title: "You are now the business owner",
+            message:
+              "Ownership was transferred to your account. Review team and billing access.",
+            severity: "success",
+            href: `/app/${context.tenantSlug}/settings/members`,
+            createdAt: now.toISOString(),
+            read: false,
+            source: "tenant",
+          },
+        },
+        {
+          userId: currentOwner.userId,
+          notification: {
+            id: previousOwnerNotificationId,
+            title: "Ownership transfer completed",
+            message:
+              "Your role is now Administrator. The new owner controls billing and ownership actions.",
+            severity: "info",
+            href: `/app/${context.tenantSlug}/settings/members`,
+            createdAt: now.toISOString(),
+            read: false,
+            source: "tenant",
+          },
+        },
+      ];
     });
   });
+  for (const realtimeNotification of realtimeNotifications) {
+    publishNotificationCreated(
+      {
+        kind: "user",
+        tenantId: context.tenantId,
+        userId: realtimeNotification.userId,
+      },
+      { notification: realtimeNotification.notification },
+    );
+  }
 }
 
 export async function getTenantMemberManagementData(

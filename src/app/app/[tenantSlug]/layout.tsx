@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/layout/app-shell";
+import { RealtimeNotificationProvider } from "@/components/realtime/realtime-notification-provider";
 import { notFound } from "next/navigation";
 import { env } from "@/config/env";
 import { requireTenantContext } from "@/server/tenancy/resolve-context";
@@ -24,8 +25,14 @@ export default async function TenantLayout({
     }
   }
   return (
-    <AppShell tenantSlug={tenantSlug} workspace={workspace}>
-      {children}
-    </AppShell>
+    <RealtimeNotificationProvider
+      key={tenantSlug}
+      tenantSlug={tenantSlug}
+      enabled={Boolean(workspace && !workspace.isDemo)}
+    >
+      <AppShell tenantSlug={tenantSlug} workspace={workspace}>
+        {children}
+      </AppShell>
+    </RealtimeNotificationProvider>
   );
 }

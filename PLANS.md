@@ -29,9 +29,9 @@ All six implementation phases and the repository release gate are complete. The 
 - Employee lifecycle and account links, store assignments, attendance, leave, salary profiles, compensation isolation, payroll preparation/review/approval/finalization/reversal, immutable payslips, and explicit operational-payroll limitations.
 - Supplier lifecycle, purchase snapshots and state machine, partial/final goods receipts, atomic stock integration, approved-only expenses, Cloudinary receipts, and operational purchasing/expense reporting.
 - Business, regional, tax, numbering, inventory, integration-readiness, store, team, role, security, data export/deletion-request, notification, and advanced audit settings, including verified ownership transfer to an existing member.
-- Permission-aware global search, a live recent-notification header preview, and a store selector that lists every active store allowed by the current membership.
+- Permission-aware global search, an authenticated Socket.IO notification stream with durable server-projection fallback, a live recent-notification header preview, and a store selector that lists every active store allowed by the current membership.
 - Platform tenant/usage detail, global users and identity suspension, plans, subscriptions/trials/payment attention, verified webhooks, release flags, announcements, health, platform audit, tenant suspension/reactivation, and reason-required time-limited revocable support grants. The platform deliberately provides no tenant business-record browser.
-- Thirty versioned MongoDB migrations, including tenant-unique active variant barcodes, deterministic isolated seed identities and operational data, development-only seed/reset safeguards, replica-set Docker Compose, Mailpit, health probes, standalone image, and CI.
+- Thirty versioned MongoDB migrations, including tenant-unique active variant barcodes, deterministic isolated seed identities and operational data, development-only seed/reset safeguards, replica-set Docker Compose, Mailpit, health probes, a custom-server Socket.IO image, and CI.
 - Privacy and terms placeholders are present and visibly marked for legal review.
 
 ## Important decisions

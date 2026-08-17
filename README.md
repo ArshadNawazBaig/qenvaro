@@ -8,7 +8,7 @@ Qenvaro is a production-oriented, multi-tenant retail and service operations Saa
 2. Copy `.env.example` to `.env.local` and set a random 32+ character `BETTER_AUTH_SECRET`.
 3. Run `docker compose up -d` to start the MongoDB replica set and Mailpit.
 4. Run `pnpm install`, `pnpm db:migrate`, and `pnpm db:seed`.
-5. Start with `pnpm dev` and open `http://localhost:3000`.
+5. Start with `pnpm dev` and open `http://localhost:3000`. The custom Node server runs Next.js and the authenticated Socket.IO notification gateway on the same port.
 
 The explicit `/app/demo` workspace provides responsive, read-only product, inventory, sales, workforce, purchasing, report, notification, and settings surfaces without authorizing mutations. Authenticated workspaces always use database-backed membership, permission, store, plan, and tenant scope.
 

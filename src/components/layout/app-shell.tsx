@@ -104,14 +104,14 @@ const demoWorkspace: WorkspaceShellData = {
   ],
   stores: [{ id: "demo-store", code: "DT", name: "Downtown" }],
   activeStoreId: "demo-store",
-  notificationUnread: 1,
+  notificationUnread: 0,
   recentNotifications: [
     {
       id: "demo-low-stock",
       title: "Low stock requires attention",
       severity: "warning",
       href: "/app/demo/inventory/alerts",
-      read: false,
+      read: true,
     },
   ],
   canViewMembers: true,
