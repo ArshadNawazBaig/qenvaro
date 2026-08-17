@@ -133,7 +133,45 @@ export async function uploadExpenseReceipt(input: {
   return toProductImageUpload(response);
 }
 
-export async function deleteProductImage(publicId: string): Promise<void> {
+export async function uploadBusinessLogo(input: {
+  bytes: Buffer;
+  tenantId: string;
+  logoId: string;
+}): Promise<CloudinaryProductImageUpload> {
+  configureCloudinary();
+  const response = await new Promise<UploadApiResponse>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: "image",
+        folder: `qenvaro/businesses/${input.tenantId}/branding`,
+        public_id: input.logoId,
+        unique_filename: false,
+        use_filename: false,
+        overwrite: false,
+        allowed_formats: ["jpg", "jpeg", "png", "webp", "avif"],
+        transformation: [
+          {
+            width: 512,
+            height: 512,
+            crop: "limit",
+            quality: "auto:good",
+            flags: "strip_profile",
+          },
+        ],
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else if (!result)
+          reject(new Error("Cloudinary returned no upload result."));
+        else resolve(result);
+      },
+    );
+    stream.end(input.bytes);
+  });
+  return toProductImageUpload(response);
+}
+
+export async function deleteCloudinaryImage(publicId: string): Promise<void> {
   configureCloudinary();
   const result = (await cloudinary.uploader.destroy(publicId, {
     resource_type: "image",
@@ -141,4 +179,8 @@ export async function deleteProductImage(publicId: string): Promise<void> {
   })) as { result?: string };
   if (result.result !== "ok" && result.result !== "not found")
     throw new Error("Cloudinary did not confirm image deletion.");
+}
+
+export async function deleteProductImage(publicId: string): Promise<void> {
+  return deleteCloudinaryImage(publicId);
 }

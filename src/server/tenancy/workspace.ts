@@ -20,6 +20,7 @@ export interface WorkspaceStoreOption {
 
 export interface WorkspaceShellData {
   businessName: string;
+  businessLogoUrl: string | null;
   planName: string;
   storeName: string;
   userName: string;
@@ -72,11 +73,12 @@ export async function getWorkspaceShellData(
         .collection<{
           tenantId: string;
           businessName: string;
+          businessLogo?: { secureUrl?: string };
           planKey: string;
         }>("tenantProfiles")
         .findOne(
           { tenantId: context.tenantId },
-          { projection: { businessName: 1, planKey: 1 } },
+          { projection: { businessName: 1, businessLogo: 1, planKey: 1 } },
         ),
       database
         .collection<{
@@ -135,6 +137,7 @@ export async function getWorkspaceShellData(
   );
   return {
     businessName: profile.businessName,
+    businessLogoUrl: profile.businessLogo?.secureUrl ?? null,
     planName: plan.name,
     storeName: activeStore?.name ?? "No assigned store",
     userName: user.name,

@@ -38,6 +38,17 @@ interface ProfileDocument {
   _id: string;
   tenantId: string;
   businessName: string;
+  businessLogo?: {
+    publicId: string;
+    assetId: string;
+    secureUrl: string;
+    width: number;
+    height: number;
+    format: string;
+    bytes: number;
+    uploadedAt: Date;
+    uploadedBy: string;
+  };
   legalName?: string;
   supportEmail?: string;
   phone?: string;
@@ -210,6 +221,116 @@ async function incrementStoreUsage(
 }
 
 export class TenantSettingsService {
+  async replaceBusinessLogo(
+    context: TenantContext,
+    input: {
+      expectedVersion: number;
+      logo: {
+        publicId: string;
+        assetId: string;
+        secureUrl: string;
+        width: number;
+        height: number;
+        format: string;
+        bytes: number;
+      };
+    },
+  ) {
+    requirePermission(context.permissions, "settings:manage");
+    const client = await getMongoClient();
+    const database = client.db(env.MONGODB_DATABASE);
+    const result = await client.withSession((session) =>
+      session.withTransaction(async () => {
+        const profile = await requireWriteProfile(database, context, session);
+        if ((profile.version ?? 1) !== input.expectedVersion)
+          throw new SettingsConflictError();
+        const previousPublicId = profile.businessLogo?.publicId ?? null;
+        const update = await database
+          .collection<ProfileDocument>("tenantProfiles")
+          .updateOne(
+            { tenantId: context.tenantId, version: input.expectedVersion },
+            {
+              $set: {
+                businessLogo: {
+                  ...input.logo,
+                  uploadedAt: new Date(),
+                  uploadedBy: context.userId,
+                },
+                updatedAt: new Date(),
+                updatedBy: context.userId,
+              },
+              $inc: { version: 1 },
+            },
+            { session },
+          );
+        if (update.matchedCount !== 1) throw new SettingsConflictError();
+        await audit(database, context, session, {
+          action: "tenant.business_logo_updated",
+          entityType: "tenant",
+          entityId: context.tenantId,
+          summary: previousPublicId
+            ? "Replaced the business logo."
+            : "Added the business logo.",
+          changes: {
+            before: { publicId: previousPublicId },
+            after: { publicId: input.logo.publicId },
+          },
+        });
+        return {
+          version: input.expectedVersion + 1,
+          previousPublicId,
+        };
+      }),
+    );
+    if (!result) throw new Error("Business logo update did not complete.");
+    return result;
+  }
+
+  async removeBusinessLogo(
+    context: TenantContext,
+    input: { expectedVersion: number },
+  ) {
+    requirePermission(context.permissions, "settings:manage");
+    const client = await getMongoClient();
+    const database = client.db(env.MONGODB_DATABASE);
+    const result = await client.withSession((session) =>
+      session.withTransaction(async () => {
+        const profile = await requireWriteProfile(database, context, session);
+        if ((profile.version ?? 1) !== input.expectedVersion)
+          throw new SettingsConflictError();
+        const previousPublicId = profile.businessLogo?.publicId ?? null;
+        const update = await database
+          .collection<ProfileDocument>("tenantProfiles")
+          .updateOne(
+            { tenantId: context.tenantId, version: input.expectedVersion },
+            {
+              $unset: { businessLogo: "" },
+              $set: { updatedAt: new Date(), updatedBy: context.userId },
+              $inc: { version: 1 },
+            },
+            { session },
+          );
+        if (update.matchedCount !== 1) throw new SettingsConflictError();
+        await audit(database, context, session, {
+          action: "tenant.business_logo_removed",
+          entityType: "tenant",
+          entityId: context.tenantId,
+          summary: "Removed the business logo and restored Qenvaro branding.",
+          changes: {
+            before: { publicId: previousPublicId },
+            after: { publicId: null },
+          },
+        });
+        return {
+          version: input.expectedVersion + 1,
+          previousPublicId,
+        };
+      }),
+    );
+    if (!result) throw new Error("Business logo removal did not complete.");
+    return result;
+  }
+
   async updateBusiness(
     context: TenantContext,
     untrusted: BusinessSettingsInput,

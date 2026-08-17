@@ -12,6 +12,7 @@ import {
   SettingsActionMessage,
   settingsInitialState,
 } from "@/components/settings/action-message";
+import { BusinessLogoSetting } from "@/components/settings/business-logo-setting";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -69,7 +70,18 @@ export function BusinessSettings({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={businessAction} className="grid gap-4 sm:grid-cols-2">
+          <BusinessLogoSetting
+            tenantSlug={tenantSlug}
+            businessName={settings.businessName}
+            logo={settings.businessLogo}
+            expectedVersion={settings.version}
+            disabled={disabled}
+            uploadEnabled={settings.integrations.cloudinary}
+          />
+          <form
+            action={businessAction}
+            className="mt-5 grid gap-4 sm:grid-cols-2"
+          >
             <input
               type="hidden"
               name="expectedVersion"

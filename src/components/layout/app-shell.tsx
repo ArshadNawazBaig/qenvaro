@@ -36,6 +36,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
@@ -86,6 +87,7 @@ interface NavigationGroup {
 
 const demoWorkspace: WorkspaceShellData = {
   businessName: "Northstar Goods",
+  businessLogoUrl: null,
   planName: "Growth",
   storeName: "Downtown",
   userName: "Avery Nelson",
@@ -162,6 +164,7 @@ function SidebarContent({
     manage: true,
   });
   const base = `/app/${tenantSlug}`;
+  const businessName = workspace.businessName.trim() || brand.name;
   const navigationGroups: NavigationGroup[] = [
     {
       id: "overview",
@@ -364,14 +367,31 @@ function SidebarContent({
         <Link
           href={base}
           className="flex min-w-0 items-center gap-3 rounded-xl"
-          aria-label={`${brand.name} dashboard`}
+          aria-label={`${businessName} dashboard`}
         >
-          <span className="bg-primary text-primary-foreground flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold shadow-[0_8px_20px_oklch(0.55_0.245_272/0.24)]">
-            {brand.logoMark}
+          <span
+            className={cn(
+              "relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl text-sm font-bold",
+              workspace.businessLogoUrl
+                ? "bg-card border"
+                : "bg-primary text-primary-foreground shadow-[0_8px_20px_oklch(0.55_0.245_272/0.24)]",
+            )}
+          >
+            {workspace.businessLogoUrl ? (
+              <Image
+                src={workspace.businessLogoUrl}
+                alt={`${businessName} logo`}
+                fill
+                sizes="40px"
+                className="object-contain p-1"
+              />
+            ) : (
+              brand.logoMark
+            )}
           </span>
           {!collapsed && (
             <span className="truncate text-[15px] font-semibold tracking-[-0.02em]">
-              {brand.name}
+              {businessName}
             </span>
           )}
         </Link>
@@ -553,10 +573,27 @@ export function AppShell({
               href={`/app/${tenantSlug}`}
               className="mr-auto flex items-center gap-2 text-sm font-semibold md:hidden"
             >
-              <span className="bg-primary text-primary-foreground flex size-7 items-center justify-center rounded-lg text-[11px]">
-                {brand.logoMark}
+              <span
+                className={cn(
+                  "relative flex size-7 items-center justify-center overflow-hidden rounded-lg text-[11px]",
+                  workspace.businessLogoUrl
+                    ? "bg-card border"
+                    : "bg-primary text-primary-foreground",
+                )}
+              >
+                {workspace.businessLogoUrl ? (
+                  <Image
+                    src={workspace.businessLogoUrl}
+                    alt={`${workspace.businessName || brand.name} logo`}
+                    fill
+                    sizes="28px"
+                    className="object-contain p-0.5"
+                  />
+                ) : (
+                  brand.logoMark
+                )}
               </span>
-              {brand.name}
+              {workspace.businessName || brand.name}
             </Link>
             <GlobalSearch tenantSlug={tenantSlug} isDemo={workspace.isDemo} />
             <div className="ml-auto flex items-center">

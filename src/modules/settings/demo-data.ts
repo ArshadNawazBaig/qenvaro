@@ -2,6 +2,7 @@ import type { TenantSettingsProjection } from "./schemas";
 
 export const demoTenantSettings: TenantSettingsProjection = {
   businessName: "Northstar Goods",
+  businessLogo: null,
   legalName: "Northstar Goods (Private) Limited",
   supportEmail: "hello@northstar.example",
   phone: "+92 21 555 0100",

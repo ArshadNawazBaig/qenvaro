@@ -3,6 +3,24 @@ import { currencyCodes } from "@/config/currencies";
 
 const currencyCodeSchema = z.enum(currencyCodes);
 
+export const MAX_BUSINESS_LOGO_BYTES = 2 * 1024 * 1024;
+export const BUSINESS_LOGO_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+] as const;
+
+export interface BusinessLogo {
+  publicId: string;
+  assetId: string;
+  secureUrl: string;
+  width: number;
+  height: number;
+  format: string;
+  bytes: number;
+}
+
 const idSchema = z
   .string()
   .trim()
@@ -131,6 +149,7 @@ export interface StoreSettingsItem extends CreateStoreInput {
 
 export interface TenantSettingsProjection {
   businessName: string;
+  businessLogo: BusinessLogo | null;
   legalName: string;
   supportEmail: string;
   phone: string;

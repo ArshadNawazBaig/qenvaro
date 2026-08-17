@@ -15,6 +15,15 @@ export class SettingsRepository {
       database
         .collection<{
           businessName: string;
+          businessLogo?: {
+            publicId: string;
+            assetId: string;
+            secureUrl: string;
+            width: number;
+            height: number;
+            format: string;
+            bytes: number;
+          };
           legalName?: string;
           supportEmail?: string;
           phone?: string;
@@ -73,6 +82,7 @@ export class SettingsRepository {
     const plan = plans[planKeySchema.parse(profile.planKey)];
     return {
       businessName: profile.businessName,
+      businessLogo: profile.businessLogo ?? null,
       legalName: profile.legalName ?? "",
       supportEmail: profile.supportEmail ?? "",
       phone: profile.phone ?? "",
