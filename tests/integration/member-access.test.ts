@@ -2,9 +2,13 @@ import { MongoClient, type Db } from "mongodb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   materializeInvitationStoreAssignments,
+  transferTenantOwnership,
   validateTenantStoreIds,
 } from "@/modules/members/member-service";
-import { resolvePermissions } from "@/modules/permissions/permissions";
+import {
+  PermissionError,
+  resolvePermissions,
+} from "@/modules/permissions/permissions";
 import type { TenantContext } from "@/server/tenancy/context";
 import { getWorkspaceShellData } from "@/server/tenancy/workspace";
 
@@ -18,6 +22,9 @@ describe.skipIf(!enabled)("member store access isolation", () => {
   const foreignTenantId = `org_member_foreign_${suffix}`;
   const userId = `usr_member_${suffix}`;
   const membershipId = `mem_member_${suffix}`;
+  const targetUserId = `usr_member_target_${suffix}`;
+  const targetMembershipId = `mem_member_target_${suffix}`;
+  const targetEmail = `target-${suffix}@example.test`;
   const secondMembershipId = `mem_member_second_${suffix}`;
   const storeId = `store_member_${suffix}`;
   const secondStoreId = `store_member_second_${suffix}`;
@@ -47,6 +54,15 @@ describe.skipIf(!enabled)("member store access isolation", () => {
       _id: userId,
       name: "Integration Owner",
       email: `member-${suffix}@example.test`,
+      emailVerified: true,
+      twoFactorEnabled: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await database.collection<StringDocument>("user").insertOne({
+      _id: targetUserId,
+      name: "Integration Target",
+      email: targetEmail,
       emailVerified: true,
       createdAt: now,
       updatedAt: now,
@@ -98,6 +114,13 @@ describe.skipIf(!enabled)("member store access isolation", () => {
         role: "viewer",
         createdAt: now,
       },
+      {
+        _id: targetMembershipId,
+        organizationId: tenantId,
+        userId: targetUserId,
+        role: "manager",
+        createdAt: now,
+      },
     ]);
     await database.collection<StringDocument>("stores").insertMany([
       {
@@ -130,6 +153,7 @@ describe.skipIf(!enabled)("member store access isolation", () => {
   afterAll(async () => {
     for (const collection of [
       "auditLogs",
+      "notifications",
       "invitationStoreAssignments",
       "memberStoreAssignments",
       "sessionStoreSelections",
@@ -140,10 +164,12 @@ describe.skipIf(!enabled)("member store access isolation", () => {
       await database.collection(collection).deleteMany({
         tenantId: { $in: [tenantId, secondTenantId, foreignTenantId] },
       });
-    await database.collection("member").deleteMany({ userId });
+    await database
+      .collection("member")
+      .deleteMany({ userId: { $in: [userId, targetUserId] } });
     await database
       .collection<StringDocument>("user")
-      .deleteOne({ _id: userId });
+      .deleteMany({ _id: { $in: [userId, targetUserId] } });
     await client.close();
   });
 
@@ -157,6 +183,9 @@ describe.skipIf(!enabled)("member store access isolation", () => {
     );
     expect(workspace.activeStoreId).toBe(secondStoreId);
     expect(workspace.storeName).toBe("Second Store");
+    expect(workspace.stores.map((store) => store.id).sort()).toEqual(
+      [storeId, secondStoreId].sort(),
+    );
   });
 
   it("rejects a store from another tenant", async () => {
@@ -219,5 +248,55 @@ describe.skipIf(!enabled)("member store access isolation", () => {
         invitationId,
       }),
     ).toBe(0);
+  });
+
+  it("transfers ownership only after owner permission, 2FA, and exact confirmation", async () => {
+    await expect(
+      transferTenantOwnership(context, {
+        memberId: targetMembershipId,
+        confirmationEmail: `wrong-${targetEmail}`,
+      }),
+    ).rejects.toMatchObject({ reason: "confirmation_mismatch" });
+    await expect(
+      transferTenantOwnership(
+        {
+          ...context,
+          roles: ["VIEWER"],
+          permissions: resolvePermissions(["VIEWER"]),
+        },
+        { memberId: targetMembershipId, confirmationEmail: targetEmail },
+      ),
+    ).rejects.toBeInstanceOf(PermissionError);
+
+    await transferTenantOwnership(context, {
+      memberId: targetMembershipId,
+      confirmationEmail: targetEmail,
+    });
+    const [previousOwner, newOwner, audit, notifications] = await Promise.all([
+      database.collection<StringDocument>("member").findOne({
+        _id: membershipId,
+        organizationId: tenantId,
+      }),
+      database.collection<StringDocument>("member").findOne({
+        _id: targetMembershipId,
+        organizationId: tenantId,
+      }),
+      database.collection<StringDocument>("auditLogs").findOne({
+        tenantId,
+        action: "tenant.ownership_transferred",
+      }),
+      database.collection<StringDocument>("notifications").countDocuments({
+        tenantId,
+        recipientUserId: { $in: [userId, targetUserId] },
+      }),
+    ]);
+    expect(previousOwner).toMatchObject({ role: "admin" });
+    expect(newOwner).toMatchObject({ role: "owner" });
+    expect(audit).toMatchObject({
+      actorId: userId,
+      entityId: targetMembershipId,
+      requestId: context.requestId,
+    });
+    expect(notifications).toBe(2);
   });
 });

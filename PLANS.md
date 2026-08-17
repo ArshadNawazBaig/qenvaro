@@ -4,7 +4,7 @@ Last updated: 2026-08-17
 
 ## Current status
 
-All six implementation phases and the repository release gate are complete. The application covers authenticated multi-tenant onboarding and billing, catalog and inventory, customers and sales, employees and operational payroll, purchasing and expenses, tenant settings/governance, and a two-factor-protected platform control plane. The final tree passed formatting, lint, strict type checking, 101 unit tests, 91 MongoDB integration tests, 20 enabled desktop/mobile Playwright tests, migration/seed/reconciliation checks, the production build, and the security/diff review on 2026-08-17.
+All six implementation phases and the repository release gate are complete. The application covers authenticated multi-tenant onboarding and billing, catalog and inventory, customers and sales, employees and operational payroll, purchasing and expenses, tenant settings/governance, and a two-factor-protected platform control plane. The final tree passed formatting, lint, strict type checking, 105 unit tests, 101 MongoDB integration tests, 20 desktop/mobile Playwright tests, 30 database migrations, the production build, and the security/diff review on 2026-08-17.
 
 ## Phases
 
@@ -24,13 +24,14 @@ All six implementation phases and the repository release gate are complete. The 
 - Transactional onboarding with first store, explicit signup trial, business/store switching, fixed resource/action roles, store grants, and Business-plan custom roles whose allowlisted permissions are merged into server authorization.
 - Central plan catalog, Stripe Checkout/Portal, verified webhook entitlement projection, paid-through cancellation behavior, past-due grace, suspended-tenant billing recovery, atomic quotas, and a production-safe usage reconciliation command.
 - Responsive white-surface tenant shell and canonical shared card system across dashboard, catalog, inventory, customers, sales, employees, purchasing, settings, governance, and reports.
-- Tenant-scoped categories, tags, units, simple/variant products, Cloudinary galleries, availability, safe CSV preview/import/export, append-only inventory movements, adjustments, transfers, and low-stock policy/alerts.
-- Server-authoritative POS totals, split recorded tenders, immutable snapshots, atomic receipts/inventory/revenue/audit, partial/final returns, refunds, and tenant-calendar sales reporting.
+- Tenant-scoped categories, tags, units, stocked products and non-stock services, independent variant barcode/cost data, Cloudinary galleries, store-scoped availability, safe CSV preview/import/export, append-only inventory movements, adjustments, transfers, and low-stock policy/alerts. Catalog bulk actions, store filters, and column controls operate through shared components rather than display-only controls.
+- Server-authoritative POS totals, split recorded tenders, immutable snapshots, atomic receipts/inventory/revenue/audit, partial/final returns, refunds, auditable manual-payment sale voids with inventory/revenue reversal, tenant-calendar sales reporting, and formula-safe CSV/print output.
 - Employee lifecycle and account links, store assignments, attendance, leave, salary profiles, compensation isolation, payroll preparation/review/approval/finalization/reversal, immutable payslips, and explicit operational-payroll limitations.
 - Supplier lifecycle, purchase snapshots and state machine, partial/final goods receipts, atomic stock integration, approved-only expenses, Cloudinary receipts, and operational purchasing/expense reporting.
-- Business, regional, tax, numbering, inventory, integration-readiness, store, team, role, security, data export/deletion-request, notification, and advanced audit settings.
+- Business, regional, tax, numbering, inventory, integration-readiness, store, team, role, security, data export/deletion-request, notification, and advanced audit settings, including verified ownership transfer to an existing member.
+- Permission-aware global search, a live recent-notification header preview, and a store selector that lists every active store allowed by the current membership.
 - Platform tenant/usage detail, global users and identity suspension, plans, subscriptions/trials/payment attention, verified webhooks, release flags, announcements, health, platform audit, tenant suspension/reactivation, and reason-required time-limited revocable support grants. The platform deliberately provides no tenant business-record browser.
-- Twenty-nine versioned MongoDB migrations, deterministic isolated seed identities and operational data, development-only seed/reset safeguards, replica-set Docker Compose, Mailpit, health probes, standalone image, and CI.
+- Thirty versioned MongoDB migrations, including tenant-unique active variant barcodes, deterministic isolated seed identities and operational data, development-only seed/reset safeguards, replica-set Docker Compose, Mailpit, health probes, standalone image, and CI.
 - Privacy and terms placeholders are present and visibly marked for legal review.
 
 ## Important decisions
@@ -55,7 +56,7 @@ Passed on the final tree:
 - `pnpm typecheck`
 - `pnpm test`
 - `RUN_INTEGRATION_TESTS=true pnpm test:integration`
-- relevant and full `pnpm test:e2e` projects
+- `RUN_ONBOARDING_E2E=true RUN_WORKSPACE_E2E=true RUN_PLATFORM_E2E=true pnpm test:e2e` (20 desktop/mobile cases)
 - `pnpm build`
 - migration, deterministic seed, usage reconciliation, security search, and complete diff review
 

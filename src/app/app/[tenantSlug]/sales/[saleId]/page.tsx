@@ -1,8 +1,15 @@
-import { ArrowLeft, CheckCircle2, ReceiptText, RotateCcw } from "lucide-react";
+import {
+  ArrowLeft,
+  Ban,
+  CheckCircle2,
+  ReceiptText,
+  RotateCcw,
+} from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PrintReceiptButton } from "@/components/sales/print-receipt-button";
+import { VoidSaleDialog } from "@/components/sales/void-sale-dialog";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -44,10 +51,15 @@ export default async function SaleReceiptPage({
   if (!parsed.success) notFound();
   let receipt = null;
   let returnWorkspace = null;
+  let canVoid = false;
   try {
     const context = await requireTenantContext(tenantSlug);
     receipt = await new SaleRepository().receipt(context, parsed.data);
-    if (receipt && hasPermission(context.permissions, "sale:refund"))
+    canVoid = hasPermission(context.permissions, "sale:void");
+    if (
+      receipt?.status === "completed" &&
+      hasPermission(context.permissions, "sale:refund")
+    )
       returnWorkspace = await new SaleReturnRepository().workspace(
         context,
         parsed.data,
@@ -68,11 +80,22 @@ export default async function SaleReceiptPage({
         <PageHeader
           eyebrow="Sales"
           parentHref={`/app/${tenantSlug}/sales/new`}
-          title="Sale completed"
-          description="Inventory, payment records, and the receipt were committed together."
+          title={receipt.status === "voided" ? "Sale voided" : "Sale completed"}
+          description={
+            receipt.status === "voided"
+              ? "The receipt and recorded tenders are voided, and tracked inventory has been restored."
+              : "Inventory, payment records, and the receipt were committed together."
+          }
           actions={
             <>
               <PrintReceiptButton />
+              {receipt.status === "completed" && canVoid && (
+                <VoidSaleDialog
+                  tenantSlug={tenantSlug}
+                  saleId={receipt.id}
+                  receiptNumber={receipt.receiptNumber}
+                />
+              )}
               {returnWorkspace?.lines.some(
                 (line) => line.remainingQuantity > 0,
               ) && (
@@ -107,8 +130,11 @@ export default async function SaleReceiptPage({
             </div>
           </div>
           <div className="text-left sm:text-right">
-            <Badge variant="success">
-              <CheckCircle2 /> Completed
+            <Badge
+              variant={receipt.status === "voided" ? "secondary" : "success"}
+            >
+              {receipt.status === "voided" ? <Ban /> : <CheckCircle2 />}
+              {receipt.status === "voided" ? "Voided" : "Completed"}
             </Badge>
             <p className="mt-2 font-mono text-sm font-semibold">
               {receipt.receiptNumber}
@@ -117,6 +143,14 @@ export default async function SaleReceiptPage({
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          {receipt.status === "voided" && (
+            <div className="bg-destructive/8 border-destructive/20 rounded-xl border p-4">
+              <p className="text-sm font-semibold">Voided receipt</p>
+              <p className="text-muted-foreground mt-1 text-sm leading-6">
+                {receipt.voidReason}
+              </p>
+            </div>
+          )}
           <Inset className="grid gap-3 p-4 sm:grid-cols-2">
             <div>
               <p className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">

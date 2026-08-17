@@ -14,6 +14,8 @@ export const variantSkuSchema = z
   .max(64)
   .regex(/^[A-Za-z0-9._-]+$/);
 
+export const variantBarcodeSchema = z.string().trim().max(64);
+
 const optionNameSchema = z.string().trim().min(2).max(40);
 const optionValueLabelSchema = z.string().trim().min(1).max(40);
 
@@ -76,7 +78,9 @@ export const createVariantSchema = z
     productId: opaqueIdSchema,
     expectedProductVersion: z.number().int().min(1),
     sku: variantSkuSchema,
+    barcode: variantBarcodeSchema.optional(),
     priceMinor: z.number().int().min(0).max(1_000_000_000),
+    costMinor: z.number().int().min(0).max(1_000_000_000).optional(),
     optionValues: z.array(optionSelectionSchema).min(1).max(3),
   })
   .strict();
@@ -87,7 +91,9 @@ export const updateVariantSchema = z
     variantId: opaqueIdSchema,
     expectedVariantVersion: z.number().int().min(1),
     sku: variantSkuSchema,
+    barcode: variantBarcodeSchema.optional(),
     priceMinor: z.number().int().min(0).max(1_000_000_000),
+    costMinor: z.number().int().min(0).max(1_000_000_000).optional(),
   })
   .strict();
 
@@ -130,7 +136,9 @@ export interface ProductVariantItem {
   id: string;
   name: string;
   sku: string;
+  barcode: string | null;
   priceMinor: number;
+  costMinor: number | null;
   currency: string;
   status: "active" | "archived";
   isDefault: boolean;

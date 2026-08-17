@@ -8,7 +8,7 @@ Business and Enterprise tenants may define custom operational roles. These roles
 
 Key restrictions include:
 
-- only owners manage billing, transfer ownership, or request tenant deletion;
+- only owners manage billing, transfer ownership, or request tenant deletion; ownership transfer additionally requires current-session 2FA and exact confirmation of an existing verified target member's email;
 - the final owner cannot be removed;
 - owners are protected from role and removal changes in ordinary team settings;
 - new members require at least one explicit active-store assignment, and pending invitation grants do not become active until acceptance;
@@ -19,11 +19,12 @@ Key restrictions include:
 - unit creation requires `product:create`, unit edits and product assignment require `product:update`, and only an unassigned unit can be archived with `product:archive`;
 - customer lists require `customer:read`, creation/edit/archive require their matching customer permissions, and archived profiles remain read-only for historical references;
 - the cashier catalog requires `sale:create`, completion independently requires `sale:complete`, and issued receipts require `sale:read`; all three remain limited to an assigned active store and none are inferred from UI visibility;
-- completed sales history and sale/return receipt reads require `sale:read` and are limited to assigned stores; creating a return additionally requires `sale:refund`, write entitlement, and the original assigned store to remain active;
+- completed sales history and sale/return receipt reads require `sale:read` and are limited to assigned stores; creating a return or void additionally requires `sale:refund`, write entitlement, and the original assigned store to remain active. Void is further limited to manual-provider sales without completed returns and requires the exact receipt number;
 - inventory pages require `inventory:read`; immutable manual adjustments require `inventory:adjust`; and both stores in a transfer require assignment plus `inventory:transfer`;
 - product availability changes require `product:update` and are limited to assigned active stores, while the tenant-wide low-stock policy requires `settings:manage`;
 - dashboard sales totals, trends, and authorized-store comparisons require `sale:read` or `report:read`; recent activity additionally requires `audit:read`, and restricted panels render a denial state rather than placeholder totals;
-- the dedicated sales report requires `report:read` independently of cashier access, accepts only active assigned stores, and never broadens scope from URL parameters or navigation visibility;
+- sales and operations reports require `report:read` independently of cashier access, accept only active assigned stores, and never broaden scope from URL parameters or navigation visibility; CSV generation additionally requires `report:export` and creates audit/job evidence;
+- global search includes a resource provider only when its matching read permission is present, caps results per provider, and preserves tenant and assigned-store scope;
 - UI gates improve usability but never replace service authorization.
 
 ```mermaid

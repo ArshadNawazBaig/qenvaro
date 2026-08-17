@@ -77,6 +77,7 @@ export interface SaleHistoryItem {
   currency: string;
   totalMinor: number;
   returnedTotalMinor: number;
+  status: "completed" | "voided";
   completedAt: string;
 }
 

@@ -2,6 +2,7 @@ import "server-only";
 import { planKeySchema, plans } from "@/config/plans";
 import { hasPermission } from "@/modules/permissions/permissions";
 import { getDatabase } from "@/server/db/client";
+import { getNotifications } from "@/server/repositories/governance";
 import type { TenantContext } from "./context";
 
 export interface WorkspaceBusinessOption {
@@ -28,6 +29,14 @@ export interface WorkspaceShellData {
   businesses: WorkspaceBusinessOption[];
   stores: WorkspaceStoreOption[];
   activeStoreId: string | null;
+  notificationUnread: number;
+  recentNotifications: Array<{
+    id: string;
+    title: string;
+    severity: "info" | "success" | "warning" | "critical";
+    href: string | null;
+    read: boolean;
+  }>;
   canViewMembers: boolean;
   canViewBilling: boolean;
   canViewInventory: boolean;
@@ -57,7 +66,7 @@ export async function getWorkspaceShellData(
   const authorizedTenantIds = memberships.map(
     (membership) => membership.organizationId,
   );
-  const [profile, stores, user, productCount, businessProfiles] =
+  const [profile, stores, user, productCount, businessProfiles, notifications] =
     await Promise.all([
       database
         .collection<{
@@ -110,6 +119,7 @@ export async function getWorkspaceShellData(
         )
         .sort({ businessName: 1, tenantId: 1 })
         .toArray(),
+      getNotifications(context, 1),
     ]);
   if (!profile || !user)
     throw new Error("The workspace shell projection is incomplete.");
@@ -138,6 +148,14 @@ export async function getWorkspaceShellData(
       name: store.name,
     })),
     activeStoreId: context.activeStoreId,
+    notificationUnread: notifications.unread,
+    recentNotifications: notifications.items.slice(0, 3).map((item) => ({
+      id: item.id,
+      title: item.title,
+      severity: item.severity,
+      href: item.href,
+      read: item.read,
+    })),
     canViewMembers: hasPermission(context.permissions, "member:read"),
     canViewBilling: hasPermission(context.permissions, "billing:read"),
     canViewInventory: hasPermission(context.permissions, "inventory:read"),

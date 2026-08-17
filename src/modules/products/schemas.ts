@@ -31,7 +31,35 @@ export const createProductSchema = z.object({
   status: productStatusSchema.default("draft"),
 });
 
+export const createSimpleProductInputSchema = z
+  .object({
+    name: z.string().trim().min(2).max(120),
+    subtitle: z.string().trim().max(160).optional(),
+    description: z.string().trim().max(4_000).optional(),
+    sku: z
+      .string()
+      .trim()
+      .min(1)
+      .max(64)
+      .regex(/^[A-Za-z0-9._-]+$/),
+    barcode: z.string().trim().max(64).optional(),
+    category: z.string().trim().min(2).max(80),
+    unitId: unitIdSchema.optional(),
+    type: z.enum(["simple", "service"]).default("simple"),
+    priceMinor: z.number().int().min(0).max(1_000_000_000),
+    costMinor: z.number().int().min(0).max(1_000_000_000).optional(),
+    openingStock: z.number().int().min(0).max(1_000_000),
+    reorderLevel: z.number().int().min(0).max(1_000_000).default(5),
+    inventoryTracking: z.boolean().default(true),
+    status: z.enum(["draft", "active"]).default("active"),
+    tagIds: productTagIdsSchema.default([]),
+  })
+  .strict();
+
 export type CreateProductInput = z.infer<typeof createProductSchema>;
+export type CreateSimpleProductInput = z.input<
+  typeof createSimpleProductInputSchema
+>;
 export type ProductStatus = z.infer<typeof productStatusSchema>;
 
 const productIdSchema = z
@@ -47,15 +75,18 @@ export const updateProductSchema = z
     expectedVersion: z.number().int().min(1),
     name: z.string().trim().min(2).max(120),
     subtitle: z.string().trim().max(160),
+    description: z.string().trim().max(4_000).optional(),
     sku: z
       .string()
       .trim()
       .min(1)
       .max(64)
       .regex(/^[A-Za-z0-9._-]+$/),
+    barcode: z.string().trim().max(64).optional(),
     category: z.string().trim().min(2).max(80),
     unitId: unitIdSchema.optional(),
     priceMinor: z.number().int().min(0).max(1_000_000_000),
+    costMinor: z.number().int().min(0).max(1_000_000_000).optional(),
     reorderLevel: z.number().int().min(0).max(1_000_000),
     status: z.enum(["draft", "active"]),
     tagIds: productTagIdsSchema.default([]),
@@ -69,8 +100,26 @@ export const archiveProductSchema = z
   })
   .strict();
 
+export const bulkProductStatusSchema = z
+  .object({
+    productIds: z.array(productIdSchema).min(1).max(50),
+    status: z.enum(["active", "archived"]),
+  })
+  .strict()
+  .transform((input) => ({
+    ...input,
+    productIds: [...new Set(input.productIds)],
+  }));
+
 export type UpdateProductInput = z.input<typeof updateProductSchema>;
 export type ArchiveProductInput = z.infer<typeof archiveProductSchema>;
+export type BulkProductStatusInput = z.input<typeof bulkProductStatusSchema>;
+
+export interface ProductStoreOption {
+  id: string;
+  code: string;
+  name: string;
+}
 
 export interface ProductListItem {
   id: string;
@@ -96,6 +145,10 @@ export interface ProductListItem {
 
 export interface ProductDetail extends ProductListItem {
   type: "simple" | "variant" | "service";
+  description: string;
+  barcode: string | null;
+  costMinor: number;
+  inventoryTracking: boolean;
   unitId: string | null;
   unit: UnitOption | null;
   tags: TagOption[];
@@ -124,6 +177,7 @@ export const productListQuerySchema = z.object({
   status: z.enum(["all", "draft", "active", "archived"]).catch("all"),
   category: z.string().trim().max(80).catch("all"),
   tag: z.string().trim().max(120).catch("all"),
+  store: z.string().trim().min(1).max(120).catch("all"),
   stock: z.enum(["all", "in-stock", "low", "out", "service"]).catch("all"),
 });
 

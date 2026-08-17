@@ -47,6 +47,15 @@ test("public landing and product demo are usable", async ({ page }) => {
   await expect(page).toHaveURL(/\/products$/, { timeout: 20_000 });
   await expect(page.getByRole("heading", { name: "Products" })).toBeVisible();
   await expect(page.getByRole("table")).toBeVisible();
+  await page.getByRole("button", { name: "Open global search" }).click();
+  const globalSearch = page.getByRole("combobox", {
+    name: "Search products, people, or settings",
+  });
+  await globalSearch.fill("product");
+  await expect(
+    page.getByRole("link", { name: /Product catalog/i }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
   const categoryFilter = page.getByRole("combobox", { name: "Category" });
   await categoryFilter.click();
   await expect(
@@ -345,6 +354,14 @@ test("demo purchasing and expenses are responsive and state-aware", async ({
     page.getByRole("heading", { name: "Purchasing & expenses", exact: true }),
   ).toBeVisible();
   await expect(page.getByLabel("Operations report summary")).toBeVisible();
+  await page.getByRole("button", { name: "30 days" }).click();
+  await expect(page).toHaveURL(/range=30d/);
+  const operationsStore = page.getByRole("combobox", {
+    name: "Operations report store",
+  });
+  await operationsStore.click();
+  await page.getByRole("option", { name: "West Harbor" }).click();
+  await expect(page).toHaveURL(/store=demo-west/);
   await expect(
     page.getByText(/not a statutory accounting statement/i),
   ).toBeVisible();

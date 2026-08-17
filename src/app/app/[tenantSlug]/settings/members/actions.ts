@@ -1,6 +1,7 @@
 "use server";
 
 import { APIError } from "better-auth";
+import { z } from "zod";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { BillingAccessError } from "@/modules/billing/entitlements";
@@ -11,6 +12,7 @@ import {
   removeTenantMember,
   saveInvitationStoreAssignments,
   updateMemberAccess,
+  transferTenantOwnership,
   validateTenantStoreIds,
 } from "@/modules/members/member-service";
 import {
@@ -33,6 +35,11 @@ export interface MemberActionState {
 }
 
 function failure(error: unknown): MemberActionState {
+  if (error instanceof z.ZodError)
+    return {
+      status: "error",
+      message: error.issues[0]?.message ?? "Review the submitted details.",
+    };
   if (error instanceof PlanLimitError)
     return {
       status: "error",
@@ -48,6 +55,10 @@ function failure(error: unknown): MemberActionState {
       invalid_stores: "Choose active stores from this business.",
       owner_protected: "Owner access cannot be changed from team settings.",
       self_protected: "You cannot remove your own membership here.",
+      confirmation_mismatch:
+        "Enter the member’s full email address to confirm.",
+      two_factor_required:
+        "Enable two-factor authentication on your account before transferring ownership.",
       target_not_found: "That member or invitation is no longer available.",
     } as const;
     return { status: "error", message: messages[error.reason] };
@@ -68,6 +79,29 @@ function failure(error: unknown): MemberActionState {
     status: "error",
     message: "We could not save that team change. Try again.",
   };
+}
+
+export async function transferOwnershipAction(
+  tenantSlug: string,
+  memberId: string,
+  _previous: MemberActionState,
+  formData: FormData,
+): Promise<MemberActionState> {
+  try {
+    const context = await requireTenantContext(tenantSlug);
+    await transferTenantOwnership(context, {
+      memberId,
+      confirmationEmail: formData.get("confirmationEmail"),
+    });
+    revalidatePath(`/app/${context.tenantSlug}`);
+    revalidatePath(`/app/${context.tenantSlug}/settings/members`);
+    return {
+      status: "success",
+      message: "Ownership transferred. Your role is now Administrator.",
+    };
+  } catch (error) {
+    return failure(error);
+  }
 }
 
 function parsedFormData(formData: FormData) {

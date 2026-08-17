@@ -10,6 +10,7 @@ import {
   updateProductAction,
 } from "@/app/app/[tenantSlug]/products/actions";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { SelectField } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { TagBadge } from "@/components/tags/tag-badge";
 import type { ProductDetail } from "@/modules/products/schemas";
 import type { TagOption } from "@/modules/tags/schemas";
@@ -134,9 +136,26 @@ export function ProductDetailConsole({
                     defaultValue={product.subtitle}
                   />
                 </label>
+                <label className="space-y-1.5 text-sm font-medium sm:col-span-2">
+                  Description
+                  <Textarea
+                    name="description"
+                    maxLength={4000}
+                    defaultValue={product.description}
+                  />
+                </label>
                 <label className="space-y-1.5 text-sm font-medium">
                   SKU
                   <Input name="sku" required defaultValue={product.sku} />
+                </label>
+                <label className="space-y-1.5 text-sm font-medium">
+                  Barcode
+                  <Input
+                    name="barcode"
+                    maxLength={64}
+                    defaultValue={product.barcode ?? ""}
+                    placeholder="No barcode"
+                  />
                 </label>
                 <label className="space-y-1.5 text-sm font-medium">
                   Category
@@ -197,6 +216,16 @@ export function ProductDetailConsole({
                   />
                 </label>
                 <label className="space-y-1.5 text-sm font-medium">
+                  Cost ({product.currency})
+                  <Input
+                    name="cost"
+                    inputMode="decimal"
+                    pattern="\d+(\.\d{1,2})?"
+                    required
+                    defaultValue={(product.costMinor / 100).toFixed(2)}
+                  />
+                </label>
+                <label className="space-y-1.5 text-sm font-medium">
                   Reorder threshold
                   <Input
                     name="reorderLevel"
@@ -222,6 +251,17 @@ export function ProductDetailConsole({
                   />
                 </label>
                 <div className="space-y-1.5 text-sm font-medium">
+                  Product type
+                  <div className="bg-muted/45 text-muted-foreground flex h-9 items-center rounded-md border px-3 text-xs capitalize">
+                    {product.type === "simple"
+                      ? "Stocked product"
+                      : product.type}
+                    {product.inventoryTracking
+                      ? " · inventory tracked"
+                      : " · no inventory"}
+                  </div>
+                </div>
+                <div className="space-y-1.5 text-sm font-medium">
                   Stable slug
                   <div className="bg-muted/45 text-muted-foreground flex h-9 items-center rounded-md border px-3 font-mono text-xs">
                     {product.slug}
@@ -244,12 +284,10 @@ export function ProductDetailConsole({
                           key={tag.id}
                           className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2"
                         >
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             name="tagIds"
                             value={tag.id}
                             defaultChecked={product.tagIds.includes(tag.id)}
-                            className="accent-primary size-4"
                           />
                           <TagBadge name={tag.name} color={tag.color} />
                         </label>

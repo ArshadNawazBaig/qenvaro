@@ -73,10 +73,19 @@ export const saleCatalogQuerySchema = z.object({
 
 export const receiptIdSchema = opaqueIdSchema;
 
+export const voidSaleSchema = z
+  .object({
+    saleId: opaqueIdSchema,
+    confirmationReceiptNumber: z.string().trim().min(1).max(80),
+    reason: z.string().trim().min(3).max(500),
+  })
+  .strict();
+
 export type SalePaymentMethod = z.infer<typeof salePaymentMethodSchema>;
 export type SaleDraftLine = z.infer<typeof saleDraftLineSchema>;
 export type SalePaymentInput = z.infer<typeof salePaymentInputSchema>;
 export type CompleteSaleInput = z.infer<typeof completeSaleSchema>;
+export type VoidSaleInput = z.infer<typeof voidSaleSchema>;
 export type SaleCatalogQuery = z.infer<typeof saleCatalogQuerySchema>;
 
 export interface SaleCatalogItem {
@@ -140,7 +149,7 @@ export interface SaleReceipt {
   id: string;
   receiptNumber: string;
   businessName: string;
-  status: "completed";
+  status: "completed" | "voided";
   store: { id: string; code: string; name: string };
   customer: { id: string; code: string; name: string } | null;
   currency: string;
@@ -157,6 +166,8 @@ export interface SaleReceipt {
   changeMinor: number;
   note: string;
   completedAt: string;
+  voidedAt: string | null;
+  voidReason: string;
 }
 
 export const salePaymentLabels: Record<SalePaymentMethod, string> = {

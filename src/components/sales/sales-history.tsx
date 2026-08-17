@@ -29,6 +29,8 @@ function status(sale: SaleHistoryItem): {
   label: string;
   variant: "success" | "warning" | "secondary";
 } {
+  if (sale.status === "voided")
+    return { label: "Voided", variant: "secondary" };
   if (sale.returnedTotalMinor >= sale.totalMinor)
     return { label: "Fully returned", variant: "secondary" };
   if (sale.returnedTotalMinor > 0)

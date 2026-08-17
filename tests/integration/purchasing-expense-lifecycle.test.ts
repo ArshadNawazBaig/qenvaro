@@ -1,8 +1,12 @@
 import { MongoClient, type Db } from "mongodb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { FeatureAccessError } from "@/modules/billing/entitlements";
-import { resolvePermissions } from "@/modules/permissions/permissions";
+import {
+  PermissionError,
+  resolvePermissions,
+} from "@/modules/permissions/permissions";
 import { ProductService } from "@/modules/products/service";
+import { OperationsReportExportService } from "@/modules/reports/operations-export-service";
 import {
   ExpenseService,
   PurchaseOrderService,
@@ -131,6 +135,7 @@ describe.skipIf(!enabled)("purchasing receiving and expense lifecycle", () => {
       "goodsReceipts",
       "inventoryLevels",
       "inventoryMovements",
+      "importExportJobs",
       "productVariants",
       "products",
       "purchaseOrders",
@@ -311,7 +316,11 @@ describe.skipIf(!enabled)("purchasing receiving and expense lifecycle", () => {
       decision: "approved",
       note: "Verified",
     });
-    const summary = await new PurchasingRepository().operationsSummary(context);
+    const summary = await new PurchasingRepository().operationsSummary(
+      context,
+      { range: "90d", store: "all" },
+      new Date("2026-08-17T12:00:00.000Z"),
+    );
     expect(summary).toMatchObject({
       approvedExpenseMinor: 25_000,
       submittedExpenseMinor: 10_000,
@@ -342,6 +351,42 @@ describe.skipIf(!enabled)("purchasing receiving and expense lifecycle", () => {
       "25000",
     ])
       expect(auditJson).not.toContain(privateValue);
+  });
+
+  it("exports the authorized operations summary and records evidence", async () => {
+    const result = await new OperationsReportExportService().export(
+      context,
+      { range: "90d", store: "all" },
+      new Date("2026-08-17T12:00:00.000Z"),
+    );
+    expect(result.rowCount).toBeGreaterThanOrEqual(5);
+    expect(result.csv).toContain("summary,Approved expenses,250.00,PKR,2");
+    expect(result.csv).not.toContain(otherTenantId);
+    await expect(
+      new OperationsReportExportService().export({
+        ...context,
+        roles: ["VIEWER"],
+        permissions: resolvePermissions(["VIEWER"]),
+      }),
+    ).rejects.toBeInstanceOf(PermissionError);
+    const [job, audit] = await Promise.all([
+      database.collection("importExportJobs").findOne({
+        tenantId,
+        type: "operations_report_csv_export",
+      }),
+      database.collection("auditLogs").findOne({
+        tenantId,
+        action: "report.operations_csv_export.completed",
+      }),
+    ]);
+    expect(job).toMatchObject({
+      status: "completed",
+      rowCount: result.rowCount,
+    });
+    expect(audit).toMatchObject({
+      actorId: context.userId,
+      requestId: context.requestId,
+    });
   });
 
   it("has migration-backed purchasing and expense indexes", async () => {

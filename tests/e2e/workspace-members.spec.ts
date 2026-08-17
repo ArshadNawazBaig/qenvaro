@@ -237,7 +237,10 @@ test.describe("authenticated workspace and member administration", () => {
     const createProductDialog = page.getByRole("dialog");
     await createProductDialog.getByLabel("Product name").fill(productName);
     await createProductDialog.getByLabel("SKU").fill(`CD-${suffix}`);
-    await createProductDialog.getByLabel("Category").fill("Retail Hardware");
+    await selectShadcnOption(
+      createProductDialog.getByLabel("Category"),
+      "Retail Hardware",
+    );
     await createProductDialog.getByLabel(/Price/).fill("149.00");
     await createProductDialog.getByLabel("Opening stock").fill("6");
     await createProductDialog

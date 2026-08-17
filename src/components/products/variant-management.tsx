@@ -377,6 +377,14 @@ function NewVariantDialog({
               />
             </label>
             <label className="space-y-1.5 text-sm font-medium">
+              Barcode <span className="text-muted-foreground">(optional)</span>
+              <Input
+                name="barcode"
+                maxLength={64}
+                placeholder="Variant barcode"
+              />
+            </label>
+            <label className="space-y-1.5 text-sm font-medium">
               Price ({product.currency})
               <Input
                 name="price"
@@ -384,6 +392,16 @@ function NewVariantDialog({
                 inputMode="decimal"
                 pattern="\d+(\.\d{1,2})?"
                 defaultValue={(product.priceMinor / 100).toFixed(2)}
+              />
+            </label>
+            <label className="space-y-1.5 text-sm font-medium">
+              Cost ({product.currency})
+              <Input
+                name="cost"
+                required
+                inputMode="decimal"
+                pattern="\d+(\.\d{1,2})?"
+                defaultValue={(product.costMinor / 100).toFixed(2)}
               />
             </label>
           </div>
@@ -459,8 +477,8 @@ function VariantActions({
             Edit {variant.name}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground mt-1 text-sm">
-            SKU and price can change. The option combination remains fixed to
-            preserve inventory identity and history.
+            SKU, barcode, price, and cost can change. The option combination
+            remains fixed to preserve inventory identity and history.
           </DialogDescription>
           <form action={updateAction} className="mt-5 space-y-4">
             <input
@@ -478,6 +496,14 @@ function VariantActions({
               />
             </label>
             <label className="space-y-1.5 text-sm font-medium">
+              Barcode <span className="text-muted-foreground">(optional)</span>
+              <Input
+                name="barcode"
+                maxLength={64}
+                defaultValue={variant.barcode ?? ""}
+              />
+            </label>
+            <label className="space-y-1.5 text-sm font-medium">
               Price ({variant.currency})
               <Input
                 name="price"
@@ -485,6 +511,18 @@ function VariantActions({
                 inputMode="decimal"
                 pattern="\d+(\.\d{1,2})?"
                 defaultValue={(variant.priceMinor / 100).toFixed(2)}
+              />
+            </label>
+            <label className="space-y-1.5 text-sm font-medium">
+              Cost ({variant.currency})
+              <Input
+                name="cost"
+                required
+                inputMode="decimal"
+                pattern="\d+(\.\d{1,2})?"
+                defaultValue={(
+                  (variant.costMinor ?? product.costMinor) / 100
+                ).toFixed(2)}
               />
             </label>
             <ActionMessage state={updateState} />
@@ -684,13 +722,15 @@ export function VariantManagement({
         aria-label="Product variants"
         tabIndex={0}
       >
-        <table className="w-full min-w-[900px] text-left text-sm">
+        <table className="w-full min-w-[1120px] text-left text-sm">
           <thead className="bg-muted/35 text-muted-foreground border-b text-xs">
             <tr>
               <th className="h-11 px-4 font-medium">Variant</th>
               <th className="h-11 px-4 font-medium">Options</th>
               <th className="h-11 px-4 font-medium">SKU</th>
+              <th className="h-11 px-4 font-medium">Barcode</th>
               <th className="h-11 px-4 font-medium">Price</th>
+              <th className="h-11 px-4 font-medium">Cost</th>
               <th className="h-11 px-4 font-medium">Authorized stock</th>
               <th className="h-11 px-4 font-medium">Status</th>
               <th className="h-11 px-4 text-right font-medium">Actions</th>
@@ -727,9 +767,20 @@ export function VariantManagement({
                   )}
                 </td>
                 <td className="px-4 py-4 font-mono text-xs">{variant.sku}</td>
+                <td className="text-muted-foreground px-4 py-4 font-mono text-xs">
+                  {variant.barcode ??
+                    (variant.isDefault ? product.barcode : null) ??
+                    "—"}
+                </td>
                 <td className="px-4 py-4 font-medium">
                   {formatMoney({
                     amountMinor: variant.priceMinor,
+                    currency: variant.currency,
+                  })}
+                </td>
+                <td className="px-4 py-4 font-medium">
+                  {formatMoney({
+                    amountMinor: variant.costMinor ?? product.costMinor,
                     currency: variant.currency,
                   })}
                 </td>

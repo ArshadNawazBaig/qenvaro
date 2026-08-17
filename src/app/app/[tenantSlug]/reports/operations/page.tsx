@@ -1,11 +1,20 @@
-import { Banknote, ClipboardCheck, Clock3, ReceiptText } from "lucide-react";
+import {
+  Banknote,
+  ClipboardCheck,
+  Clock3,
+  Download,
+  ReceiptText,
+} from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { OperationsNav } from "@/components/purchasing/operations-nav";
+import { OperationsReportToolbar } from "@/components/reports/operations-report-toolbar";
 import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { PermissionDenied } from "@/components/shared/states";
+import { PrintButton } from "@/components/shared/print-button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { env } from "@/config/env";
 import { formatMoney } from "@/lib/money";
@@ -14,6 +23,7 @@ import {
   demoPurchaseOrders,
 } from "@/modules/purchasing/demo-data";
 import { hasPermission } from "@/modules/permissions/permissions";
+import { operationsReportQuerySchema } from "@/modules/reports/operations-schemas";
 import {
   PurchasingRepository,
   type OperationsSummary,
@@ -24,11 +34,39 @@ export const metadata: Metadata = { title: "Operations report" };
 
 export default async function OperationsReportPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ tenantSlug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { tenantSlug } = await params;
-  const approved = demoExpenses.filter(
+  const [{ tenantSlug }, untrustedQuery] = await Promise.all([
+    params,
+    searchParams,
+  ]);
+  const query = operationsReportQuerySchema.parse({
+    range: untrustedQuery.range,
+    store: untrustedQuery.store,
+  });
+  const demoAsOf = new Date("2026-08-17T12:00:00.000Z");
+  const demoStoreIds = new Set(["demo-store", "demo-west"]);
+  const selectedDemoStore =
+    query.store === "all" || demoStoreIds.has(query.store)
+      ? query.store
+      : "all";
+  const demoDays =
+    query.range === "30d" ? 30 : query.range === "365d" ? 365 : 90;
+  const demoPeriodStart = new Date(demoAsOf.getTime() - demoDays * 86_400_000);
+  const demoExpensesInScope = demoExpenses.filter(
+    (expense) =>
+      (selectedDemoStore === "all" || expense.storeId === selectedDemoStore) &&
+      expense.expenseDate >= demoPeriodStart.toISOString().slice(0, 10),
+  );
+  const demoPurchasesInScope = demoPurchaseOrders.filter(
+    (purchase) =>
+      (selectedDemoStore === "all" || purchase.storeId === selectedDemoStore) &&
+      new Date(purchase.createdAt) >= demoPeriodStart,
+  );
+  const approved = demoExpensesInScope.filter(
     (expense) => expense.status === "approved",
   );
   let summary: OperationsSummary = {
@@ -36,16 +74,20 @@ export default async function OperationsReportPage({
       (sum, item) => sum + item.amountMinor,
       0,
     ),
-    submittedExpenseMinor: demoExpenses
+    submittedExpenseMinor: demoExpensesInScope
       .filter((item) => item.status === "submitted")
       .reduce((sum, item) => sum + item.amountMinor, 0),
-    receivedPurchaseMinor: 4_920_000,
-    openPurchaseMinor: demoPurchaseOrders.reduce(
+    receivedPurchaseMinor:
+      selectedDemoStore === "all" || selectedDemoStore === "demo-west"
+        ? 4_920_000
+        : 0,
+    openPurchaseMinor: demoPurchasesInScope.reduce(
       (sum, order) => sum + order.totalMinor,
       0,
     ),
-    expenseCount: demoExpenses.length,
-    receiptCount: 1,
+    expenseCount: demoExpensesInScope.length,
+    receiptCount:
+      selectedDemoStore === "all" || selectedDemoStore === "demo-west" ? 1 : 0,
     currency: "PKR",
     expenseCategories: approved.map((item) => ({
       name: item.category,
@@ -55,16 +97,26 @@ export default async function OperationsReportPage({
       { id: "demo-store", name: "Downtown" },
       { id: "demo-west", name: "West Harbor" },
     ],
+    range: query.range,
+    selectedStoreId: selectedDemoStore,
+    periodStart: demoPeriodStart.toISOString(),
+    asOf: demoAsOf.toISOString(),
   };
   let isDemo = true;
   let denied = false;
+  let canExport = false;
   if (tenantSlug !== "demo" && env.MONGODB_URI)
     try {
       const context = await requireTenantContext(tenantSlug);
       isDemo = false;
       if (!hasPermission(context.permissions, "report:read")) denied = true;
-      else
-        summary = await new PurchasingRepository().operationsSummary(context);
+      else {
+        canExport = hasPermission(context.permissions, "report:export");
+        summary = await new PurchasingRepository().operationsSummary(
+          context,
+          query,
+        );
+      }
     } catch {
       if (env.NODE_ENV === "production") notFound();
     }
@@ -76,13 +128,41 @@ export default async function OperationsReportPage({
       <PageStatus
         tone={isDemo ? "demo" : "live"}
         label={isDemo ? "Demo data" : "Live tenant data"}
-        detail="Last 90 days · approved expenses only"
+        detail={`${summary.range === "365d" ? "Last 12 months" : `Last ${summary.range.replace("d", "")} days`} · approved expenses only`}
       />
       <PageHeader
         eyebrow="Reports"
         title="Purchasing & expenses"
         description="Operational cash-out view of approved expenses, received purchase cost, and open commitments."
+        actions={
+          <>
+            {!denied && <PrintButton label="Print report" />}
+            {canExport && !isDemo ? (
+              <Button variant="outline" asChild>
+                <a
+                  href={`/api/app/${encodeURIComponent(tenantSlug)}/reports/operations/export?range=${summary.range}&store=${encodeURIComponent(summary.selectedStoreId)}`}
+                  download
+                >
+                  <Download /> Export CSV
+                </a>
+              </Button>
+            ) : (
+              <Button variant="outline" disabled>
+                <Download /> Export CSV
+              </Button>
+            )}
+          </>
+        }
       />
+      {!denied && (
+        <Card>
+          <OperationsReportToolbar
+            range={summary.range}
+            selectedStoreId={summary.selectedStoreId}
+            stores={summary.stores}
+          />
+        </Card>
+      )}
       {denied ? (
         <PermissionDenied />
       ) : (

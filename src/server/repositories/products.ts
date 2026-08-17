@@ -1,5 +1,5 @@
 import "server-only";
-import type { Filter, Sort } from "mongodb";
+import type { Document, Filter, Sort } from "mongodb";
 import { defaultCurrency, safeCurrency } from "@/config/currencies";
 import { requirePermission } from "@/modules/permissions/permissions";
 import { getDatabase } from "@/server/db/client";
@@ -11,6 +11,7 @@ import type {
   ProductDetail,
   ProductListItem,
   ProductListQuery,
+  ProductStoreOption,
 } from "@/modules/products/schemas";
 
 interface ProductDocument {
@@ -18,16 +19,20 @@ interface ProductDocument {
   tenantId: string;
   name: string;
   subtitle: string;
+  description?: string;
   sku: string;
+  barcode?: string | null;
   normalizedSku: string;
   slug: string;
   priceMinor: number;
+  costMinor?: number;
   currency: string;
   stock: number | null;
   reorderLevel: number;
   category: string;
   unitId?: string;
   type?: "simple" | "variant" | "service";
+  inventoryTracking?: boolean;
   optionGroups?: Array<{
     id: string;
     name: string;
@@ -64,6 +69,15 @@ interface ProductImageDocument {
   version: number;
 }
 
+interface StoreDocument {
+  _id: string;
+  tenantId: string;
+  code: string;
+  name: string;
+  status: string;
+  deletedAt?: Date;
+}
+
 export interface ProductCsvExportRow {
   name: string;
   sku: string;
@@ -80,6 +94,27 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function buildProductStoreScope(
+  context: TenantContext,
+  selectedStoreId?: string,
+): Filter<ProductDocument> {
+  const authorizedStoreIds = [...context.allowedStoreIds];
+  const selectedStoreIds = selectedStoreId
+    ? authorizedStoreIds.includes(selectedStoreId)
+      ? [selectedStoreId]
+      : []
+    : authorizedStoreIds;
+  return selectedStoreIds.length === 0
+    ? { _id: { $in: [] } }
+    : {
+        $or: [
+          { allowedStoreIds: { $exists: false } },
+          { allowedStoreIds: { $size: 0 } },
+          { allowedStoreIds: { $in: selectedStoreIds } },
+        ],
+      };
+}
+
 function buildProductFilter(
   context: TenantContext,
   query: ProductListQuery,
@@ -88,6 +123,12 @@ function buildProductFilter(
     tenantId: context.tenantId,
     deletedAt: { $exists: false },
   };
+  filter.$and = [
+    buildProductStoreScope(
+      context,
+      query.store === "all" ? undefined : query.store,
+    ),
+  ];
   if (query.status !== "all") filter.status = query.status;
   if (query.category !== "all") filter.category = query.category;
   if (query.tag !== "all") filter.tagIds = query.tag;
@@ -99,14 +140,177 @@ function buildProductFilter(
       { slug: { $regex: safe, $options: "i" } },
     ];
   }
-  if (query.stock === "out") filter.stock = 0;
-  else if (query.stock === "service") filter.stock = null;
-  else if (query.stock === "in-stock") filter.stock = { $gt: 0 };
-  else if (query.stock === "low")
-    filter.$expr = {
-      $and: [{ $gt: ["$stock", 0] }, { $lte: ["$stock", "$reorderLevel"] }],
-    };
   return filter;
+}
+
+function selectedStoreIds(
+  context: TenantContext,
+  selectedStoreId?: string,
+): string[] {
+  const authorized = [...context.allowedStoreIds];
+  if (!selectedStoreId) return authorized;
+  return authorized.includes(selectedStoreId) ? [selectedStoreId] : [];
+}
+
+function authorizedStockStages(
+  context: TenantContext,
+  selectedStoreId?: string,
+): Document[] {
+  const storeIds = selectedStoreIds(context, selectedStoreId);
+  return [
+    {
+      $lookup: {
+        from: "productVariants",
+        let: { productId: "$_id", productTenantId: "$tenantId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$tenantId", "$$productTenantId"] },
+                  { $eq: ["$productId", "$$productId"] },
+                  { $eq: [{ $ifNull: ["$deletedAt", null] }, null] },
+                ],
+              },
+            },
+          },
+          { $project: { _id: 1 } },
+        ],
+        as: "_authorizedVariants",
+      },
+    },
+    {
+      $lookup: {
+        from: "inventoryLevels",
+        let: {
+          variantIds: "$_authorizedVariants._id",
+          productTenantId: "$tenantId",
+        },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$tenantId", "$$productTenantId"] },
+                  { $in: ["$storeId", storeIds] },
+                  { $in: ["$variantId", "$$variantIds"] },
+                ],
+              },
+            },
+          },
+          { $group: { _id: null, quantity: { $sum: "$quantity" } } },
+        ],
+        as: "_authorizedInventory",
+      },
+    },
+    {
+      $set: {
+        stock: {
+          $cond: [
+            { $eq: ["$stock", null] },
+            null,
+            {
+              $cond: [
+                { $eq: [{ $size: "$_authorizedVariants" }, 0] },
+                "$stock",
+                {
+                  $ifNull: [
+                    { $arrayElemAt: ["$_authorizedInventory.quantity", 0] },
+                    0,
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
+    { $unset: ["_authorizedVariants", "_authorizedInventory"] },
+  ];
+}
+
+function authorizedStockMatch(query: ProductListQuery): Document[] {
+  if (query.stock === "out") return [{ $match: { stock: 0 } }];
+  if (query.stock === "service") return [{ $match: { stock: null } }];
+  if (query.stock === "in-stock") return [{ $match: { stock: { $gt: 0 } } }];
+  if (query.stock === "low")
+    return [
+      {
+        $match: {
+          $expr: {
+            $and: [
+              { $gt: ["$stock", 0] },
+              { $lte: ["$stock", "$reorderLevel"] },
+            ],
+          },
+        },
+      },
+    ];
+  return [];
+}
+
+function authorizedRevenueStages(
+  context: TenantContext,
+  selectedStoreId?: string,
+): Document[] {
+  const storeIds = selectedStoreIds(context, selectedStoreId);
+  const revenueLookup = (from: "sales" | "returns", as: string) => ({
+    $lookup: {
+      from,
+      let: { productId: "$_id", productTenantId: "$tenantId" },
+      pipeline: [
+        {
+          $match: {
+            status: "completed",
+            $expr: {
+              $and: [
+                { $eq: ["$tenantId", "$$productTenantId"] },
+                { $in: ["$storeId", storeIds] },
+              ],
+            },
+          },
+        },
+        { $unwind: "$lines" },
+        { $match: { $expr: { $eq: ["$lines.productId", "$$productId"] } } },
+        {
+          $group: {
+            _id: null,
+            amountMinor: { $sum: "$lines.lineTotalMinor" },
+          },
+        },
+      ],
+      as,
+    },
+  });
+  return [
+    revenueLookup("sales", "_authorizedSalesRevenue"),
+    revenueLookup("returns", "_authorizedReturnedRevenue"),
+    {
+      $set: {
+        revenueMinor: {
+          $subtract: [
+            {
+              $ifNull: [
+                {
+                  $arrayElemAt: ["$_authorizedSalesRevenue.amountMinor", 0],
+                },
+                0,
+              ],
+            },
+            {
+              $ifNull: [
+                {
+                  $arrayElemAt: ["$_authorizedReturnedRevenue.amountMinor", 0],
+                },
+                0,
+              ],
+            },
+          ],
+        },
+      },
+    },
+    { $unset: ["_authorizedSalesRevenue", "_authorizedReturnedRevenue"] },
+  ];
 }
 
 function buildProductSort(query: ProductListQuery): Sort {
@@ -124,6 +328,29 @@ function buildProductSort(query: ProductListQuery): Sort {
 }
 
 export class ProductRepository {
+  async storeOptions(context: TenantContext): Promise<ProductStoreOption[]> {
+    requirePermission(context.permissions, "product:read");
+    const database = await getDatabase();
+    const stores = await database
+      .collection<StoreDocument>("stores")
+      .find(
+        {
+          tenantId: context.tenantId,
+          _id: { $in: [...context.allowedStoreIds] },
+          status: "active",
+          deletedAt: { $exists: false },
+        },
+        { projection: { code: 1, name: 1 } },
+      )
+      .sort({ name: 1, _id: 1 })
+      .toArray();
+    return stores.map((store) => ({
+      id: String(store._id),
+      code: store.code,
+      name: store.name,
+    }));
+  }
+
   async list(
     context: TenantContext,
     query: ProductListQuery,
@@ -133,24 +360,47 @@ export class ProductRepository {
     const collection = db.collection<ProductDocument>("products");
     const filter = buildProductFilter(context, query);
     const sort = buildProductSort(query);
-    const [documents, total] = await Promise.all([
-      collection
-        .find(filter)
-        .sort(sort)
-        .skip((query.page - 1) * query.pageSize)
-        .limit(query.pageSize)
-        .project<Omit<ProductDocument, "tenantId">>({
-          tenantId: 0,
-          createdBy: 0,
-          updatedBy: 0,
-        })
-        .toArray(),
-      collection.countDocuments(filter, { limit: 100_001 }),
-    ]);
-    const primaryImages =
+    const [result] = await collection
+      .aggregate<{
+        items: ProductDocument[];
+        total: Array<{ value: number }>;
+      }>([
+        { $match: filter },
+        ...authorizedStockStages(
+          context,
+          query.store === "all" ? undefined : query.store,
+        ),
+        ...authorizedStockMatch(query),
+        ...(query.sort === "revenue"
+          ? authorizedRevenueStages(
+              context,
+              query.store === "all" ? undefined : query.store,
+            )
+          : []),
+        {
+          $facet: {
+            items: [
+              { $sort: sort },
+              { $skip: (query.page - 1) * query.pageSize },
+              { $limit: query.pageSize },
+              { $unset: ["tenantId", "createdBy", "updatedBy"] },
+            ],
+            total: [{ $limit: 100_001 }, { $count: "value" }],
+          },
+        },
+      ])
+      .toArray();
+    const documents = result?.items ?? [];
+    const total = result?.total[0]?.value ?? 0;
+    const productIds = documents.map((document) => document._id);
+    const storeIds = selectedStoreIds(
+      context,
+      query.store === "all" ? undefined : query.store,
+    );
+    const [primaryImages, saleRevenue, returnedRevenue] = await Promise.all([
       documents.length === 0
-        ? []
-        : await db
+        ? Promise.resolve([])
+        : db
             .collection<ProductImageDocument>("productImages")
             .find(
               {
@@ -169,9 +419,60 @@ export class ProductRepository {
                 },
               },
             )
-            .toArray();
+            .toArray(),
+      productIds.length === 0 || query.sort === "revenue"
+        ? Promise.resolve([])
+        : db
+            .collection("sales")
+            .aggregate<{ _id: string; amountMinor: number }>([
+              {
+                $match: {
+                  tenantId: context.tenantId,
+                  storeId: { $in: storeIds },
+                  status: "completed",
+                },
+              },
+              { $unwind: "$lines" },
+              { $match: { "lines.productId": { $in: productIds } } },
+              {
+                $group: {
+                  _id: "$lines.productId",
+                  amountMinor: { $sum: "$lines.lineTotalMinor" },
+                },
+              },
+            ])
+            .toArray(),
+      productIds.length === 0 || query.sort === "revenue"
+        ? Promise.resolve([])
+        : db
+            .collection("returns")
+            .aggregate<{ _id: string; amountMinor: number }>([
+              {
+                $match: {
+                  tenantId: context.tenantId,
+                  storeId: { $in: storeIds },
+                  status: "completed",
+                },
+              },
+              { $unwind: "$lines" },
+              { $match: { "lines.productId": { $in: productIds } } },
+              {
+                $group: {
+                  _id: "$lines.productId",
+                  amountMinor: { $sum: "$lines.lineTotalMinor" },
+                },
+              },
+            ])
+            .toArray(),
+    ]);
     const primaryImageByProduct = new Map(
       primaryImages.map((image) => [image.productId, image] as const),
+    );
+    const saleRevenueByProduct = new Map(
+      saleRevenue.map((item) => [item._id, item.amountMinor] as const),
+    );
+    const returnedRevenueByProduct = new Map(
+      returnedRevenue.map((item) => [item._id, item.amountMinor] as const),
     );
     return {
       items: documents.map((document) => ({
@@ -199,7 +500,11 @@ export class ProductRepository {
         tagIds: document.tagIds ?? [],
         status: document.status,
         views: document.views,
-        revenueMinor: document.revenueMinor,
+        revenueMinor:
+          query.sort === "revenue"
+            ? document.revenueMinor
+            : (saleRevenueByProduct.get(document._id) ?? 0) -
+              (returnedRevenueByProduct.get(document._id) ?? 0),
         imageTone: document.imageTone,
       })),
       total,
@@ -215,21 +520,35 @@ export class ProductRepository {
     const database = await getDatabase();
     const products = await database
       .collection<ProductDocument>("products")
-      .find(buildProductFilter(context, query), {
-        projection: {
-          name: 1,
-          sku: 1,
-          subtitle: 1,
-          category: 1,
-          priceMinor: 1,
-          currency: 1,
-          reorderLevel: 1,
-          status: 1,
-          tagIds: 1,
+      .aggregate<ProductDocument>([
+        { $match: buildProductFilter(context, query) },
+        ...authorizedStockStages(
+          context,
+          query.store === "all" ? undefined : query.store,
+        ),
+        ...authorizedStockMatch(query),
+        ...(query.sort === "revenue"
+          ? authorizedRevenueStages(
+              context,
+              query.store === "all" ? undefined : query.store,
+            )
+          : []),
+        { $sort: buildProductSort(query) },
+        { $limit: maximumRows + 1 },
+        {
+          $project: {
+            name: 1,
+            sku: 1,
+            subtitle: 1,
+            category: 1,
+            priceMinor: 1,
+            currency: 1,
+            reorderLevel: 1,
+            status: 1,
+            tagIds: 1,
+          },
         },
-      })
-      .sort(buildProductSort(query))
-      .limit(maximumRows + 1)
+      ])
       .toArray();
     const selected = products.slice(0, maximumRows);
     const tagIds = [
@@ -276,6 +595,7 @@ export class ProductRepository {
       .collection<ProductDocument>("products")
       .distinct("category", {
         tenantId: context.tenantId,
+        ...buildProductStoreScope(context),
         deletedAt: { $exists: false },
       });
   }
@@ -289,69 +609,94 @@ export class ProductRepository {
   }> {
     requirePermission(context.permissions, "product:read");
     const database = await getDatabase();
-    const [[result], profile] = await Promise.all([
-      database
-        .collection<ProductDocument>("products")
-        .aggregate<{
-          total: number;
-          active: number;
-          attention: number;
-          revenueMinor: number;
-          currency: string;
-        }>([
-          {
-            $match: {
-              tenantId: context.tenantId,
-              deletedAt: { $exists: false },
-            },
-          },
-          {
-            $group: {
-              _id: null,
-              total: { $sum: 1 },
-              active: {
-                $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] },
+    const [[result], profile, [salesRevenue], [returnsRevenue]] =
+      await Promise.all([
+        database
+          .collection<ProductDocument>("products")
+          .aggregate<{
+            total: number;
+            active: number;
+            attention: number;
+          }>([
+            {
+              $match: {
+                tenantId: context.tenantId,
+                ...buildProductStoreScope(context),
+                deletedAt: { $exists: false },
               },
-              attention: {
-                $sum: {
-                  $cond: [
-                    {
-                      $and: [
-                        { $ne: ["$stock", null] },
-                        { $lte: ["$stock", "$reorderLevel"] },
-                      ],
-                    },
-                    1,
-                    0,
-                  ],
+            },
+            ...authorizedStockStages(context),
+            {
+              $group: {
+                _id: null,
+                total: { $sum: 1 },
+                active: {
+                  $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] },
+                },
+                attention: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $ne: ["$stock", null] },
+                          { $lte: ["$stock", "$reorderLevel"] },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
                 },
               },
-              revenueMinor: { $sum: "$revenueMinor" },
-              currency: { $first: "$currency" },
             },
-          },
-          {
-            $project: {
-              _id: 0,
-              total: 1,
-              active: 1,
-              attention: 1,
-              revenueMinor: 1,
-              currency: 1,
+            {
+              $project: {
+                _id: 0,
+                total: 1,
+                active: 1,
+                attention: 1,
+              },
             },
-          },
-        ])
-        .toArray(),
-      database
-        .collection<{ currency?: string }>("tenantProfiles")
-        .findOne(
-          { tenantId: context.tenantId },
-          { projection: { currency: 1 } },
-        ),
-    ]);
+          ])
+          .toArray(),
+        database
+          .collection<{ currency?: string }>("tenantProfiles")
+          .findOne(
+            { tenantId: context.tenantId },
+            { projection: { currency: 1 } },
+          ),
+        database
+          .collection("sales")
+          .aggregate<{ amountMinor: number }>([
+            {
+              $match: {
+                tenantId: context.tenantId,
+                storeId: { $in: [...context.allowedStoreIds] },
+                status: "completed",
+              },
+            },
+            { $group: { _id: null, amountMinor: { $sum: "$totalMinor" } } },
+          ])
+          .toArray(),
+        database
+          .collection("returns")
+          .aggregate<{ amountMinor: number }>([
+            {
+              $match: {
+                tenantId: context.tenantId,
+                storeId: { $in: [...context.allowedStoreIds] },
+                status: "completed",
+              },
+            },
+            { $group: { _id: null, amountMinor: { $sum: "$totalMinor" } } },
+          ])
+          .toArray(),
+      ]);
     const currency = safeCurrency(profile?.currency ?? defaultCurrency);
+    const revenueMinor =
+      (salesRevenue?.amountMinor ?? 0) - (returnsRevenue?.amountMinor ?? 0);
     return result
-      ? { ...result, currency }
+      ? { ...result, revenueMinor, currency }
       : {
           total: 0,
           active: 0,
@@ -373,6 +718,7 @@ export class ProductRepository {
         {
           _id: productId,
           tenantId: context.tenantId,
+          ...buildProductStoreScope(context),
           deletedAt: { $exists: false },
         },
         {
@@ -386,95 +732,140 @@ export class ProductRepository {
       );
     if (!product) return null;
 
-    const [variants, tags, images, unit] = await Promise.all([
-      database
-        .collection<{
-          _id: string;
-          tenantId: string;
-          productId: string;
-          name: string;
-          sku: string;
-          priceMinor: number;
-          currency: string;
-          status?: "active" | "archived";
-          isDefault?: boolean;
-          optionValues?: Array<{ optionId: string; valueId: string }>;
-          version?: number;
-        }>("productVariants")
-        .find(
-          { tenantId: context.tenantId, productId },
-          {
-            projection: {
-              _id: 1,
-              name: 1,
-              sku: 1,
-              priceMinor: 1,
-              currency: 1,
-              status: 1,
-              isDefault: 1,
-              optionValues: 1,
-              version: 1,
+    const [variants, tags, images, unit, [saleRevenue], [returnedRevenue]] =
+      await Promise.all([
+        database
+          .collection<{
+            _id: string;
+            tenantId: string;
+            productId: string;
+            name: string;
+            sku: string;
+            barcode?: string | null;
+            priceMinor: number;
+            costMinor?: number;
+            currency: string;
+            status?: "active" | "archived";
+            isDefault?: boolean;
+            optionValues?: Array<{ optionId: string; valueId: string }>;
+            version?: number;
+          }>("productVariants")
+          .find(
+            { tenantId: context.tenantId, productId },
+            {
+              projection: {
+                _id: 1,
+                name: 1,
+                sku: 1,
+                barcode: 1,
+                priceMinor: 1,
+                costMinor: 1,
+                currency: 1,
+                status: 1,
+                isDefault: 1,
+                optionValues: 1,
+                version: 1,
+              },
             },
-          },
-        )
-        .sort({ _id: 1 })
-        .toArray(),
-      database
-        .collection<{
-          _id: string;
-          tenantId: string;
-          name: string;
-          color: TagColor;
-          status: string;
-        }>("tags")
-        .find(
-          {
-            tenantId: context.tenantId,
-            _id: { $in: product.tagIds ?? [] },
-          },
-          { projection: { _id: 1, name: 1, color: 1 } },
-        )
-        .sort({ name: 1, _id: 1 })
-        .toArray(),
-      database
-        .collection<ProductImageDocument>("productImages")
-        .find(
-          {
-            tenantId: context.tenantId,
-            productId,
-            status: "active",
-          },
-          {
-            projection: {
-              _id: 1,
-              secureUrl: 1,
-              altText: 1,
-              width: 1,
-              height: 1,
-              format: 1,
-              bytes: 1,
-              position: 1,
-              isPrimary: 1,
-              version: 1,
+          )
+          .sort({ _id: 1 })
+          .toArray(),
+        database
+          .collection<{
+            _id: string;
+            tenantId: string;
+            name: string;
+            color: TagColor;
+            status: string;
+          }>("tags")
+          .find(
+            {
+              tenantId: context.tenantId,
+              _id: { $in: product.tagIds ?? [] },
             },
-          },
-        )
-        .sort({ position: 1, _id: 1 })
-        .toArray(),
-      product.unitId
-        ? database
-            .collection<{
-              _id: string;
-              tenantId: string;
-              name: string;
-              symbol: string;
-            }>("units")
-            .findOne(
-              { _id: product.unitId, tenantId: context.tenantId },
-              { projection: { _id: 1, name: 1, symbol: 1 } },
-            )
-        : Promise.resolve(null),
-    ]);
+            { projection: { _id: 1, name: 1, color: 1 } },
+          )
+          .sort({ name: 1, _id: 1 })
+          .toArray(),
+        database
+          .collection<ProductImageDocument>("productImages")
+          .find(
+            {
+              tenantId: context.tenantId,
+              productId,
+              status: "active",
+            },
+            {
+              projection: {
+                _id: 1,
+                secureUrl: 1,
+                altText: 1,
+                width: 1,
+                height: 1,
+                format: 1,
+                bytes: 1,
+                position: 1,
+                isPrimary: 1,
+                version: 1,
+              },
+            },
+          )
+          .sort({ position: 1, _id: 1 })
+          .toArray(),
+        product.unitId
+          ? database
+              .collection<{
+                _id: string;
+                tenantId: string;
+                name: string;
+                symbol: string;
+              }>("units")
+              .findOne(
+                { _id: product.unitId, tenantId: context.tenantId },
+                { projection: { _id: 1, name: 1, symbol: 1 } },
+              )
+          : Promise.resolve(null),
+        database
+          .collection("sales")
+          .aggregate<{ amountMinor: number }>([
+            {
+              $match: {
+                tenantId: context.tenantId,
+                storeId: { $in: [...context.allowedStoreIds] },
+                status: "completed",
+              },
+            },
+            { $unwind: "$lines" },
+            { $match: { "lines.productId": productId } },
+            {
+              $group: {
+                _id: null,
+                amountMinor: { $sum: "$lines.lineTotalMinor" },
+              },
+            },
+          ])
+          .toArray(),
+        database
+          .collection("returns")
+          .aggregate<{ amountMinor: number }>([
+            {
+              $match: {
+                tenantId: context.tenantId,
+                storeId: { $in: [...context.allowedStoreIds] },
+                status: "completed",
+              },
+            },
+            { $unwind: "$lines" },
+            { $match: { "lines.productId": productId } },
+            {
+              $group: {
+                _id: null,
+                amountMinor: { $sum: "$lines.lineTotalMinor" },
+              },
+            },
+          ])
+          .toArray(),
+      ]);
     const variantIds = variants.map((variant) => variant._id);
     const productStoreIds = new Set(product.allowedStoreIds ?? []);
     const authorizedStoreIds = [...context.allowedStoreIds].filter(
@@ -566,6 +957,10 @@ export class ProductRepository {
       reorderLevel: product.reorderLevel,
       category: product.category,
       type: product.type ?? "simple",
+      description: product.description ?? "",
+      barcode: product.barcode ?? null,
+      costMinor: product.costMinor ?? 0,
+      inventoryTracking: product.inventoryTracking !== false,
       unitId: product.unitId ?? null,
       unit: unit
         ? { id: unit._id, name: unit.name, symbol: unit.symbol }
@@ -578,7 +973,8 @@ export class ProductRepository {
       })),
       status: product.status,
       views: product.views,
-      revenueMinor: product.revenueMinor,
+      revenueMinor:
+        (saleRevenue?.amountMinor ?? 0) - (returnedRevenue?.amountMinor ?? 0),
       imageTone: product.imageTone,
       primaryImage: (() => {
         const image =
@@ -651,7 +1047,9 @@ export class ProductRepository {
               ? resolvedValues.map((value) => value.valueLabel).join(" / ")
               : variant.name,
           sku: variant.sku,
+          barcode: variant.barcode ?? null,
           priceMinor: variant.priceMinor,
+          costMinor: variant.costMinor ?? null,
           currency: variant.currency,
           status: variant.status ?? "active",
           isDefault:

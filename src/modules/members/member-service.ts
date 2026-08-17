@@ -5,6 +5,8 @@ import { planKeySchema, plans, assertUsageAvailable } from "@/config/plans";
 import { createOpaqueId } from "@/lib/utils";
 import { requireTenantWriteEntitlement } from "@/modules/billing/entitlements";
 import type { AssignableMemberRole } from "@/modules/members/roles";
+import { transferOwnershipSchema } from "@/modules/members/schemas";
+import { requirePermission } from "@/modules/permissions/permissions";
 import { auth } from "@/server/auth/auth";
 import { getDatabase, getMongoClient } from "@/server/db/client";
 import type { TenantContext } from "@/server/tenancy/context";
@@ -50,11 +52,143 @@ export class MemberManagementInvariantError extends Error {
       | "invalid_stores"
       | "owner_protected"
       | "self_protected"
+      | "confirmation_mismatch"
+      | "two_factor_required"
       | "target_not_found",
   ) {
     super("The requested member operation is not allowed.");
     this.name = "MemberManagementInvariantError";
   }
+}
+
+export async function transferTenantOwnership(
+  context: TenantContext,
+  untrustedInput: unknown,
+): Promise<void> {
+  requirePermission(context.permissions, "tenant:transferOwnership");
+  const input = transferOwnershipSchema.parse(untrustedInput);
+  if (input.memberId === context.membershipId)
+    throw new MemberManagementInvariantError("self_protected");
+  const client = await getMongoClient();
+  const database = await getDatabase();
+  await client.withSession(async (session) => {
+    await session.withTransaction(async () => {
+      const currentOwner = await database
+        .collection<{ _id: string; role: string; userId: string }>("member")
+        .findOne(
+          {
+            _id: context.membershipId,
+            organizationId: context.tenantId,
+            userId: context.userId,
+          },
+          { session, projection: { role: 1, userId: 1 } },
+        );
+      const currentUser = await database
+        .collection<{ _id: string; twoFactorEnabled?: boolean }>("user")
+        .findOne(
+          { _id: context.userId },
+          { session, projection: { twoFactorEnabled: 1 } },
+        );
+      const target = await database
+        .collection<{ _id: string; role: string; userId: string }>("member")
+        .findOne(
+          { _id: input.memberId, organizationId: context.tenantId },
+          { session, projection: { role: 1, userId: 1 } },
+        );
+      if (!currentOwner?.role.split(",").includes("owner") || !target)
+        throw new MemberManagementInvariantError("target_not_found");
+      if (currentUser?.twoFactorEnabled !== true)
+        throw new MemberManagementInvariantError("two_factor_required");
+      if (target.role.split(",").includes("owner"))
+        throw new MemberManagementInvariantError("owner_protected");
+      const targetUser = await database
+        .collection<{
+          _id: string;
+          email: string;
+          emailVerified?: boolean;
+        }>("user")
+        .findOne(
+          { _id: target.userId },
+          { session, projection: { email: 1, emailVerified: 1 } },
+        );
+      if (!targetUser || targetUser.emailVerified !== true)
+        throw new MemberManagementInvariantError("target_not_found");
+      if (targetUser.email.toLocaleLowerCase() !== input.confirmationEmail)
+        throw new MemberManagementInvariantError("confirmation_mismatch");
+
+      const now = new Date();
+      const targetUpdate = await database
+        .collection<StringDocument>("member")
+        .updateOne(
+          {
+            _id: target._id,
+            organizationId: context.tenantId,
+            role: target.role,
+          },
+          { $set: { role: "owner", updatedAt: now } },
+          { session },
+        );
+      const ownerUpdate = await database
+        .collection<StringDocument>("member")
+        .updateOne(
+          {
+            _id: currentOwner._id,
+            organizationId: context.tenantId,
+            role: currentOwner.role,
+          },
+          { $set: { role: "admin", updatedAt: now } },
+          { session },
+        );
+      if (targetUpdate.matchedCount !== 1 || ownerUpdate.matchedCount !== 1)
+        throw new MemberManagementInvariantError("target_not_found");
+
+      await database.collection<StringDocument>("auditLogs").insertOne(
+        {
+          _id: createOpaqueId("aud"),
+          tenantId: context.tenantId,
+          actorId: context.userId,
+          action: "tenant.ownership_transferred",
+          entityType: "member",
+          entityId: target._id,
+          requestId: context.requestId,
+          summary: "Transferred tenant ownership to a verified member.",
+          changes: {
+            previousOwnerMembershipId: currentOwner._id,
+            newOwnerMembershipId: target._id,
+          },
+          createdAt: now,
+        },
+        { session },
+      );
+      await database.collection<StringDocument>("notifications").insertMany(
+        [
+          {
+            _id: createOpaqueId("not"),
+            tenantId: context.tenantId,
+            recipientUserId: target.userId,
+            title: "You are now the business owner",
+            message:
+              "Ownership was transferred to your account. Review team and billing access.",
+            severity: "success",
+            href: `/app/${context.tenantSlug}/settings/members`,
+            createdAt: now,
+          },
+          {
+            _id: createOpaqueId("not"),
+            tenantId: context.tenantId,
+            recipientUserId: currentOwner.userId,
+            title: "Ownership transfer completed",
+            message:
+              "Your role is now Administrator. The new owner controls billing and ownership actions.",
+            severity: "info",
+            href: `/app/${context.tenantSlug}/settings/members`,
+            createdAt: now,
+          },
+        ],
+        { session },
+      );
+    });
+  });
 }
 
 export async function getTenantMemberManagementData(

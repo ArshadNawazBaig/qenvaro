@@ -5,6 +5,7 @@ import {
   resolvePermissions,
 } from "@/modules/permissions/permissions";
 import { salesReportQuerySchema } from "@/modules/reports/sales-schemas";
+import { SalesReportExportService } from "@/modules/reports/sales-export-service";
 import { SalesReportRepository } from "@/server/repositories/sales-reports";
 import type { TenantContext } from "@/server/tenancy/context";
 
@@ -279,6 +280,8 @@ describe.skipIf(!enabled)("returns-aware sales reporting", () => {
         "returns",
         "salePayments",
         "refunds",
+        "importExportJobs",
+        "auditLogs",
       ].map((collection) =>
         database.collection(collection).deleteMany({
           tenantId: { $in: [tenantId, otherTenantId] },
@@ -360,6 +363,42 @@ describe.skipIf(!enabled)("returns-aware sales reporting", () => {
     await expect(
       new SalesReportRepository().overview(
         context(["EMPLOYEE"]),
+        salesReportQuerySchema.parse({ range: "7d", store: "all" }),
+        now,
+      ),
+    ).rejects.toBeInstanceOf(PermissionError);
+  });
+
+  it("exports an audited, store-scoped daily CSV for authorized roles", async () => {
+    const service = new SalesReportExportService();
+    const result = await service.export(
+      context(),
+      salesReportQuerySchema.parse({ range: "7d", store: "all" }),
+      now,
+    );
+    const [job, audit] = await Promise.all([
+      database.collection<StringDocument>("importExportJobs").findOne({
+        tenantId,
+        type: "sales_report_csv_export",
+      }),
+      database.collection<StringDocument>("auditLogs").findOne({
+        tenantId,
+        action: "report.sales_csv_export.completed",
+      }),
+    ]);
+
+    expect(result.rowCount).toBe(7);
+    expect(result.csv).toContain("date,business,store_filter,gross_sales");
+    expect(result.csv).toContain("100.00");
+    expect(result.csv).not.toContain("9000.00");
+    expect(job).toMatchObject({ rowCount: 7, createdBy: context().userId });
+    expect(audit).toMatchObject({
+      actorId: context().userId,
+      requestId: context().requestId,
+    });
+    await expect(
+      service.export(
+        context(["MANAGER"]),
         salesReportQuerySchema.parse({ range: "7d", store: "all" }),
         now,
       ),

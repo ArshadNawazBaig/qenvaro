@@ -16,6 +16,7 @@ import {
   SaleProductUnavailableError,
   SaleService,
   SaleStoreUnavailableError,
+  SaleVoidConflictError,
 } from "@/modules/sales/service";
 import { SaleRepository } from "@/server/repositories/sales";
 import type { TenantContext } from "@/server/tenancy/context";
@@ -454,5 +455,123 @@ describe.skipIf(!enabled)("atomic point-of-sale lifecycle", () => {
         "tenant_receipt_number_unique",
       ]),
     );
+  });
+
+  it("voids a sale idempotently, restores stock, reverses revenue, and preserves evidence", async () => {
+    const service = new SaleService();
+    await expect(
+      service.void(
+        {
+          ...ownerContext,
+          roles: ["MANAGER"],
+          permissions: resolvePermissions(["MANAGER"]),
+        },
+        {
+          saleId,
+          confirmationReceiptNumber: "MAIN-000001",
+          reason: "Entered in error",
+        },
+      ),
+    ).rejects.toBeInstanceOf(PermissionError);
+    await expect(
+      service.void(ownerContext, {
+        saleId,
+        confirmationReceiptNumber: "WRONG",
+        reason: "Entered in error",
+      }),
+    ).rejects.toThrow("exact receipt number");
+    await database.collection<StringIdDocument>("sales").insertOne({
+      _id: `sale_returned_${suffix}`,
+      tenantId,
+      storeId,
+      receiptNumber: "MAIN-RETURNED",
+      status: "completed",
+      lines: [],
+      returnedTotalMinor: 1,
+      version: 1,
+    });
+    await expect(
+      service.void(ownerContext, {
+        saleId: `sale_returned_${suffix}`,
+        confirmationReceiptNumber: "MAIN-RETURNED",
+        reason: "Should use returns",
+      }),
+    ).rejects.toBeInstanceOf(SaleVoidConflictError);
+
+    await expect(
+      service.void(ownerContext, {
+        saleId,
+        confirmationReceiptNumber: "MAIN-000001",
+        reason: "Entered in error",
+      }),
+    ).resolves.toEqual({
+      alreadyVoided: false,
+      receiptNumber: "MAIN-000001",
+    });
+    await expect(
+      service.void(ownerContext, {
+        saleId,
+        confirmationReceiptNumber: "MAIN-000001",
+        reason: "Entered in error",
+      }),
+    ).resolves.toEqual({
+      alreadyVoided: true,
+      receiptNumber: "MAIN-000001",
+    });
+
+    const [sale, payment, receipt, level, movement, product, audit, view] =
+      await Promise.all([
+        database.collection<StringIdDocument>("sales").findOne({
+          _id: saleId,
+          tenantId,
+        }),
+        database.collection<StringIdDocument>("salePayments").findOne({
+          tenantId,
+          saleId,
+        }),
+        database.collection<StringIdDocument>("receipts").findOne({
+          tenantId,
+          saleId,
+        }),
+        database.collection<StringIdDocument>("inventoryLevels").findOne({
+          tenantId,
+          storeId,
+          variantId: `${productId}_default`,
+        }),
+        database.collection<StringIdDocument>("inventoryMovements").findOne({
+          tenantId,
+          sourceType: "sale_void",
+          sourceId: saleId,
+        }),
+        database.collection<StringIdDocument>("products").findOne({
+          tenantId,
+          _id: productId,
+        }),
+        database.collection<StringIdDocument>("auditLogs").findOne({
+          tenantId,
+          entityId: saleId,
+          action: "sale.voided",
+        }),
+        new SaleRepository().receipt(ownerContext, saleId),
+      ]);
+    expect(sale).toMatchObject({
+      status: "voided",
+      voidReason: "Entered in error",
+      version: 2,
+    });
+    expect(payment).toMatchObject({ status: "voided" });
+    expect(receipt).toMatchObject({ status: "voided" });
+    expect(level).toMatchObject({ quantity: 10, version: 3 });
+    expect(movement).toMatchObject({
+      type: "sale_void",
+      quantityDelta: 2,
+      resultingQuantity: 10,
+    });
+    expect(product).toMatchObject({ stock: 10, revenueMinor: 0 });
+    expect(audit).toMatchObject({ actorId: ownerContext.userId });
+    expect(view).toMatchObject({
+      status: "voided",
+      voidReason: "Entered in error",
+    });
   });
 });

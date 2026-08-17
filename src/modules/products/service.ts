@@ -11,8 +11,12 @@ import {
 } from "@/modules/categories/schemas";
 import {
   archiveProductSchema,
+  bulkProductStatusSchema,
+  createSimpleProductInputSchema,
   updateProductSchema,
   type ArchiveProductInput,
+  type BulkProductStatusInput,
+  type CreateSimpleProductInput,
   type UpdateProductInput,
 } from "@/modules/products/schemas";
 import { productTagIdsSchema } from "@/modules/tags/schemas";
@@ -28,15 +32,32 @@ interface MutableProductDocument {
   tenantId: string;
   name: string;
   subtitle: string;
+  description?: string;
   sku: string;
+  barcode?: string | null;
   category: string;
   unitId?: string;
   tagIds?: string[];
   priceMinor: number;
+  costMinor?: number;
   reorderLevel: number;
   status: "draft" | "active" | "archived";
+  allowedStoreIds?: string[];
   version: number;
   deletedAt?: Date;
+}
+
+function productStoreScope(context: TenantContext) {
+  const storeIds = [...context.allowedStoreIds];
+  return storeIds.length === 0
+    ? { _id: { $in: [] as string[] } }
+    : {
+        $or: [
+          { allowedStoreIds: { $exists: false } },
+          { allowedStoreIds: { $size: 0 } },
+          { allowedStoreIds: { $in: storeIds } },
+        ],
+      };
 }
 
 interface MutableVariantDocument {
@@ -45,7 +66,9 @@ interface MutableVariantDocument {
   productId: string;
   sku: string;
   normalizedSku: string;
+  barcode?: string | null;
   priceMinor: number;
+  costMinor?: number;
   updatedAt: Date;
   updatedBy: string;
   productArchivedAt?: Date;
@@ -76,16 +99,6 @@ interface TenantBillingProfile {
   trialEndsAt?: Date;
   graceEndsAt?: Date;
   currentPeriodEndsAt?: Date;
-}
-
-export interface CreateSimpleProductInput {
-  name: string;
-  sku: string;
-  category: string;
-  unitId?: string;
-  priceMinor: number;
-  openingStock: number;
-  tagIds?: string[];
 }
 
 export class ProductNotFoundError extends Error {
@@ -267,14 +280,18 @@ async function resolveProductUnit(
 export class ProductService {
   async createSimple(
     context: TenantContext,
-    input: CreateSimpleProductInput,
+    untrustedInput: CreateSimpleProductInput,
   ): Promise<{ id: string }> {
     requirePermission(context.permissions, "product:create");
+    const input = createSimpleProductInputSchema.parse(untrustedInput);
     const client = await getMongoClient();
     const database = client.db(env.MONGODB_DATABASE);
     const productId = createOpaqueId("prd");
+    const type = input.type;
+    const inventoryTracking =
+      type === "service" ? false : input.inventoryTracking;
     const storeId = [...context.allowedStoreIds][0];
-    if (!storeId)
+    if (inventoryTracking && !storeId)
       throw new Error(
         "Create or assign an authorized store before adding stock.",
       );
@@ -320,10 +337,14 @@ export class ProductService {
             _id: productId,
             tenantId: context.tenantId,
             name: input.name,
-            subtitle: "Simple product",
-            type: "simple",
+            subtitle:
+              input.subtitle?.trim() ||
+              (type === "service" ? "Service" : "Simple product"),
+            description: input.description?.trim() ?? "",
+            ...(input.barcode?.trim() ? { barcode: input.barcode.trim() } : {}),
+            type,
             optionGroups: [],
-            inventoryTracking: true,
+            inventoryTracking,
             taxRateBps: profile.operationSettings?.defaultTaxRateBps ?? 0,
             sku: input.sku,
             normalizedSku: input.sku.toUpperCase(),
@@ -335,10 +356,13 @@ export class ProductService {
             unitId,
             tagIds,
             priceMinor: input.priceMinor,
+            ...(input.costMinor === undefined
+              ? {}
+              : { costMinor: input.costMinor }),
             currency: profile.currency,
-            stock: input.openingStock,
-            reorderLevel: 5,
-            status: "active",
+            stock: inventoryTracking ? input.openingStock : null,
+            reorderLevel: input.reorderLevel,
+            status: input.status,
             views: 0,
             revenueMinor: 0,
             imageTone: "slate",
@@ -362,7 +386,13 @@ export class ProductService {
               name: "Default",
               sku: input.sku,
               normalizedSku: input.sku.toUpperCase(),
+              ...(input.barcode?.trim()
+                ? { barcode: input.barcode.trim() }
+                : {}),
               priceMinor: input.priceMinor,
+              ...(input.costMinor === undefined
+                ? {}
+                : { costMinor: input.costMinor }),
               currency: profile.currency,
               status: "active",
               isDefault: true,
@@ -376,19 +406,20 @@ export class ProductService {
             },
             { session },
           );
-        await new InventoryService().recordOpeningBalanceInTransaction(
-          database,
-          session,
-          context,
-          {
-            productId,
-            variantId,
-            storeId,
-            quantity: input.openingStock,
-            idempotencyKey: `product-create:${productId}`,
-            now,
-          },
-        );
+        if (inventoryTracking && storeId)
+          await new InventoryService().recordOpeningBalanceInTransaction(
+            database,
+            session,
+            context,
+            {
+              productId,
+              variantId,
+              storeId,
+              quantity: input.openingStock,
+              idempotencyKey: `product-create:${productId}`,
+              now,
+            },
+          );
         await database.collection<StringIdDocument>("auditLogs").insertOne(
           {
             _id: createOpaqueId("aud"),
@@ -398,8 +429,17 @@ export class ProductService {
             entityType: "product",
             entityId: productId,
             requestId: context.requestId,
-            summary: "Created a simple catalog product.",
-            changes: { after: { category, tagIds, unitId } },
+            summary: `Created a ${type} catalog product.`,
+            changes: {
+              after: {
+                category,
+                tagIds,
+                unitId,
+                type,
+                inventoryTracking,
+                status: input.status,
+              },
+            },
             createdAt: now,
           },
           { session },
@@ -426,6 +466,7 @@ export class ProductService {
           {
             _id: input.productId,
             tenantId: context.tenantId,
+            ...productStoreScope(context),
             deletedAt: { $exists: false },
           },
           { session },
@@ -461,6 +502,7 @@ export class ProductService {
           {
             _id: input.productId,
             tenantId: context.tenantId,
+            ...productStoreScope(context),
             version: input.expectedVersion,
             status: { $ne: "archived" },
             deletedAt: { $exists: false },
@@ -469,12 +511,15 @@ export class ProductService {
             $set: {
               name: input.name,
               subtitle: input.subtitle,
+              description: input.description ?? existing.description ?? "",
               sku: input.sku,
               normalizedSku: input.sku.toUpperCase(),
+              barcode: input.barcode?.trim() || null,
               category,
               unitId,
               tagIds,
               priceMinor: input.priceMinor,
+              costMinor: input.costMinor ?? existing.costMinor ?? 0,
               reorderLevel: input.reorderLevel,
               status: input.status,
               updatedAt: now,
@@ -498,7 +543,9 @@ export class ProductService {
               $set: {
                 sku: input.sku,
                 normalizedSku: input.sku.toUpperCase(),
+                barcode: input.barcode?.trim() || null,
                 priceMinor: input.priceMinor,
+                costMinor: input.costMinor ?? existing.costMinor ?? 0,
                 updatedAt: now,
                 updatedBy: context.userId,
               },
@@ -520,22 +567,28 @@ export class ProductService {
               before: {
                 name: existing.name,
                 subtitle: existing.subtitle,
+                description: existing.description ?? "",
                 sku: existing.sku,
+                barcode: existing.barcode ?? null,
                 category: existing.category,
                 unitId: existing.unitId ?? null,
                 tagIds: existing.tagIds ?? [],
                 priceMinor: existing.priceMinor,
+                costMinor: existing.costMinor ?? 0,
                 reorderLevel: existing.reorderLevel,
                 status: existing.status,
               },
               after: {
                 name: input.name,
                 subtitle: input.subtitle,
+                description: input.description ?? existing.description ?? "",
                 sku: input.sku,
+                barcode: input.barcode?.trim() || null,
                 category,
                 unitId,
                 tagIds,
                 priceMinor: input.priceMinor,
+                costMinor: input.costMinor ?? existing.costMinor ?? 0,
                 reorderLevel: input.reorderLevel,
                 status: input.status,
               },
@@ -568,6 +621,7 @@ export class ProductService {
           {
             _id: input.productId,
             tenantId: context.tenantId,
+            ...productStoreScope(context),
             deletedAt: { $exists: false },
           },
           { session },
@@ -583,6 +637,7 @@ export class ProductService {
           {
             _id: input.productId,
             tenantId: context.tenantId,
+            ...productStoreScope(context),
             version: input.expectedVersion,
             status: { $ne: "archived" },
             deletedAt: { $exists: false },
@@ -640,6 +695,131 @@ export class ProductService {
       }),
     );
     if (!result) throw new Error("Product archive did not complete.");
+    return result;
+  }
+
+  async bulkStatus(
+    context: TenantContext,
+    untrustedInput: BulkProductStatusInput,
+  ): Promise<{ updated: number; unchanged: number }> {
+    const input = bulkProductStatusSchema.parse(untrustedInput);
+    requirePermission(
+      context.permissions,
+      input.status === "archived" ? "product:archive" : "product:update",
+    );
+    const client = await getMongoClient();
+    const database = client.db(env.MONGODB_DATABASE);
+    const result = await client.withSession((session) =>
+      session.withTransaction(async () => {
+        await requireWriteProfile(database, context.tenantId, session);
+        const products =
+          database.collection<MutableProductDocument>("products");
+        const existing = await products
+          .find(
+            {
+              _id: { $in: input.productIds },
+              tenantId: context.tenantId,
+              ...productStoreScope(context),
+              deletedAt: { $exists: false },
+            },
+            { session },
+          )
+          .toArray();
+        if (existing.length !== input.productIds.length)
+          throw new ProductNotFoundError();
+        if (
+          input.status === "active" &&
+          existing.some((product) => product.status === "archived")
+        )
+          throw new ProductArchivedError();
+
+        const changed = existing.filter((product) =>
+          input.status === "active"
+            ? product.status === "draft"
+            : product.status !== "archived",
+        );
+        if (changed.length === 0)
+          return { updated: 0, unchanged: existing.length };
+
+        const now = new Date();
+        const changedIds = changed.map((product) => product._id);
+        const statusFields =
+          input.status === "archived"
+            ? {
+                status: "archived" as const,
+                archivedAt: now,
+                archivedBy: context.userId,
+                updatedAt: now,
+                updatedBy: context.userId,
+              }
+            : {
+                status: "active" as const,
+                updatedAt: now,
+                updatedBy: context.userId,
+              };
+        const update = await products.updateMany(
+          {
+            _id: { $in: changedIds },
+            tenantId: context.tenantId,
+            ...productStoreScope(context),
+            deletedAt: { $exists: false },
+          },
+          { $set: statusFields, $inc: { version: 1 } },
+          { session },
+        );
+        if (update.matchedCount !== changed.length)
+          throw new ProductVersionConflictError();
+
+        if (input.status === "archived")
+          await database
+            .collection<MutableVariantDocument>("productVariants")
+            .updateMany(
+              {
+                tenantId: context.tenantId,
+                productId: { $in: changedIds },
+              },
+              {
+                $set: {
+                  productArchivedAt: now,
+                  updatedAt: now,
+                  updatedBy: context.userId,
+                },
+                $inc: { version: 1 },
+              },
+              { session },
+            );
+
+        await database.collection<StringIdDocument>("auditLogs").insertMany(
+          changed.map((product) => ({
+            _id: createOpaqueId("aud"),
+            tenantId: context.tenantId,
+            actorId: context.userId,
+            action:
+              input.status === "archived"
+                ? "product.archived"
+                : "product.activated",
+            entityType: "product",
+            entityId: product._id,
+            requestId: context.requestId,
+            summary:
+              input.status === "archived"
+                ? "Archived a catalog product through a bulk action without changing inventory."
+                : "Activated a draft catalog product through a bulk action.",
+            changes: {
+              before: { status: product.status },
+              after: { status: input.status },
+            },
+            createdAt: now,
+          })),
+          { session },
+        );
+        return {
+          updated: changed.length,
+          unchanged: existing.length - changed.length,
+        };
+      }),
+    );
+    if (!result) throw new Error("Bulk product update did not complete.");
     return result;
   }
 }

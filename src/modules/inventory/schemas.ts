@@ -12,6 +12,7 @@ export const inventoryMovementTypeSchema = z.enum([
   "purchase_receipt",
   "sale",
   "sale_return",
+  "sale_void",
   "manual_adjustment",
   "transfer_out",
   "transfer_in",

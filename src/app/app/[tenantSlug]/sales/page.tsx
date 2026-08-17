@@ -49,11 +49,12 @@ export default async function SalesPage({
   const pageCount = Math.max(1, Math.ceil(result.total / result.pageSize));
   const page = Math.min(result.page, pageCount);
   const grossMinor = result.items.reduce(
-    (sum, sale) => sum + sale.totalMinor,
+    (sum, sale) => sum + (sale.status === "completed" ? sale.totalMinor : 0),
     0,
   );
   const returnedMinor = result.items.reduce(
-    (sum, sale) => sum + sale.returnedTotalMinor,
+    (sum, sale) =>
+      sum + (sale.status === "completed" ? sale.returnedTotalMinor : 0),
     0,
   );
   const money = (amountMinor: number) =>

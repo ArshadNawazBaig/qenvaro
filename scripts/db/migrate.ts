@@ -1573,6 +1573,23 @@ const migrations: Migration[] = [
       ]);
     },
   },
+  {
+    version: 30,
+    name: "variant barcode integrity",
+    run: async (database) => {
+      await indexes(database, "productVariants", [
+        {
+          key: { tenantId: 1, barcode: 1 },
+          name: "tenant_variant_barcode_unique",
+          unique: true,
+          partialFilterExpression: {
+            barcode: { $type: "string" },
+            deletedAt: null,
+          },
+        },
+      ]);
+    },
+  },
 ];
 
 async function main() {

@@ -35,7 +35,7 @@ export function SidebarPlanCard({
           <h2 className="min-w-0 text-sm leading-[18px] font-semibold tracking-[-0.02em]">
             Upgrade your plan
           </h2>
-          <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[8px] leading-3 font-semibold tracking-[0.08em] text-white/65 uppercase">
+          <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[9px] leading-3 font-semibold tracking-[0.08em] text-white/75 uppercase">
             {planName}
           </span>
         </div>
@@ -57,7 +57,7 @@ export function SidebarPlanCard({
             style={{ width: productLimit ? `${usage}%` : "0%" }}
           />
         </div>
-        <p className="mt-1.5 text-[8px] text-white/45 tabular-nums">
+        <p className="mt-1.5 text-[9px] text-white/60 tabular-nums">
           {productCount.toLocaleString()}
           {productLimit ? ` of ${productLimit.toLocaleString()}` : ""} products
         </p>

@@ -1,6 +1,7 @@
 import "server-only";
 import type { Filter } from "mongodb";
 import { requirePermission } from "@/modules/permissions/permissions";
+import type { OperationsReportQuery } from "@/modules/reports/operations-schemas";
 import type {
   ExpenseListItem,
   ExpenseListQuery,
@@ -11,6 +12,7 @@ import type {
 } from "@/modules/purchasing/schemas";
 import { getDatabase } from "@/server/db/client";
 import type { TenantContext } from "@/server/tenancy/context";
+import { TenantNotFoundError } from "@/server/tenancy/context";
 
 interface SupplierDocument extends Omit<SupplierListItem, "id" | "createdAt"> {
   _id: string;
@@ -57,6 +59,10 @@ export interface OperationsSummary {
   currency: string;
   expenseCategories: { name: string; amountMinor: number }[];
   stores: { id: string; name: string }[];
+  range: OperationsReportQuery["range"];
+  selectedStoreId: string;
+  periodStart: string;
+  asOf: string;
 }
 
 export class PurchasingRepository {
@@ -397,11 +403,21 @@ export class PurchasingRepository {
     };
   }
 
-  async operationsSummary(context: TenantContext): Promise<OperationsSummary> {
+  async operationsSummary(
+    context: TenantContext,
+    query: OperationsReportQuery = { range: "90d", store: "all" },
+    now = new Date(),
+  ): Promise<OperationsSummary> {
     requirePermission(context.permissions, "report:read");
     const database = await getDatabase();
-    const ninetyDaysAgo = new Date(Date.now() - 90 * 86_400_000);
-    const dateString = ninetyDaysAgo.toISOString().slice(0, 10);
+    const allowedStoreIds = [...context.allowedStoreIds];
+    if (query.store !== "all" && !allowedStoreIds.includes(query.store))
+      throw new TenantNotFoundError();
+    const selectedStoreIds =
+      query.store === "all" ? allowedStoreIds : [query.store];
+    const days = query.range === "30d" ? 30 : query.range === "365d" ? 365 : 90;
+    const periodStart = new Date(now.getTime() - days * 86_400_000);
+    const dateString = periodStart.toISOString().slice(0, 10);
     const [profile, stores, expenseRows, receipts, openPurchases] =
       await Promise.all([
         database
@@ -415,7 +431,7 @@ export class PurchasingRepository {
           .find(
             {
               tenantId: context.tenantId,
-              _id: { $in: [...context.allowedStoreIds] },
+              _id: { $in: allowedStoreIds },
             },
             { projection: { name: 1 } },
           )
@@ -427,7 +443,7 @@ export class PurchasingRepository {
               {
                 $match: {
                   tenantId: context.tenantId,
-                  storeId: { $in: [...context.allowedStoreIds] },
+                  storeId: { $in: selectedStoreIds },
                   expenseDate: { $gte: dateString },
                   status: { $in: ["approved", "submitted"] },
                 },
@@ -441,8 +457,8 @@ export class PurchasingRepository {
           .find(
             {
               tenantId: context.tenantId,
-              storeId: { $in: [...context.allowedStoreIds] },
-              receivedAt: { $gte: ninetyDaysAgo },
+              storeId: { $in: selectedStoreIds },
+              receivedAt: { $gte: periodStart, $lte: now },
             },
             { projection: { lines: 1 } },
           )
@@ -453,7 +469,8 @@ export class PurchasingRepository {
           .find(
             {
               tenantId: context.tenantId,
-              storeId: { $in: [...context.allowedStoreIds] },
+              storeId: { $in: selectedStoreIds },
+              createdAt: { $gte: periodStart, $lte: now },
               status: {
                 $in: ["draft", "submitted", "approved", "partially_received"],
               },
@@ -504,6 +521,10 @@ export class PurchasingRepository {
         .sort((a, b) => b.amountMinor - a.amountMinor)
         .slice(0, 8),
       stores: stores.map((store) => ({ id: store._id, name: store.name })),
+      range: query.range,
+      selectedStoreId: query.store,
+      periodStart: periodStart.toISOString(),
+      asOf: now.toISOString(),
     };
   }
 }

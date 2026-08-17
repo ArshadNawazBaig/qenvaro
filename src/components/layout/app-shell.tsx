@@ -23,7 +23,6 @@ import {
   ReceiptText,
   Receipt,
   Ruler,
-  Search,
   Settings,
   ShoppingCart,
   Sun,
@@ -45,6 +44,7 @@ import { switchBusinessAction } from "@/app/app/[tenantSlug]/workspace-actions";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { HeaderStoreSwitcher } from "@/components/layout/header-store-switcher";
+import { GlobalSearch } from "@/components/layout/global-search";
 import { SidebarPlanCard } from "@/components/layout/sidebar-plan-card";
 import {
   DropdownMenu,
@@ -54,7 +54,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { brand } from "@/config/brand";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
@@ -103,6 +102,16 @@ const demoWorkspace: WorkspaceShellData = {
   ],
   stores: [{ id: "demo-store", code: "DT", name: "Downtown" }],
   activeStoreId: "demo-store",
+  notificationUnread: 1,
+  recentNotifications: [
+    {
+      id: "demo-low-stock",
+      title: "Low stock requires attention",
+      severity: "warning",
+      href: "/app/demo/inventory/alerts",
+      read: false,
+    },
+  ],
   canViewMembers: true,
   canViewBilling: true,
   canViewInventory: true,
@@ -530,6 +539,8 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
+  const recentNotifications = workspace.recentNotifications ?? [];
+  const notificationUnread = workspace.notificationUnread ?? 0;
 
   return (
     <div className="bg-background min-h-screen overflow-x-clip">
@@ -604,17 +615,7 @@ export function AppShell({
               </span>
               {brand.name}
             </Link>
-            <div className="relative hidden w-full max-w-md md:block">
-              <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-              <Input
-                className="bg-card/90 h-10 rounded-full border-transparent pr-14 pl-10 shadow-[var(--shadow-button)]"
-                placeholder="Search products, people, or settings…"
-                aria-label="Global search"
-              />
-              <kbd className="bg-muted text-muted-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-md border px-1.5 py-0.5 text-[10px] font-medium">
-                ⌘K
-              </kbd>
-            </div>
+            <GlobalSearch tenantSlug={tenantSlug} isDemo={workspace.isDemo} />
             <div className="ml-auto flex items-center">
               <HeaderStoreSwitcher
                 activeStoreId={workspace.activeStoreId}
@@ -658,18 +659,64 @@ export function AppShell({
                     aria-label="Notifications"
                   >
                     <Bell />
-                    <span className="bg-destructive ring-background absolute top-2 right-2 size-1.5 rounded-full ring-2" />
+                    {notificationUnread > 0 && (
+                      <span className="bg-destructive ring-background absolute top-2 right-2 size-1.5 rounded-full ring-2" />
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-72">
                   <DropdownMenuLabel>Notifications</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <div className="px-3 py-5 text-center">
-                    <p className="text-sm font-medium">You’re all caught up</p>
-                    <p className="text-muted-foreground mt-1 text-xs">
-                      New workspace alerts will appear here.
-                    </p>
-                  </div>
+                  {recentNotifications.length === 0 ? (
+                    <div className="px-3 py-5 text-center">
+                      <p className="text-sm font-medium">
+                        You’re all caught up
+                      </p>
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        New workspace alerts will appear here.
+                      </p>
+                    </div>
+                  ) : (
+                    recentNotifications.map((notification) => (
+                      <DropdownMenuItem key={notification.id} asChild>
+                        <Link
+                          href={
+                            notification.href ??
+                            `/app/${tenantSlug}/notifications`
+                          }
+                          className="items-start"
+                        >
+                          <span
+                            className={cn(
+                              "mt-1 size-2 shrink-0 rounded-full",
+                              notification.severity === "critical"
+                                ? "bg-destructive"
+                                : notification.severity === "warning"
+                                  ? "bg-warning"
+                                  : notification.severity === "success"
+                                    ? "bg-success"
+                                    : "bg-primary",
+                              notification.read && "opacity-30",
+                            )}
+                          />
+                          <span className="min-w-0 flex-1 truncate">
+                            {notification.title}
+                          </span>
+                        </Link>
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href={`/app/${tenantSlug}/notifications`}>
+                      <Bell /> View all notifications
+                      {notificationUnread > 0 && (
+                        <span className="bg-primary/10 text-primary ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                          {notificationUnread > 99 ? "99+" : notificationUnread}
+                        </span>
+                      )}
+                    </Link>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               <DropdownMenu>
@@ -701,9 +748,13 @@ export function AppShell({
                     </span>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem disabled>
-                    <UserRound /> Account profile
-                  </DropdownMenuItem>
+                  {workspace.canViewSettings && (
+                    <DropdownMenuItem asChild>
+                      <Link href={`/app/${tenantSlug}/settings/security`}>
+                        <UserRound /> Account & security
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   {workspace.canViewMembers && (
                     <DropdownMenuItem asChild>
                       <Link href={`/app/${tenantSlug}/settings/members`}>

@@ -1,22 +1,27 @@
 "use client";
 
-import { ListFilter, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { FilterSelect } from "@/components/shared/filter-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { ProductListQuery } from "@/modules/products/schemas";
+import type {
+  ProductListQuery,
+  ProductStoreOption,
+} from "@/modules/products/schemas";
 import type { TagOption } from "@/modules/tags/schemas";
 
 export function ProductToolbar({
   query,
   categories,
   tags,
+  stores,
 }: {
   query: ProductListQuery;
   categories: string[];
   tags: TagOption[];
+  stores: ProductStoreOption[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -36,6 +41,7 @@ export function ProductToolbar({
     query.q ||
     query.category !== "all" ||
     query.tag !== "all" ||
+    query.store !== "all" ||
     query.stock !== "all" ||
     query.status !== "all",
   );
@@ -59,6 +65,18 @@ export function ProductToolbar({
         />
       </form>
       <div className="grid w-full min-w-0 grid-cols-2 gap-2 min-[1380px]:w-auto min-[1380px]:pb-0 sm:flex sm:max-w-full sm:overflow-x-auto sm:pb-1">
+        <FilterSelect
+          label="Store"
+          value={query.store}
+          onValueChange={(value) => update("store", value)}
+          options={[
+            { label: "All stores", value: "all" },
+            ...stores.map((store) => ({
+              label: store.name,
+              value: store.id,
+            })),
+          ]}
+        />
         <FilterSelect
           label="Category"
           value={query.category}
@@ -124,18 +142,6 @@ export function ProductToolbar({
             }}
           >
             <X /> Clear
-          </Button>
-        )}
-        {!hasFilters && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="justify-self-start"
-            aria-label="More filters"
-            disabled
-            title="Store filters arrive with a future catalog slice"
-          >
-            <ListFilter />
           </Button>
         )}
       </div>

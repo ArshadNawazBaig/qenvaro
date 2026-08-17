@@ -33,6 +33,7 @@ export default async function SalesReportPage({
   let report = getDemoSalesReport(query);
   let isDemo = true;
   let permissionDenied = false;
+  let canExport = false;
 
   if (tenantSlug === "demo" && env.NODE_ENV === "production") notFound();
 
@@ -43,6 +44,7 @@ export default async function SalesReportPage({
       if (!hasPermission(context.permissions, "report:read")) {
         permissionDenied = true;
       } else {
+        canExport = hasPermission(context.permissions, "report:export");
         report = await new SalesReportRepository().overview(context, query);
       }
     } catch {
@@ -74,6 +76,7 @@ export default async function SalesReportPage({
       report={report}
       query={{ ...query, store: report.selectedStoreId }}
       isDemo={isDemo}
+      canExport={canExport}
     />
   );
 }

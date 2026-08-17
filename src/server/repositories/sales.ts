@@ -56,7 +56,7 @@ interface ReceiptSaleDocument {
   storeId: string;
   receiptNumber: string;
   customer: { id: string; code: string; name: string } | null;
-  status: "completed";
+  status: "completed" | "voided";
   currency: string;
   lines: SaleReceiptLine[];
   subtotalMinor: number;
@@ -68,6 +68,8 @@ interface ReceiptSaleDocument {
   changeMinor: number;
   note: string;
   completedAt: Date;
+  voidedAt?: Date;
+  voidReason?: string;
 }
 
 interface ReceiptPaymentDocument {
@@ -327,7 +329,7 @@ export class SaleRepository {
         _id: saleId,
         tenantId: context.tenantId,
         storeId: { $in: [...context.allowedStoreIds] },
-        status: "completed",
+        status: { $in: ["completed", "voided"] },
       });
     if (!sale) return null;
     const [store, profile, receipt, payments] = await Promise.all([
@@ -352,7 +354,7 @@ export class SaleRepository {
         tenantId: context.tenantId,
         saleId: sale._id,
         receiptNumber: sale.receiptNumber,
-        status: "issued",
+        status: { $in: ["issued", "voided"] },
         $or: [{ entityType: "sale" }, { entityType: { $exists: false } }],
       }),
       database
@@ -369,7 +371,7 @@ export class SaleRepository {
       id: String(sale._id),
       receiptNumber: sale.receiptNumber,
       businessName: profile.businessName,
-      status: "completed",
+      status: sale.status,
       store: { id: String(store._id), code: store.code, name: store.name },
       customer: sale.customer,
       currency: safeCurrency(sale.currency || profile.currency),
@@ -391,6 +393,8 @@ export class SaleRepository {
       changeMinor: sale.changeMinor,
       note: sale.note,
       completedAt: sale.completedAt.toISOString(),
+      voidedAt: sale.voidedAt?.toISOString() ?? null,
+      voidReason: sale.voidReason ?? "",
     };
   }
 }

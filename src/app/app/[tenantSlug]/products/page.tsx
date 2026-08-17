@@ -36,6 +36,7 @@ import { queryDemoProducts } from "@/modules/products/queries";
 import { ProductCsvService } from "@/modules/products/csv-service";
 import { productListQuerySchema } from "@/modules/products/schemas";
 import { ProductRepository } from "@/server/repositories/products";
+import { CategoryRepository } from "@/server/repositories/categories";
 import { TagRepository } from "@/server/repositories/tags";
 import { UnitRepository } from "@/server/repositories/units";
 import { getDemoUnitOptions } from "@/modules/units/demo-data";
@@ -56,6 +57,7 @@ export default async function ProductsPage({
   let categories = result.categories;
   let tags = getDemoTagOptions();
   let units = getDemoUnitOptions();
+  let stores: Awaited<ReturnType<ProductRepository["storeOptions"]>> = [];
   let metrics = {
     total: demoProducts.length,
     active: demoProducts.filter((product) => product.status === "active")
@@ -90,13 +92,15 @@ export default async function ProductsPage({
         databaseMetrics,
         csvAvailability,
         databaseUnits,
+        databaseStores,
       ] = await Promise.all([
         repository.list(context, query),
-        repository.categories(context),
+        new CategoryRepository().activeNames(context),
         new TagRepository().activeOptions(context),
         repository.metrics(context),
         new ProductCsvService().availability(context),
         new UnitRepository().activeOptions(context),
+        repository.storeOptions(context),
       ]);
       const pageCount = Math.max(1, Math.ceil(data.total / query.pageSize));
       result = {
@@ -111,6 +115,7 @@ export default async function ProductsPage({
       categories = databaseCategories;
       tags = databaseTags;
       units = databaseUnits;
+      stores = databaseStores;
       metrics = databaseMetrics;
       isDemo = false;
       canCreate = hasPermission(context.permissions, "product:create");
@@ -133,6 +138,7 @@ export default async function ProductsPage({
     q: result.query.q,
     category: result.query.category,
     tag: result.query.tag,
+    store: result.query.store,
     stock: result.query.stock,
     status: result.query.status,
     sort: result.query.sort,
@@ -247,6 +253,7 @@ export default async function ProductsPage({
           query={result.query}
           categories={categories}
           tags={tags}
+          stores={stores}
         />
         <ProductTable
           items={result.items}

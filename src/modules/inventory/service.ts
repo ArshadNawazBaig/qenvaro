@@ -369,6 +369,7 @@ async function appendMovement(
       | "product"
       | "sale"
       | "sale_return"
+      | "sale_void"
       | "purchase_order";
     sourceId: string;
     note: string;
@@ -1368,6 +1369,128 @@ export class InventoryService {
         sourceId: input.returnId,
         note: `Return ${input.returnNumber}`,
         idempotencyKey: `${input.idempotencyKey}:movement:${index}`,
+        now: input.now,
+      });
+      results.push({ variantId: line.variantId, resultingQuantity });
+    }
+    return results;
+  }
+
+  async recordSaleVoidInTransaction(
+    database: Db,
+    session: ClientSession,
+    context: TenantContext,
+    input: {
+      saleId: string;
+      receiptNumber: string;
+      storeId: string;
+      lines: Array<{
+        productId: string;
+        variantId: string;
+        quantity: number;
+      }>;
+      now: Date;
+    },
+  ): Promise<Array<{ variantId: string; resultingQuantity: number }>> {
+    requirePermission(context.permissions, "sale:void");
+    if (input.lines.length === 0) return [];
+    await loadWriteProfile(database, context.tenantId, session);
+    await requireActiveStores(database, session, context, [input.storeId]);
+    const variantIds = input.lines.map((line) => line.variantId);
+    const variants = await database
+      .collection<VariantDocument>("productVariants")
+      .find(
+        { tenantId: context.tenantId, _id: { $in: variantIds } },
+        { session },
+      )
+      .toArray();
+    if (variants.length !== variantIds.length)
+      throw new InventoryProductUnavailableError(
+        "A historical void SKU could not be resolved.",
+      );
+    const variantById = new Map(
+      variants.map((variant) => [String(variant._id), variant]),
+    );
+    const productIds = [...new Set(variants.map((item) => item.productId))];
+    const products = await database
+      .collection<ProductDocument>("products")
+      .find(
+        {
+          tenantId: context.tenantId,
+          _id: { $in: productIds },
+          stock: { $ne: null },
+          inventoryTracking: { $ne: false },
+        },
+        { session },
+      )
+      .toArray();
+    if (products.length !== productIds.length)
+      throw new InventoryProductUnavailableError(
+        "A historical void product could not be resolved.",
+      );
+    const productById = new Map(
+      products.map((product) => [String(product._id), product]),
+    );
+    const results: Array<{
+      variantId: string;
+      resultingQuantity: number;
+    }> = [];
+    for (const [index, line] of input.lines.entries()) {
+      const variant = variantById.get(line.variantId);
+      const product = variant && productById.get(variant.productId);
+      if (!variant || !product || product._id !== line.productId)
+        throw new InventoryProductUnavailableError(
+          "A historical void item no longer matches its sale snapshot.",
+        );
+      const current = await loadLevel(
+        database,
+        session,
+        context,
+        input.storeId,
+        line.variantId,
+      );
+      const previousQuantity = current?.quantity ?? 0;
+      const resultingQuantity = previousQuantity + line.quantity;
+      if (!Number.isSafeInteger(resultingQuantity))
+        throw new InventoryProductUnavailableError(
+          "The voided stock quantity is outside the supported range.",
+        );
+      await writeLevel(database, session, context, {
+        storeId: input.storeId,
+        variantId: line.variantId,
+        current,
+        expectedVersion: current?.version ?? 0,
+        newQuantity: resultingQuantity,
+        now: input.now,
+      });
+      const productUpdate = await database
+        .collection<ProductDocument>("products")
+        .updateOne(
+          {
+            _id: product._id,
+            tenantId: context.tenantId,
+            stock: { $ne: null },
+            inventoryTracking: { $ne: false },
+          },
+          {
+            $inc: { stock: line.quantity },
+            $set: { updatedAt: input.now, updatedBy: context.userId },
+          },
+          { session },
+        );
+      if (productUpdate.matchedCount !== 1)
+        throw new InventoryProductUnavailableError();
+      await appendMovement(database, session, context, {
+        storeId: input.storeId,
+        productId: product._id,
+        variantId: line.variantId,
+        type: "sale_void",
+        quantityDelta: line.quantity,
+        resultingQuantity,
+        sourceType: "sale_void",
+        sourceId: input.saleId,
+        note: `Void ${input.receiptNumber}`,
+        idempotencyKey: `sale-void:${input.saleId}:movement:${index}`,
         now: input.now,
       });
       results.push({ variantId: line.variantId, resultingQuantity });

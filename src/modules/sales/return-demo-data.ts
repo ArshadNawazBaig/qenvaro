@@ -15,6 +15,7 @@ const demoSales: SaleHistoryItem[] = [
     currency: "USD",
     totalMinor: 24_800,
     returnedTotalMinor: 0,
+    status: "completed",
     completedAt: "2026-08-17T09:40:00.000Z",
   },
   {
@@ -27,6 +28,7 @@ const demoSales: SaleHistoryItem[] = [
     currency: "USD",
     totalMinor: 7_800,
     returnedTotalMinor: 2_600,
+    status: "completed",
     completedAt: "2026-08-17T08:15:00.000Z",
   },
   {
@@ -39,6 +41,7 @@ const demoSales: SaleHistoryItem[] = [
     currency: "USD",
     totalMinor: 19_900,
     returnedTotalMinor: 19_900,
+    status: "completed",
     completedAt: "2026-08-16T14:20:00.000Z",
   },
 ];

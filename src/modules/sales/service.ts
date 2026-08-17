@@ -14,7 +14,9 @@ import {
 import { RecordedPaymentProvider } from "@/modules/sales/payment-provider";
 import {
   completeSaleSchema,
+  voidSaleSchema,
   type CompleteSaleInput,
+  type VoidSaleInput,
 } from "@/modules/sales/schemas";
 import { getMongoClient } from "@/server/db/client";
 import {
@@ -104,6 +106,24 @@ interface SequenceDocument {
   value: number;
 }
 
+interface VoidSaleDocument {
+  _id: string;
+  tenantId: string;
+  storeId: string;
+  receiptNumber: string;
+  status: "completed" | "voided";
+  lines: Array<{
+    productId: string;
+    variantId: string;
+    quantity: number;
+    subtotalMinor: number;
+    discountMinor: number;
+    inventoryTracking: boolean;
+  }>;
+  returnedTotalMinor?: number;
+  version: number;
+}
+
 export class SaleNotFoundError extends Error {
   constructor() {
     super("The requested sale was not found.");
@@ -136,6 +156,29 @@ export class SaleIdempotencyConflictError extends Error {
   constructor() {
     super("This checkout request key was already used for another sale.");
     this.name = "SaleIdempotencyConflictError";
+  }
+}
+
+export class SaleVoidConflictError extends Error {
+  constructor() {
+    super(
+      "A sale with recorded returns cannot be voided. Use the return workflow instead.",
+    );
+    this.name = "SaleVoidConflictError";
+  }
+}
+
+export class SaleVoidConfirmationError extends Error {
+  constructor() {
+    super("Enter the exact receipt number to confirm the void.");
+    this.name = "SaleVoidConfirmationError";
+  }
+}
+
+export class SaleVoidPaymentError extends Error {
+  constructor() {
+    super("This payment provider cannot be voided from Qenvaro.");
+    this.name = "SaleVoidPaymentError";
   }
 }
 
@@ -595,5 +638,183 @@ export class SaleService {
       }
       throw error;
     }
+  }
+
+  async void(
+    context: TenantContext,
+    untrustedInput: VoidSaleInput,
+  ): Promise<{ alreadyVoided: boolean; receiptNumber: string }> {
+    requirePermission(context.permissions, "sale:void");
+    const input = voidSaleSchema.parse(untrustedInput);
+    const client = await getMongoClient();
+    const database = client.db(env.MONGODB_DATABASE);
+    const result = await client.withSession((session) =>
+      session.withTransaction(async () => {
+        await requireWriteProfile(database, context.tenantId, session);
+        const sale = await database
+          .collection<VoidSaleDocument>("sales")
+          .findOne(
+            {
+              _id: input.saleId,
+              tenantId: context.tenantId,
+              storeId: { $in: [...context.allowedStoreIds] },
+              status: { $in: ["completed", "voided"] },
+            },
+            { session },
+          );
+        if (!sale) throw new SaleNotFoundError();
+        if (sale.receiptNumber !== input.confirmationReceiptNumber)
+          throw new SaleVoidConfirmationError();
+        if (sale.status === "voided")
+          return { alreadyVoided: true, receiptNumber: sale.receiptNumber };
+        const returnCount = await database.collection("returns").countDocuments(
+          {
+            tenantId: context.tenantId,
+            saleId: sale._id,
+            status: "completed",
+          },
+          { session },
+        );
+        if (returnCount > 0 || (sale.returnedTotalMinor ?? 0) > 0)
+          throw new SaleVoidConflictError();
+        const payments = await database
+          .collection<{
+            tenantId: string;
+            saleId: string;
+            provider?: string;
+            status: string;
+          }>("salePayments")
+          .find(
+            { tenantId: context.tenantId, saleId: sale._id },
+            { session, projection: { provider: 1, status: 1 } },
+          )
+          .toArray();
+        if (
+          payments.some(
+            (payment) => payment.provider && payment.provider !== "manual",
+          )
+        )
+          throw new SaleVoidPaymentError();
+
+        const now = new Date();
+        await new InventoryService().recordSaleVoidInTransaction(
+          database,
+          session,
+          context,
+          {
+            saleId: sale._id,
+            receiptNumber: sale.receiptNumber,
+            storeId: sale.storeId,
+            lines: sale.lines
+              .filter((line) => line.inventoryTracking)
+              .map((line) => ({
+                productId: line.productId,
+                variantId: line.variantId,
+                quantity: line.quantity,
+              })),
+            now,
+          },
+        );
+
+        const revenueByProduct = new Map<string, number>();
+        for (const line of sale.lines)
+          revenueByProduct.set(
+            line.productId,
+            (revenueByProduct.get(line.productId) ?? 0) +
+              line.subtotalMinor -
+              line.discountMinor,
+          );
+        if (revenueByProduct.size > 0)
+          await database
+            .collection<RevenueProductDocument>("products")
+            .bulkWrite(
+              [...revenueByProduct].map(([productId, revenueMinor]) => ({
+                updateOne: {
+                  filter: { _id: productId, tenantId: context.tenantId },
+                  update: {
+                    $inc: { revenueMinor: -revenueMinor },
+                    $set: { updatedAt: now, updatedBy: context.userId },
+                  },
+                },
+              })),
+              { session },
+            );
+        const saleUpdate = await database
+          .collection<VoidSaleDocument>("sales")
+          .updateOne(
+            {
+              _id: sale._id,
+              tenantId: context.tenantId,
+              status: "completed",
+              version: sale.version,
+            },
+            {
+              $set: {
+                status: "voided",
+                voidReason: input.reason,
+                voidedAt: now,
+                voidedBy: context.userId,
+                updatedAt: now,
+                updatedBy: context.userId,
+              },
+              $inc: { version: 1 },
+            },
+            { session },
+          );
+        if (saleUpdate.matchedCount !== 1)
+          throw new SaleIdempotencyConflictError();
+        await database.collection("salePayments").updateMany(
+          { tenantId: context.tenantId, saleId: sale._id, status: "recorded" },
+          {
+            $set: {
+              status: "voided",
+              voidedAt: now,
+              voidedBy: context.userId,
+            },
+          },
+          { session },
+        );
+        await database.collection("receipts").updateOne(
+          {
+            tenantId: context.tenantId,
+            saleId: sale._id,
+            status: "issued",
+          },
+          {
+            $set: {
+              status: "voided",
+              voidedAt: now,
+              voidedBy: context.userId,
+            },
+          },
+          { session },
+        );
+        await database.collection<StringIdDocument>("auditLogs").insertOne(
+          {
+            _id: createOpaqueId("aud"),
+            tenantId: context.tenantId,
+            actorId: context.userId,
+            action: "sale.voided",
+            entityType: "sale",
+            entityId: sale._id,
+            requestId: context.requestId,
+            summary: "Voided a completed sale and restored tracked inventory.",
+            changes: {
+              before: { status: "completed" },
+              after: {
+                status: "voided",
+                receiptNumber: sale.receiptNumber,
+                storeId: sale.storeId,
+              },
+            },
+            createdAt: now,
+          },
+          { session },
+        );
+        return { alreadyVoided: false, receiptNumber: sale.receiptNumber };
+      }),
+    );
+    if (!result) throw new Error("Sale void did not complete.");
+    return result;
   }
 }

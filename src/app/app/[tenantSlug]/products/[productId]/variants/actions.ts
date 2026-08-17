@@ -5,7 +5,10 @@ import { z } from "zod";
 import { parseDecimalToMinor } from "@/lib/money";
 import { BillingAccessError } from "@/modules/billing/entitlements";
 import { PermissionError } from "@/modules/permissions/permissions";
-import { variantSkuSchema } from "@/modules/variants/schemas";
+import {
+  variantBarcodeSchema,
+  variantSkuSchema,
+} from "@/modules/variants/schemas";
 import {
   DefaultVariantImmutableError,
   OptionConfigurationLockedError,
@@ -18,6 +21,7 @@ import {
   OptionValueLimitError,
   ProductOptionVersionConflictError,
   VariantArchivedError,
+  VariantBarcodeDuplicateError,
   VariantCombinationDuplicateError,
   VariantHasInventoryError,
   VariantNotFoundError,
@@ -53,7 +57,9 @@ const variantFormSchema = z
   .object({
     expectedProductVersion: z.coerce.number().int().min(1),
     sku: variantSkuSchema,
+    barcode: variantBarcodeSchema,
     price: z.string().trim(),
+    cost: z.string().trim(),
   })
   .strict();
 
@@ -61,7 +67,9 @@ const updateVariantFormSchema = z
   .object({
     expectedVariantVersion: z.coerce.number().int().min(1),
     sku: variantSkuSchema,
+    barcode: variantBarcodeSchema,
     price: z.string().trim(),
+    cost: z.string().trim(),
   })
   .strict();
 
@@ -107,6 +115,7 @@ function failure(error: unknown): VariantActionState {
     error instanceof OptionSelectionInvalidError ||
     error instanceof VariantCombinationDuplicateError ||
     error instanceof VariantSkuDuplicateError ||
+    error instanceof VariantBarcodeDuplicateError ||
     error instanceof VariantHasInventoryError ||
     error instanceof DefaultVariantImmutableError ||
     error instanceof VariantArchivedError ||
@@ -137,7 +146,9 @@ function failure(error: unknown): VariantActionState {
       status: "error",
       message: duplicate.keyPattern?.optionSignature
         ? "That option combination already has a variant."
-        : "That SKU is already used by another variant.",
+        : duplicate.keyPattern?.barcode
+          ? "That barcode is already used by another variant."
+          : "That SKU is already used by another variant.",
     };
   }
   if (
@@ -251,7 +262,9 @@ export async function createVariantAction(
     const form = variantFormSchema.parse({
       expectedProductVersion: formData.get("expectedProductVersion"),
       sku: formData.get("sku"),
+      barcode: formData.get("barcode"),
       price: formData.get("price"),
+      cost: formData.get("cost"),
     });
     const optionValues = formData.getAll("optionValue").map((rawValue) => {
       const [optionId, valueId, ...rest] = String(rawValue).split(":");
@@ -263,7 +276,9 @@ export async function createVariantAction(
       productId,
       expectedProductVersion: form.expectedProductVersion,
       sku: form.sku,
+      barcode: form.barcode || undefined,
       priceMinor: parseDecimalToMinor(form.price),
+      costMinor: parseDecimalToMinor(form.cost),
       optionValues,
     });
     revalidateProduct(context.tenantSlug, productId);
@@ -292,7 +307,9 @@ export async function updateVariantAction(
       variantId,
       expectedVariantVersion: form.expectedVariantVersion,
       sku: form.sku,
+      barcode: form.barcode,
       priceMinor: parseDecimalToMinor(form.price),
+      costMinor: parseDecimalToMinor(form.cost),
     });
     revalidateProduct(context.tenantSlug, productId);
     return {

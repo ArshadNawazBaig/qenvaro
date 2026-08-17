@@ -1,6 +1,13 @@
 "use client";
 
-import { MailPlus, Settings2, Store, Trash2, UserMinus } from "lucide-react";
+import {
+  Crown,
+  MailPlus,
+  Settings2,
+  Store,
+  Trash2,
+  UserMinus,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
@@ -9,6 +16,7 @@ import {
   inviteMemberAction,
   type MemberActionState,
   removeMemberAction,
+  transferOwnershipAction,
   updateMemberAction,
 } from "@/app/app/[tenantSlug]/settings/members/actions";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +46,74 @@ const initialMemberActionState: MemberActionState = {
   status: "idle",
   message: "",
 };
+
+export function OwnershipTransferDialog({
+  tenantSlug,
+  member,
+}: {
+  tenantSlug: string;
+  member: TenantMemberListItem;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [state, action, pending] = React.useActionState(
+    transferOwnershipAction.bind(null, tenantSlug, member.id),
+    initialMemberActionState,
+  );
+  const router = useRouter();
+  React.useEffect(() => {
+    if (state.status !== "success") return;
+    toast.success(state.message);
+    router.refresh();
+    const timeout = window.setTimeout(() => setOpen(false), 0);
+    return () => window.clearTimeout(timeout);
+  }, [router, state]);
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          aria-label={`Transfer ownership to ${member.name}`}
+        >
+          <Crown /> Make owner
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogTitle className="text-lg font-semibold">
+          Transfer ownership to {member.name}?
+        </DialogTitle>
+        <DialogDescription className="text-muted-foreground mt-1 text-sm leading-6">
+          The new owner will control billing, ownership, and deletion. Your role
+          will immediately become Administrator. Two-factor authentication is
+          required on your account.
+        </DialogDescription>
+        <form action={action} className="mt-5 space-y-4">
+          <label className="block space-y-2 text-sm font-medium">
+            Enter {member.email} to confirm
+            <Input
+              name="confirmationEmail"
+              type="email"
+              autoComplete="off"
+              required
+              placeholder={member.email}
+            />
+          </label>
+          <ActionMessage status={state.status} message={state.message} />
+          <div className="flex justify-end gap-2">
+            <DialogClose asChild>
+              <Button type="button" variant="outline" disabled={pending}>
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button type="submit" variant="destructive" disabled={pending}>
+              {pending ? "Transferring…" : "Transfer ownership"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function RoleSelect({ defaultValue }: { defaultValue: string }) {
   return (

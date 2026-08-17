@@ -6,6 +6,7 @@ import {
   CancelInvitationButton,
   InviteMemberDialog,
   MemberAccessDialog,
+  OwnershipTransferDialog,
   StoreAccessBadges,
 } from "@/components/members/member-management";
 import { PageContainer } from "@/components/shared/page-container";
@@ -51,6 +52,10 @@ export default async function MembersPage({
   const canInvite = hasPermission(context.permissions, "member:invite");
   const canUpdate = hasPermission(context.permissions, "member:updateRole");
   const canRemove = hasPermission(context.permissions, "member:remove");
+  const canTransferOwnership = hasPermission(
+    context.permissions,
+    "tenant:transferOwnership",
+  );
   const data = await getTenantMemberManagementData(context, await headers());
   return (
     <PageContainer>
@@ -148,7 +153,7 @@ export default async function MembersPage({
                 stores={data.stores}
                 storeIds={member.storeIds}
               />
-              <div className="justify-self-start sm:justify-self-end">
+              <div className="flex flex-wrap gap-2 justify-self-start sm:justify-self-end">
                 <MemberAccessDialog
                   tenantSlug={tenantSlug}
                   member={member}
@@ -156,6 +161,14 @@ export default async function MembersPage({
                   canUpdate={canUpdate}
                   canRemove={canRemove}
                 />
+                {canTransferOwnership &&
+                  !member.isCurrentUser &&
+                  !member.role.split(",").includes("owner") && (
+                    <OwnershipTransferDialog
+                      tenantSlug={tenantSlug}
+                      member={member}
+                    />
+                  )}
               </div>
             </CardListItem>
           ))}

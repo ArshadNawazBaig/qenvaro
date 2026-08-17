@@ -67,7 +67,9 @@ interface VariantDocument {
   name: string;
   sku: string;
   normalizedSku: string;
+  barcode?: string | null;
   priceMinor: number;
+  costMinor?: number;
   currency: string;
   status: "active" | "archived";
   isDefault: boolean;
@@ -200,6 +202,13 @@ export class VariantSkuDuplicateError extends Error {
   constructor() {
     super("That SKU is already used by another variant.");
     this.name = "VariantSkuDuplicateError";
+  }
+}
+
+export class VariantBarcodeDuplicateError extends Error {
+  constructor() {
+    super("That barcode is already used by another variant.");
+    this.name = "VariantBarcodeDuplicateError";
   }
 }
 
@@ -654,7 +663,7 @@ export class VariantService {
         const optionSignature = createOptionSignature(optionValues);
         const variants =
           database.collection<VariantDocument>("productVariants");
-        const [sameCombination, sameSku] = await Promise.all([
+        const [sameCombination, sameSku, sameBarcode] = await Promise.all([
           variants.findOne(
             {
               tenantId: context.tenantId,
@@ -672,9 +681,20 @@ export class VariantService {
             },
             { session, projection: { _id: 1 } },
           ),
+          input.barcode
+            ? variants.findOne(
+                {
+                  tenantId: context.tenantId,
+                  barcode: input.barcode,
+                  deletedAt: { $exists: false },
+                },
+                { session, projection: { _id: 1 } },
+              )
+            : Promise.resolve(null),
         ]);
         if (sameCombination) throw new VariantCombinationDuplicateError();
         if (sameSku) throw new VariantSkuDuplicateError();
+        if (sameBarcode) throw new VariantBarcodeDuplicateError();
         const now = new Date();
         const productUpdate = await database
           .collection<VariantProductDocument>("products")
@@ -709,7 +729,11 @@ export class VariantService {
             name,
             sku: input.sku,
             normalizedSku: normalizeVariantSku(input.sku),
+            ...(input.barcode ? { barcode: input.barcode } : {}),
             priceMinor: input.priceMinor,
+            ...(input.costMinor === undefined
+              ? {}
+              : { costMinor: input.costMinor }),
             currency: product.currency,
             status: "active",
             isDefault: false,
@@ -733,7 +757,9 @@ export class VariantService {
             after: {
               productId: input.productId,
               sku: input.sku,
+              barcode: input.barcode ?? null,
               priceMinor: input.priceMinor,
+              costMinor: input.costMinor ?? null,
               optionValues,
             },
           },
@@ -778,17 +804,41 @@ export class VariantService {
         if (existing.version !== input.expectedVariantVersion)
           throw new VariantVersionConflictError();
         const normalizedSku = normalizeVariantSku(input.sku);
-        const duplicate = await variants.findOne(
-          {
-            tenantId: context.tenantId,
-            normalizedSku,
-            _id: { $ne: input.variantId },
-            deletedAt: { $exists: false },
-          },
-          { session, projection: { _id: 1 } },
-        );
-        if (duplicate) throw new VariantSkuDuplicateError();
+        const [duplicateSku, duplicateBarcode] = await Promise.all([
+          variants.findOne(
+            {
+              tenantId: context.tenantId,
+              normalizedSku,
+              _id: { $ne: input.variantId },
+              deletedAt: { $exists: false },
+            },
+            { session, projection: { _id: 1 } },
+          ),
+          input.barcode
+            ? variants.findOne(
+                {
+                  tenantId: context.tenantId,
+                  barcode: input.barcode,
+                  _id: { $ne: input.variantId },
+                  deletedAt: { $exists: false },
+                },
+                { session, projection: { _id: 1 } },
+              )
+            : Promise.resolve(null),
+        ]);
+        if (duplicateSku) throw new VariantSkuDuplicateError();
+        if (duplicateBarcode) throw new VariantBarcodeDuplicateError();
         const now = new Date();
+        const setFields: Record<string, unknown> = {
+          sku: input.sku,
+          normalizedSku,
+          priceMinor: input.priceMinor,
+          updatedAt: now,
+          updatedBy: context.userId,
+        };
+        if (input.costMinor !== undefined)
+          setFields.costMinor = input.costMinor;
+        if (input.barcode?.trim()) setFields.barcode = input.barcode.trim();
         const update = await variants.updateOne(
           {
             _id: input.variantId,
@@ -799,13 +849,8 @@ export class VariantService {
             deletedAt: { $exists: false },
           },
           {
-            $set: {
-              sku: input.sku,
-              normalizedSku,
-              priceMinor: input.priceMinor,
-              updatedAt: now,
-              updatedBy: context.userId,
-            },
+            $set: setFields,
+            ...(input.barcode === "" ? { $unset: { barcode: "" } } : {}),
             $inc: { version: 1 },
           },
           { session },
@@ -834,8 +879,18 @@ export class VariantService {
           entityId: input.variantId,
           summary: "Updated sellable variant details.",
           changes: {
-            before: { sku: existing.sku, priceMinor: existing.priceMinor },
-            after: { sku: input.sku, priceMinor: input.priceMinor },
+            before: {
+              sku: existing.sku,
+              barcode: existing.barcode ?? null,
+              priceMinor: existing.priceMinor,
+              costMinor: existing.costMinor ?? null,
+            },
+            after: {
+              sku: input.sku,
+              barcode: input.barcode ?? existing.barcode ?? null,
+              priceMinor: input.priceMinor,
+              costMinor: input.costMinor ?? existing.costMinor ?? null,
+            },
           },
           now,
         });

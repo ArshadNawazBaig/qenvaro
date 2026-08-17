@@ -44,7 +44,7 @@ interface ReturnSaleDocument {
   storeId: string;
   receiptNumber: string;
   customer: { id: string; code: string; name: string } | null;
-  status: "completed";
+  status: "completed" | "voided";
   currency: string;
   lines: ReturnableSaleLineSnapshot[];
   totalMinor: number;
@@ -164,7 +164,7 @@ export class SaleReturnRepository {
     const filter: Filter<SaleHistoryDocument> = {
       tenantId: context.tenantId,
       storeId: { $in: allowedStoreIds },
-      status: "completed" as const,
+      status: { $in: ["completed", "voided"] },
       ...search,
     };
     const [sales, total, stores] = await Promise.all([
@@ -180,6 +180,7 @@ export class SaleReturnRepository {
             totalMinor: 1,
             returnedTotalMinor: 1,
             completedAt: 1,
+            status: 1,
           },
         })
         .sort({ completedAt: -1, _id: -1 })
@@ -208,6 +209,7 @@ export class SaleReturnRepository {
       currency: safeCurrency(sale.currency || profile.currency),
       totalMinor: sale.totalMinor,
       returnedTotalMinor: sale.returnedTotalMinor ?? 0,
+      status: sale.status,
       completedAt: sale.completedAt.toISOString(),
     }));
     return {

@@ -12,6 +12,7 @@ import {
   OptionGroupInUseError,
   ProductOptionVersionConflictError,
   VariantCombinationDuplicateError,
+  VariantBarcodeDuplicateError,
   VariantHasInventoryError,
   VariantProductNotFoundError,
   VariantService,
@@ -205,7 +206,9 @@ describe.skipIf(!enabled)("variant and option lifecycle transaction", () => {
       productId,
       expectedProductVersion: 5,
       sku: `OX-BLK-M-${suffix.slice(0, 6)}`,
+      barcode: `BC-BLK-M-${suffix.slice(0, 6)}`,
       priceMinor: 8_400,
+      costMinor: 4_100,
       optionValues: [
         { optionId: colorGroupId, valueId: blackValueId },
         { optionId: sizeGroupId, valueId: mediumValueId },
@@ -230,13 +233,30 @@ describe.skipIf(!enabled)("variant and option lifecycle transaction", () => {
       productId,
       expectedProductVersion: 6,
       sku: `OX-BLK-L-${suffix.slice(0, 6)}`,
+      barcode: `BC-BLK-L-${suffix.slice(0, 6)}`,
       priceMinor: 8_600,
+      costMinor: 4_200,
       optionValues: [
         { optionId: colorGroupId, valueId: blackValueId },
         { optionId: sizeGroupId, valueId: largeValueId },
       ],
     });
     zeroStockVariantId = zeroStock.id;
+
+    await expect(
+      service.createVariant(ownerContext, {
+        productId,
+        expectedProductVersion: 7,
+        sku: `OX-BC-DUPE-${suffix.slice(0, 6)}`,
+        barcode: `BC-BLK-M-${suffix.slice(0, 6)}`,
+        priceMinor: 8_900,
+        costMinor: 4_300,
+        optionValues: [
+          { optionId: colorGroupId, valueId: tanValueId },
+          { optionId: sizeGroupId, valueId: mediumValueId },
+        ],
+      }),
+    ).rejects.toBeInstanceOf(VariantBarcodeDuplicateError);
 
     await expect(
       service.createVariant(ownerContext, {
@@ -320,7 +340,9 @@ describe.skipIf(!enabled)("variant and option lifecycle transaction", () => {
       variantId: stockedVariantId,
       expectedVariantVersion: 1,
       sku: `OX-BLACK-M-${suffix.slice(0, 6)}`,
+      barcode: `BC-BLACK-M-${suffix.slice(0, 6)}`,
       priceMinor: 8_700,
+      costMinor: 4_400,
     });
     expect(updated.variantVersion).toBe(2);
 
@@ -364,6 +386,17 @@ describe.skipIf(!enabled)("variant and option lifecycle transaction", () => {
       action: "product.variant.updated",
     });
     expect(audit).toMatchObject({ actorId: ownerContext.userId });
+    const detail = await new ProductRepository().detail(
+      ownerContext,
+      productId,
+    );
+    expect(
+      detail?.variants.find((variant) => variant.id === stockedVariantId),
+    ).toMatchObject({
+      barcode: `BC-BLACK-M-${suffix.slice(0, 6)}`,
+      costMinor: 4_400,
+      priceMinor: 8_700,
+    });
   });
 
   it("blocks stock-bearing archives and preserves inventory history", async () => {

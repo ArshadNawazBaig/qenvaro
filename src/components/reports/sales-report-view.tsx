@@ -4,6 +4,7 @@ import {
   PackageCheck,
   RotateCcw,
   TrendingUp,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
 import { MetricCard } from "@/components/dashboard/metric-card";
@@ -22,6 +23,7 @@ import { SalesReportToolbar } from "@/components/reports/sales-report-toolbar";
 import { SalesReportTrend } from "@/components/reports/sales-report-trend";
 import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
+import { PrintButton } from "@/components/shared/print-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
@@ -34,11 +36,13 @@ export function SalesReportView({
   report,
   query,
   isDemo,
+  canExport,
 }: {
   tenantSlug: string;
   report: SalesReportOverview;
   query: SalesReportQuery;
   isDemo: boolean;
+  canExport: boolean;
 }) {
   const summary = report.summary;
   const periodEnd = new Date(new Date(report.periodEnd).getTime() - 1);
@@ -54,6 +58,11 @@ export function SalesReportView({
     ["Net sales before tax", summary.netSalesMinor],
     ["Net tax", summary.taxMinor],
   ];
+  const exportParams = new URLSearchParams({
+    range: query.range,
+    store: query.store,
+  });
+  const exportHref = `/api/app/${encodeURIComponent(tenantSlug)}/reports/sales/export?${exportParams.toString()}`;
 
   return (
     <PageContainer>
@@ -71,9 +80,31 @@ export function SalesReportView({
         title="Sales performance"
         description="Understand gross sales, returns, net revenue, profit, payment behavior, and the products and stores driving the period."
         actions={
-          <Button variant="outline" asChild>
-            <Link href={`/app/${tenantSlug}/sales`}>Sales history</Link>
-          </Button>
+          <>
+            <PrintButton label="Print report" />
+            {canExport && !isDemo ? (
+              <Button variant="outline" asChild>
+                <a href={exportHref} download>
+                  <Download /> Export CSV
+                </a>
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                disabled
+                title={
+                  isDemo
+                    ? "Exports require a live tenant."
+                    : "Your role cannot export reports."
+                }
+              >
+                <Download /> Export CSV
+              </Button>
+            )}
+            <Button variant="outline" asChild>
+              <Link href={`/app/${tenantSlug}/sales`}>Sales history</Link>
+            </Button>
+          </>
         }
       />
       <Card>

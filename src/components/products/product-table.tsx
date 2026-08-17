@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  columnVisibilityFeature,
+  type ColumnVisibilityState,
   type ColumnDef,
   flexRender,
   rowSelectionFeature,
@@ -20,11 +22,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
+import { toast } from "sonner";
+import { bulkProductStatusAction } from "@/app/app/[tenantSlug]/products/actions";
+import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -43,7 +49,18 @@ const toneClasses = {
   berry: "from-pink-200 to-fuchsia-700",
   slate: "from-slate-100 to-slate-500",
 } as const;
-const productTableFeatures = tableFeatures({ rowSelectionFeature });
+const productTableFeatures = tableFeatures({
+  rowSelectionFeature,
+  columnVisibilityFeature,
+});
+const columnLabels: Record<string, string> = {
+  sku: "SKU / slug",
+  priceMinor: "Price",
+  stock: "Stock",
+  category: "Category",
+  status: "Status",
+  performance: "Performance",
+};
 function StockBadge({ product }: { product: ProductListItem }) {
   if (product.stock === null) return <Badge variant="outline">Service</Badge>;
   if (product.stock === 0)
@@ -84,6 +101,11 @@ export function ProductTable({
   isDemo: boolean;
 }) {
   const [rowSelection, setRowSelection] = React.useState({});
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<ColumnVisibilityState>({});
+  const [archiveConfirmationOpen, setArchiveConfirmationOpen] =
+    React.useState(false);
+  const [bulkPending, startBulkTransition] = React.useTransition();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -99,6 +121,7 @@ export function ProductTable({
     () => [
       {
         id: "select",
+        enableHiding: false,
         header: ({ table }) => (
           <Checkbox
             checked={
@@ -121,6 +144,7 @@ export function ProductTable({
       },
       {
         accessorKey: "name",
+        enableHiding: false,
         header: "Product",
         cell: ({ row }) => (
           <div className="flex min-w-48 items-center gap-3">
@@ -218,6 +242,7 @@ export function ProductTable({
       },
       {
         id: "actions",
+        enableHiding: false,
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => (
           <DropdownMenu>
@@ -289,11 +314,42 @@ export function ProductTable({
     features: productTableFeatures,
     data: items,
     columns,
-    state: { rowSelection },
+    state: { rowSelection, columnVisibility },
     onRowSelectionChange: setRowSelection,
+    onColumnVisibilityChange: setColumnVisibility,
     getRowId: (row) => row.id,
   });
   const selected = table.getSelectedRowModel().rows.length;
+  const selectedProducts = table
+    .getSelectedRowModel()
+    .rows.map((row) => row.original);
+  const canActivateSelection =
+    canUpdate &&
+    !isDemo &&
+    !bulkPending &&
+    selectedProducts.some((product) => product.status === "draft") &&
+    selectedProducts.every((product) => product.status !== "archived");
+  const canArchiveSelection =
+    canArchive &&
+    !isDemo &&
+    !bulkPending &&
+    selectedProducts.some((product) => product.status !== "archived");
+  const runBulkAction = (status: "active" | "archived") => {
+    const productIds = selectedProducts.map((product) => product.id);
+    startBulkTransition(async () => {
+      const result = await bulkProductStatusAction(
+        tenantSlug,
+        productIds,
+        status,
+      );
+      if (result.status === "success") {
+        toast.success(result.message);
+        setRowSelection({});
+        setArchiveConfirmationOpen(false);
+        router.refresh();
+      } else toast.error(result.message);
+    });
+  };
   if (items.length === 0)
     return (
       <div className="p-4">
@@ -345,7 +401,7 @@ export function ProductTable({
                 data-state={row.getIsSelected() ? "selected" : undefined}
                 className="hover:bg-muted/30 data-[state=selected]:bg-accent/55 border-b transition-colors last:border-0"
               >
-                {row.getAllCells().map((cell) => (
+                {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}
                     className={cn(
@@ -365,10 +421,20 @@ export function ProductTable({
             <span className="pr-2 text-xs font-medium">
               {selected} selected
             </span>
-            <Button variant="secondary" size="sm" disabled>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={!canActivateSelection}
+              onClick={() => runBulkAction("active")}
+            >
               Activate
             </Button>
-            <Button variant="secondary" size="sm" disabled>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={!canArchiveSelection}
+              onClick={() => setArchiveConfirmationOpen(true)}
+            >
               Archive
             </Button>
             <Button
@@ -388,9 +454,30 @@ export function ProductTable({
           Showing {items.length} of {total} products
         </p>
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="sm" disabled>
-            <SlidersHorizontal /> Columns
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <SlidersHorizontal /> Columns
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {table
+                .getAllLeafColumns()
+                .filter((column) => column.getCanHide())
+                .map((column) => (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(checked) =>
+                      column.toggleVisibility(Boolean(checked))
+                    }
+                    onSelect={(event) => event.preventDefault()}
+                  >
+                    {columnLabels[column.id] ?? column.id}
+                  </DropdownMenuCheckboxItem>
+                ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <span className="text-muted-foreground px-2 text-xs">
             Page {page} of {pageCount}
           </span>
@@ -416,6 +503,16 @@ export function ProductTable({
           </Button>
         </div>
       </div>
+      <ConfirmActionDialog
+        open={archiveConfirmationOpen}
+        onOpenChange={setArchiveConfirmationOpen}
+        title={`Archive ${selected.toLocaleString()} ${selected === 1 ? "product" : "products"}?`}
+        description="Archived products are removed from active sales workflows. Existing inventory quantities and audit history will be preserved."
+        confirmLabel="Archive products"
+        destructive
+        pending={bulkPending}
+        onConfirm={() => runBulkAction("archived")}
+      />
     </>
   );
 }

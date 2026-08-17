@@ -25,3 +25,10 @@ export const memberTargetSchema = z.object({
 export const invitationTargetSchema = z.object({
   invitationId: z.string().trim().min(3).max(128),
 });
+
+export const transferOwnershipSchema = z
+  .object({
+    memberId: z.string().trim().min(3).max(128),
+    confirmationEmail: z.string().trim().toLowerCase().email().max(254),
+  })
+  .strict();

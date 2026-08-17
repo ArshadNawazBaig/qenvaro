@@ -22,7 +22,7 @@
   --success-foreground: oklch(0.32 0.095 148);
   --warning: oklch(0.87 0.15 84);
   --warning-foreground: oklch(0.38 0.09 60);
-  --destructive: oklch(0.62 0.21 26);
+  --destructive: oklch(0.52 0.2 26);
   --destructive-foreground: oklch(0.99 0 0);
   --border: oklch(0.93 0.008 270);
   --input: oklch(0.9 0.01 270);
@@ -34,7 +34,7 @@
   --radius: 0.625rem;
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.22 0.025 270);
-  --sidebar-accent: oklch(0.55 0.245 272);
+  --sidebar-accent: oklch(0.48 0.23 272);
   --sidebar-accent-foreground: oklch(0.99 0 0);
   --sidebar-border: oklch(0.925 0.012 270);
   --shadow-card:
@@ -65,14 +65,14 @@
   --success-foreground: oklch(0.93 0.05 164);
   --warning: oklch(0.72 0.13 80);
   --warning-foreground: oklch(0.96 0.05 80);
-  --destructive: oklch(0.66 0.2 26);
+  --destructive: oklch(0.54 0.19 26);
   --destructive-foreground: oklch(0.98 0 0);
   --border: oklch(0.31 0.014 260);
   --input: oklch(0.31 0.014 260);
   --ring: oklch(0.68 0.18 258);
   --sidebar: oklch(0.135 0.018 260);
   --sidebar-foreground: oklch(0.9 0.008 75);
-  --sidebar-accent: oklch(0.62 0.2 272);
+  --sidebar-accent: oklch(0.5 0.21 272);
   --sidebar-accent-foreground: oklch(0.99 0 0);
   --sidebar-border: oklch(0.25 0.02 260);
   --shadow-card:
@@ -220,5 +220,29 @@ textarea:focus-visible,
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  [data-app-frame] {
+    display: block !important;
+    min-height: auto !important;
+  }
+
+  [data-app-frame] > aside,
+  [data-app-frame] > div > header,
+  button,
+  [role="dialog"] {
+    display: none !important;
+  }
+
+  [data-slot="page-container"] {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  [data-slot="card"] {
+    break-inside: avoid;
+    box-shadow: none !important;
   }
 }
