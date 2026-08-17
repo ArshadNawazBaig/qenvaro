@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -10,6 +11,29 @@ import {
   YAxis,
 } from "recharts";
 import type { DashboardTrendPoint } from "@/modules/dashboard/schemas";
+
+function maximumXAxisTicks(width: number): number {
+  if (width === 0) return 6;
+  if (width < 360) return 3;
+  if (width < 560) return 4;
+  if (width < 820) return 6;
+  if (width < 1_200) return 8;
+  return 10;
+}
+
+function sampleXAxisLabels(
+  data: readonly DashboardTrendPoint[],
+  maximumTicks: number,
+): string[] {
+  if (data.length <= maximumTicks) return data.map((point) => point.label);
+
+  return Array.from({ length: maximumTicks }, (_, index) => {
+    const dataIndex = Math.round(
+      (index * (data.length - 1)) / (maximumTicks - 1),
+    );
+    return data[dataIndex]?.label ?? "";
+  }).filter(Boolean);
+}
 
 function compactMoney(
   amountMinor: number,
@@ -50,6 +74,12 @@ export function SalesOverview({
   rangeLabel: string;
   canViewSales: boolean;
 }) {
+  const [chartWidth, setChartWidth] = useState(0);
+  const xAxisTicks = useMemo(
+    () => sampleXAxisLabels(data, maximumXAxisTicks(chartWidth)),
+    [chartWidth, data],
+  );
+
   if (!canViewSales) {
     return (
       <div
@@ -86,13 +116,12 @@ export function SalesOverview({
     );
   }
 
-  const labelStep = data.length > 14 ? 4 : data.length > 7 ? 2 : 0;
   const first = data.find((point) => point.completedSales > 0);
   const last = [...data].reverse().find((point) => point.completedSales > 0);
 
   return (
-    <div className="min-w-0 px-2 pt-7 pb-4 sm:px-4">
-      <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2 px-3 text-[11px] font-medium">
+    <div className="min-w-0 px-1 pt-5 pb-3 sm:px-4 sm:pt-7 sm:pb-4">
+      <div className="flex flex-wrap items-center justify-start gap-x-4 gap-y-2 px-3 text-[11px] font-medium sm:justify-end sm:gap-x-5">
         <span className="flex items-center gap-2">
           <span className="bg-primary h-0.5 w-4" />
           Net sales
@@ -103,14 +132,23 @@ export function SalesOverview({
         </span>
       </div>
       <div
-        className="mt-3 h-64 min-w-0"
+        className="mt-3 h-56 min-w-0 sm:h-64"
         role="img"
         aria-label={`${rangeLabel} sales trend. ${first ? `${first.label}: ${fullMoney(first.netSalesMinor, currency, locale)}.` : ""} ${last ? `${last.label}: ${fullMoney(last.netSalesMinor, currency, locale)}.` : ""}`}
       >
-        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minWidth={0}
+          onResize={(width) => {
+            setChartWidth((currentWidth) =>
+              currentWidth === width ? currentWidth : width,
+            );
+          }}
+        >
           <LineChart
             data={data}
-            margin={{ top: 8, right: 12, left: -8, bottom: 0 }}
+            margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
           >
             <CartesianGrid
               vertical={false}
@@ -122,14 +160,15 @@ export function SalesOverview({
               axisLine={false}
               tickLine={false}
               tickMargin={10}
-              interval={labelStep}
-              minTickGap={16}
-              tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+              ticks={xAxisTicks}
+              interval={0}
+              minTickGap={8}
+              tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              width={52}
+              width={chartWidth > 0 && chartWidth < 480 ? 62 : 72}
               tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
               tickFormatter={(value) =>
                 compactMoney(Number(value), currency, locale)

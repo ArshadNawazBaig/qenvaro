@@ -29,6 +29,22 @@ describe("dashboard policy", () => {
     expect(period.previousStart.toISOString()).toBe("2026-08-03T04:00:00.000Z");
   });
 
+  it.each([
+    ["30d", 30],
+    ["90d", 90],
+    ["120d", 120],
+  ] as const)("supports the %s dashboard reporting period", (range, days) => {
+    const period = dashboardPeriod(
+      range,
+      "UTC",
+      new Date("2026-08-16T12:00:00.000Z"),
+    );
+
+    expect(period.days).toBe(days);
+    expect(period.dateKeys).toHaveLength(days);
+    expect(period.label).toBe(`Last ${days} days`);
+  });
+
   it("fills missing trend days and keeps incomplete profit honest", () => {
     const period = dashboardPeriod(
       "7d",

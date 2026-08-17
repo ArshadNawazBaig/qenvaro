@@ -2,7 +2,6 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   CircleDollarSign,
-  CalendarDays,
   Check,
   CircleAlert,
   PackageCheck,
@@ -13,11 +12,12 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import Link from "next/link";
+import { DashboardPeriodSelect } from "@/components/dashboard/dashboard-period-select";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { SalesOverview } from "@/components/dashboard/sales-overview";
 import { PageContainer, PageStatus } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -50,42 +50,6 @@ function money(amountMinor: number, dashboard: DashboardOverview): string {
   return formatMoney(
     { amountMinor, currency: dashboard.currency },
     dashboard.locale,
-  );
-}
-
-function PeriodControl({
-  tenantSlug,
-  range,
-}: {
-  tenantSlug: string;
-  range: DashboardOverview["range"];
-}) {
-  return (
-    <div
-      className="bg-card flex items-center rounded-lg border p-1"
-      role="group"
-      aria-label="Dashboard reporting period"
-    >
-      {(["7d", "30d"] as const).map((option) => {
-        const selected = option === range;
-        return (
-          <Link
-            key={option}
-            href={`/app/${tenantSlug}?range=${option}`}
-            aria-current={selected ? "page" : undefined}
-            className={cn(
-              buttonVariants({
-                variant: selected ? "secondary" : "ghost",
-                size: "sm",
-              }),
-              "min-w-12 shadow-none",
-            )}
-          >
-            {option === "7d" ? "7 days" : "30 days"}
-          </Link>
-        );
-      })}
-    </div>
   );
 }
 
@@ -616,11 +580,10 @@ export function DashboardView({
         description={`Welcome back, ${dashboard.firstName}. Here is the latest from your authorized workspace.`}
         actions={
           <>
-            <div className="text-muted-foreground hidden items-center gap-2 text-xs xl:flex">
-              <CalendarDays className="size-4" aria-hidden="true" />
-              {dashboard.rangeLabel}
-            </div>
-            <PeriodControl tenantSlug={tenantSlug} range={dashboard.range} />
+            <DashboardPeriodSelect
+              tenantSlug={tenantSlug}
+              range={dashboard.range}
+            />
             {catalog && (
               <Button asChild>
                 <Link href={`/app/${tenantSlug}/products`}>

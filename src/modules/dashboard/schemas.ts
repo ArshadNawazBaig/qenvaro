@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-export const dashboardRangeSchema = z.enum(["7d", "30d"]).catch("7d");
+export const dashboardRangeSchema = z
+  .enum(["7d", "30d", "90d", "120d"])
+  .catch("7d");
 
 export const dashboardQuerySchema = z.object({
   range: dashboardRangeSchema,

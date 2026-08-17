@@ -99,7 +99,13 @@ export function dashboardPeriod(
   timezone: string,
   now = new Date(),
 ): DashboardPeriod {
-  const days = range === "30d" ? 30 : 7;
+  const daysByRange = {
+    "7d": 7,
+    "30d": 30,
+    "90d": 90,
+    "120d": 120,
+  } as const satisfies Record<DashboardRange, 7 | 30 | 90 | 120>;
+  const days = daysByRange[range];
   return tenantCalendarPeriod(days, timezone, now);
 }
 

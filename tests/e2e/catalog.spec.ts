@@ -12,19 +12,23 @@ test("public landing and product demo are usable", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Business overview" }),
   ).toBeVisible({ timeout: 20_000 });
-  const periodControl = page.getByRole("group", {
+  const periodControl = page.getByRole("combobox", {
     name: "Dashboard reporting period",
   });
-  await expect(
-    periodControl.getByRole("link", { name: "7 days" }),
-  ).toHaveAttribute("aria-current", "page");
-  await periodControl.getByRole("link", { name: "30 days" }).click();
+  await expect(periodControl).toHaveText("Last 7 days");
+  await periodControl.click();
+  await page.getByRole("option", { name: "Last 30 days" }).click();
   await expect(page).toHaveURL(/\?range=30d$/);
-  await expect(
-    periodControl.getByRole("link", { name: "30 days" }),
-  ).toHaveAttribute("aria-current", "page");
+  await expect(periodControl).toHaveText("Last 30 days");
   await expect(
     page.getByRole("img", { name: /Last 30 days sales trend/i }),
+  ).toBeVisible();
+  await periodControl.click();
+  await page.getByRole("option", { name: "Last 120 days" }).click();
+  await expect(page).toHaveURL(/\?range=120d$/);
+  await expect(periodControl).toHaveText("Last 120 days");
+  await expect(
+    page.getByRole("img", { name: /Last 120 days sales trend/i }),
   ).toBeVisible();
   const originalViewport = page.viewportSize();
   await page.setViewportSize({ width: 320, height: 700 });

@@ -153,10 +153,8 @@ test.describe("authenticated first-workspace onboarding", () => {
       page.getByRole("heading", { name: "Business overview" }),
     ).toBeVisible();
     await expect(
-      page
-        .getByRole("group", { name: "Dashboard reporting period" })
-        .getByRole("link", { name: "7 days" }),
-    ).toHaveAttribute("aria-current", "page");
+      page.getByRole("combobox", { name: "Dashboard reporting period" }),
+    ).toHaveText("Last 7 days");
     await expect(
       page.getByRole("button", {
         name: "Switch store. Current store: Clifton Store",

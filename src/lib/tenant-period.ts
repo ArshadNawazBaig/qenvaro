@@ -74,7 +74,7 @@ export function calendarDateToUtc(value: CalendarDate, timezone: string): Date {
 }
 
 export function tenantCalendarPeriod(
-  days: 7 | 30 | 90,
+  days: 7 | 30 | 90 | 120,
   timezone: string,
   now = new Date(),
 ): TenantCalendarPeriod {

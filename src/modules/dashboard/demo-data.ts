@@ -15,10 +15,10 @@ export function getDemoDashboard(
   const timezone = "America/New_York";
   const locale = "en-US";
   const period = dashboardPeriod(range, timezone, now);
-  const multiplier = range === "30d" ? 0.82 : 1;
+  const multiplier = range === "7d" ? 1 : range === "30d" ? 0.82 : 0.74;
   const rows = period.dateKeys.map((date, index) => {
     const weekIndex = index % weeklyNetSales.length;
-    const cycle = range === "30d" ? 0.88 + index * 0.009 : 1;
+    const cycle = range === "7d" ? 1 : 0.88 + index * (0.27 / period.days);
     return {
       date,
       netSalesMinor: Math.round(

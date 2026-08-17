@@ -165,9 +165,9 @@ test.describe("authenticated workspace and member administration", () => {
     await expect(page.getByText("No store sales to compare")).toBeVisible();
     await expect(page.getByText("Workspace setup completed")).toBeVisible();
     await page
-      .getByRole("group", { name: "Dashboard reporting period" })
-      .getByRole("link", { name: "30 days" })
+      .getByRole("combobox", { name: "Dashboard reporting period" })
       .click();
+    await page.getByRole("option", { name: "Last 30 days" }).click();
     await expect(page).toHaveURL(
       new RegExp(`/app/${primarySlug}\\?range=30d$`),
     );
