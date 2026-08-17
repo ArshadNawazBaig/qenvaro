@@ -448,7 +448,7 @@ function SidebarContent({
                           "text-sidebar-foreground/62 hover:bg-accent hover:text-accent-foreground relative flex h-10 items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition-[color,background-color,box-shadow]",
                           active &&
                             "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-[0_9px_20px_oklch(0.55_0.245_272/0.2)]",
-                          collapsed && "justify-center px-2",
+                          collapsed && "mx-auto size-10 justify-center px-0",
                         )}
                       >
                         <item.icon className="size-[17px] shrink-0" />
