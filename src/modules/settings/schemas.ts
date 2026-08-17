@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { currencyCodes } from "@/config/currencies";
+
+const currencyCodeSchema = z.enum(currencyCodes);
 
 const idSchema = z
   .string()
@@ -29,11 +32,7 @@ export const businessSettingsSchema = z
     address: z.string().trim().max(500),
     locale: z.string().trim().min(2).max(35),
     timezone: timezoneSchema,
-    currency: z
-      .string()
-      .trim()
-      .length(3)
-      .transform((value) => value.toUpperCase()),
+    currency: currencyCodeSchema,
     expectedVersion: z.number().int().min(1),
   })
   .strict();

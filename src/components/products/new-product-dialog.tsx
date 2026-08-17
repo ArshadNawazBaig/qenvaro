@@ -27,12 +27,14 @@ const initialState: ProductActionState = { status: "idle", message: "" };
 
 export function NewProductDialog({
   tenantSlug,
+  currency,
   categories = [],
   tags = [],
   units = [],
   disabled = false,
 }: {
   tenantSlug: string;
+  currency: string;
   categories?: string[];
   tags?: TagOption[];
   units?: UnitOption[];
@@ -123,7 +125,7 @@ export function NewProductDialog({
               </span>
             </label>
             <label className="space-y-1.5 text-sm font-medium">
-              Price (USD)
+              Price ({currency})
               <Input
                 name="price"
                 inputMode="decimal"

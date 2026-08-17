@@ -1,4 +1,5 @@
 import "server-only";
+import { safeCurrency } from "@/config/currencies";
 import { hasPermission } from "@/modules/permissions/permissions";
 import {
   DASHBOARD_ACTIVITY_ACTIONS,
@@ -62,10 +63,6 @@ interface AuditDocument {
   action: string;
   summary?: string;
   createdAt: Date;
-}
-
-function safeCurrency(value: string): string {
-  return /^[A-Z]{3}$/.test(value) ? value : "USD";
 }
 
 function safeLocale(value: string): string {

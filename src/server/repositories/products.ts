@@ -1,5 +1,6 @@
 import "server-only";
 import type { Filter, Sort } from "mongodb";
+import { defaultCurrency, safeCurrency } from "@/config/currencies";
 import { requirePermission } from "@/modules/permissions/permissions";
 import { getDatabase } from "@/server/db/client";
 import type { TenantContext } from "@/server/tenancy/context";
@@ -288,62 +289,76 @@ export class ProductRepository {
   }> {
     requirePermission(context.permissions, "product:read");
     const database = await getDatabase();
-    const [result] = await database
-      .collection<ProductDocument>("products")
-      .aggregate<{
-        total: number;
-        active: number;
-        attention: number;
-        revenueMinor: number;
-        currency: string;
-      }>([
-        {
-          $match: { tenantId: context.tenantId, deletedAt: { $exists: false } },
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: 1 },
-            active: { $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] } },
-            attention: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $ne: ["$stock", null] },
-                      { $lte: ["$stock", "$reorderLevel"] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
+    const [[result], profile] = await Promise.all([
+      database
+        .collection<ProductDocument>("products")
+        .aggregate<{
+          total: number;
+          active: number;
+          attention: number;
+          revenueMinor: number;
+          currency: string;
+        }>([
+          {
+            $match: {
+              tenantId: context.tenantId,
+              deletedAt: { $exists: false },
             },
-            revenueMinor: { $sum: "$revenueMinor" },
-            currency: { $first: "$currency" },
           },
-        },
-        {
-          $project: {
-            _id: 0,
-            total: 1,
-            active: 1,
-            attention: 1,
-            revenueMinor: 1,
-            currency: 1,
+          {
+            $group: {
+              _id: null,
+              total: { $sum: 1 },
+              active: {
+                $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] },
+              },
+              attention: {
+                $sum: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $ne: ["$stock", null] },
+                        { $lte: ["$stock", "$reorderLevel"] },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              },
+              revenueMinor: { $sum: "$revenueMinor" },
+              currency: { $first: "$currency" },
+            },
           },
-        },
-      ])
-      .toArray();
-    return (
-      result ?? {
-        total: 0,
-        active: 0,
-        attention: 0,
-        revenueMinor: 0,
-        currency: "USD",
-      }
-    );
+          {
+            $project: {
+              _id: 0,
+              total: 1,
+              active: 1,
+              attention: 1,
+              revenueMinor: 1,
+              currency: 1,
+            },
+          },
+        ])
+        .toArray(),
+      database
+        .collection<{ currency?: string }>("tenantProfiles")
+        .findOne(
+          { tenantId: context.tenantId },
+          { projection: { currency: 1 } },
+        ),
+    ]);
+    const currency = safeCurrency(profile?.currency ?? defaultCurrency);
+    return result
+      ? { ...result, currency }
+      : {
+          total: 0,
+          active: 0,
+          attention: 0,
+          revenueMinor: 0,
+          currency,
+        };
   }
 
   async detail(

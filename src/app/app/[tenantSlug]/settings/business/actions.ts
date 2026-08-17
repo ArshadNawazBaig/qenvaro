@@ -54,7 +54,7 @@ function failure(error: unknown): SettingsActionState {
 }
 
 function refresh(tenantSlug: string) {
-  revalidatePath(`/app/${tenantSlug}`);
+  revalidatePath(`/app/${tenantSlug}`, "layout");
   revalidatePath(`/app/${tenantSlug}/settings/business`);
   revalidatePath(`/app/${tenantSlug}/settings/stores`);
   revalidatePath(`/app/${tenantSlug}/settings/security`);

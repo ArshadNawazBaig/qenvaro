@@ -1,4 +1,5 @@
 import "server-only";
+import { safeCurrency } from "@/config/currencies";
 import { requirePermission } from "@/modules/permissions/permissions";
 import {
   type SaleCatalogQuery,
@@ -80,10 +81,6 @@ interface ReceiptPaymentDocument {
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function safeCurrency(value: string): string {
-  return /^[A-Z]{3}$/.test(value) ? value : "USD";
 }
 
 function safeLocale(value: string): string {

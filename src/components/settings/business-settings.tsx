@@ -21,7 +21,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { currencyOptions } from "@/config/currencies";
 import type { TenantSettingsProjection } from "@/modules/settings/schemas";
 
 function useSettingsAction(state: typeof settingsInitialState) {
@@ -140,15 +142,17 @@ export function BusinessSettings({
             </label>
             <label className="space-y-1.5 text-sm font-medium">
               Currency
-              <Input
+              <SelectField
+                ariaLabel="Currency"
                 name="currency"
                 required
-                minLength={3}
-                maxLength={3}
                 defaultValue={settings.currency}
                 disabled={disabled}
-                className="uppercase"
+                options={currencyOptions}
               />
+              <span className="text-muted-foreground block text-xs font-normal">
+                Used for catalog prices and all new financial activity.
+              </span>
             </label>
             <div className="sm:col-span-2">
               <SettingsActionMessage state={businessState} />

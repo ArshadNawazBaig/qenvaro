@@ -166,6 +166,7 @@ export default async function ProductsPage({
           <>
             <NewProductDialog
               tenantSlug={tenantSlug}
+              currency={metrics.currency}
               categories={categories}
               tags={tags}
               units={units}

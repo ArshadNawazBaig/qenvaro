@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { currencyCodes } from "@/config/currencies";
+
+const currencyCodeSchema = z.enum(currencyCodes);
 
 export const selfServePlanKeySchema = z.enum(["starter", "growth", "business"]);
 
@@ -29,7 +32,7 @@ export const onboardingSchema = z.object({
         ),
     ),
   planKey: selfServePlanKeySchema,
-  currency: z.enum(["USD", "PKR", "GBP", "EUR", "AED"]),
+  currency: currencyCodeSchema,
   locale: z.enum(["en-US", "en-GB", "ur-PK"]),
   timezone: z
     .string()

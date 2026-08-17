@@ -127,6 +127,52 @@ async function audit(
   );
 }
 
+async function updateCatalogCurrency(
+  database: Db,
+  context: TenantContext,
+  session: ClientSession,
+  currency: string,
+) {
+  const financialCollections = [
+    "sales",
+    "returns",
+    "purchaseOrders",
+    "expenses",
+    "payrollRuns",
+  ] as const;
+  const existingFinancialRecord = await Promise.all(
+    financialCollections.map((collection) =>
+      database
+        .collection(collection)
+        .findOne(
+          { tenantId: context.tenantId },
+          { projection: { _id: 1 }, session },
+        ),
+    ),
+  );
+  if (existingFinancialRecord.some(Boolean))
+    throw new SettingsDomainError(
+      "Currency cannot be changed after financial transactions exist. A controlled currency migration is required.",
+    );
+
+  await Promise.all([
+    database
+      .collection("products")
+      .updateMany(
+        { tenantId: context.tenantId },
+        { $set: { currency, updatedAt: new Date() } },
+        { session },
+      ),
+    database
+      .collection("productVariants")
+      .updateMany(
+        { tenantId: context.tenantId },
+        { $set: { currency, updatedAt: new Date() } },
+        { session },
+      ),
+  ]);
+}
+
 async function incrementStoreUsage(
   database: Db,
   session: ClientSession,
@@ -177,6 +223,13 @@ export class TenantSettingsService {
         const profile = await requireWriteProfile(database, context, session);
         if ((profile.version ?? 1) !== input.expectedVersion)
           throw new SettingsConflictError();
+        if (profile.currency !== input.currency)
+          await updateCatalogCurrency(
+            database,
+            context,
+            session,
+            input.currency,
+          );
         const update = await database
           .collection<ProfileDocument>("tenantProfiles")
           .updateOne(

@@ -134,6 +134,20 @@ describe.skipIf(!enabled)(
           createdAt: now,
         },
       ]);
+      await database.collection<StringDocument>("products").insertOne({
+        _id: `product_settings_${suffix}`,
+        tenantId,
+        currency: "PKR",
+        createdAt: now,
+        updatedAt: now,
+      });
+      await database.collection<StringDocument>("productVariants").insertOne({
+        _id: `variant_settings_${suffix}`,
+        tenantId,
+        currency: "PKR",
+        createdAt: now,
+        updatedAt: now,
+      });
       await database.collection<StringDocument>("member").insertOne({
         _id: memberId,
         organizationId: tenantId,
@@ -159,6 +173,9 @@ describe.skipIf(!enabled)(
         "memberCustomRoleAssignments",
         "notificationReads",
         "notifications",
+        "products",
+        "productVariants",
+        "sales",
         "stores",
         "tenantDataRequests",
         "usageCounters",
@@ -205,7 +222,7 @@ describe.skipIf(!enabled)(
         address: "Private business address",
         locale: "en-PK",
         timezone: "Asia/Karachi",
-        currency: "PKR",
+        currency: "AED",
         expectedVersion: 1,
       });
       await service.updateOperations(context, {
@@ -233,20 +250,24 @@ describe.skipIf(!enabled)(
         type: "export",
         confirmation: "REQUEST EXPORT",
       });
-      const [profile, counter, store, request] = await Promise.all([
-        database.collection("tenantProfiles").findOne({ tenantId }),
-        database
-          .collection<StringDocument>("usageCounters")
-          .findOne({ _id: `${tenantId}:stores` }),
-        database
-          .collection<StringDocument>("stores")
-          .findOne({ _id: createdStoreId, tenantId }),
-        database
-          .collection("tenantDataRequests")
-          .findOne({ tenantId, type: "export" }),
-      ]);
+      const [profile, product, variant, counter, store, request] =
+        await Promise.all([
+          database.collection("tenantProfiles").findOne({ tenantId }),
+          database.collection("products").findOne({ tenantId }),
+          database.collection("productVariants").findOne({ tenantId }),
+          database
+            .collection<StringDocument>("usageCounters")
+            .findOne({ _id: `${tenantId}:stores` }),
+          database
+            .collection<StringDocument>("stores")
+            .findOne({ _id: createdStoreId, tenantId }),
+          database
+            .collection("tenantDataRequests")
+            .findOne({ tenantId, type: "export" }),
+        ]);
       expect(profile).toMatchObject({
         businessName: "Updated Settings Integration",
+        currency: "AED",
         version: 2,
         operationSettings: {
           defaultTaxRateBps: 1_800,
@@ -254,6 +275,8 @@ describe.skipIf(!enabled)(
           version: 2,
         },
       });
+      expect(product).toMatchObject({ currency: "AED" });
+      expect(variant).toMatchObject({ currency: "AED" });
       expect(counter).toMatchObject({ value: 2 });
       expect(store).toMatchObject({ status: "archived", version: 2 });
       expect(request).toMatchObject({ status: "requested" });
@@ -267,6 +290,37 @@ describe.skipIf(!enabled)(
         "Confidential Legal Entity",
       ])
         expect(auditText).not.toContain(secret);
+    });
+
+    it("prevents an existing financial history from being relabeled", async () => {
+      const saleId = `sale_settings_${suffix}`;
+      await database.collection<StringDocument>("sales").insertOne({
+        _id: saleId,
+        tenantId,
+        currency: "AED",
+        totalMinor: 10_000,
+        completedAt: new Date(),
+      });
+      const service = new TenantSettingsService();
+      await expect(
+        service.updateBusiness(context, {
+          businessName: "Updated Settings Integration",
+          legalName: "Confidential Legal Entity",
+          supportEmail: "private-new@example.test",
+          phone: "+92 300 000 0000",
+          address: "Private business address",
+          locale: "en-PK",
+          timezone: "Asia/Karachi",
+          currency: "USD",
+          expectedVersion: 2,
+        }),
+      ).rejects.toThrow("controlled currency migration");
+      expect(
+        await database.collection("tenantProfiles").findOne({ tenantId }),
+      ).toMatchObject({ currency: "AED", version: 2 });
+      await database
+        .collection<StringDocument>("sales")
+        .deleteOne({ _id: saleId, tenantId });
     });
 
     it("creates and assigns a plan-gated custom role without protected capabilities", async () => {

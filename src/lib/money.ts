@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { defaultCurrency } from "@/config/currencies";
 
 export const moneySchema = z.object({
   amountMinor: z.int().safe(),
@@ -16,8 +17,8 @@ export function formatMoney(money: Money, locale = "en-US"): string {
 }
 
 export function addMoney(values: readonly Money[]): Money {
-  if (values.length === 0) return { amountMinor: 0, currency: "USD" };
-  const currency = values[0]?.currency ?? "USD";
+  if (values.length === 0) return { amountMinor: 0, currency: defaultCurrency };
+  const currency = values[0]?.currency ?? defaultCurrency;
   if (values.some((value) => value.currency !== currency)) {
     throw new Error("Cannot add monetary values with different currencies.");
   }

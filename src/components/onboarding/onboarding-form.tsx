@@ -7,6 +7,7 @@ import {
   type OnboardingActionState,
 } from "@/app/onboarding/actions";
 import { Button } from "@/components/ui/button";
+import { currencyOptions, defaultCurrency } from "@/config/currencies";
 import { Input } from "@/components/ui/input";
 import { SelectField } from "@/components/ui/select";
 import { plans } from "@/config/plans";
@@ -116,14 +117,8 @@ export function OnboardingForm() {
             <SelectField
               ariaLabel="Currency"
               name="currency"
-              defaultValue="USD"
-              options={[
-                { value: "USD", label: "USD — US Dollar" },
-                { value: "PKR", label: "PKR — Pakistani Rupee" },
-                { value: "GBP", label: "GBP — British Pound" },
-                { value: "EUR", label: "EUR — Euro" },
-                { value: "AED", label: "AED — UAE Dirham" },
-              ]}
+              defaultValue={defaultCurrency}
+              options={currencyOptions}
             />
             <FieldError errors={state.fieldErrors?.currency} />
           </label>

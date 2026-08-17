@@ -1,5 +1,6 @@
 import "server-only";
 import type { Filter } from "mongodb";
+import { safeCurrency } from "@/config/currencies";
 import { requirePermission } from "@/modules/permissions/permissions";
 import {
   projectReturnableSaleLines,
@@ -87,10 +88,6 @@ interface RefundDocument {
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function safeCurrency(value: string): string {
-  return /^[A-Z]{3}$/.test(value) ? value : "USD";
 }
 
 function safeLocale(value: string): string {

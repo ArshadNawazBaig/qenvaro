@@ -1,5 +1,6 @@
 import "server-only";
 import type { Document, Filter } from "mongodb";
+import { safeCurrency } from "@/config/currencies";
 import { requirePermission } from "@/modules/permissions/permissions";
 import {
   buildMethodMix,
@@ -108,10 +109,6 @@ interface TransactionFacetResult {
     occurredAt: Date;
   }>;
   total: Array<{ count: number }>;
-}
-
-function safeCurrency(value: string): string {
-  return /^[A-Z]{3}$/.test(value) ? value : "USD";
 }
 
 function safeLocale(value: string): string {
